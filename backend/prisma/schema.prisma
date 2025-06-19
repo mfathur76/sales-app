@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Outlet {
+  id       String @id @default(cuid())
+  code     String @unique
+  name     String
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to sales
+  sales OutletSale[]
+}
+
+model OutletSale {
+  outlet      String
+  date        DateTime
+  cash        Float    @default(0)
+  qris        Float    @default(0)
+  gojek       Float    @default(0)
+  shopee      Float    @default(0)
+  grab        Float    @default(0)
+  totalSales  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relation to outlet
+  outletRef Outlet @relation(fields: [outlet], references: [code])
+
+  @@id([outlet, date])
+  @@map("outlet_sales")
+}
