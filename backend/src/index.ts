@@ -47,12 +47,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start server
-app.listen(PORT, async () => {
+app.listen(Number(PORT), '0.0.0.0', async () => {
   await initializeApp();
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
-  console.log(`💰 Sales endpoints: http://localhost:${PORT}/api/sales`);
+  console.log(`📊 Health check: http://0.0.0.0:${PORT}/api/health`);
+  console.log(`🔐 Auth endpoints: http://0.0.0.0:${PORT}/api/auth`);
+  console.log(`💰 Sales endpoints: http://0.0.0.0:${PORT}/api/sales`);
+  console.log(`🌐 Accessible from: http://192.168.1.22:${PORT}`);
 });
 
 // Graceful shutdown
