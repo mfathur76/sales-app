@@ -3,6 +3,7 @@ import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { salesRouter } from './routes/sales';
 import authRoutes from './routes/auth';
+import adminRoutes from './routes/admin';
 import { AuthService } from './services/authService';
 
 const app = express();
@@ -27,6 +28,7 @@ async function initializeApp() {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sales', salesRouter);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

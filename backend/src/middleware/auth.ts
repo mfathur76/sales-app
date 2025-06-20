@@ -6,8 +6,11 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        outlet: string;
+        outlet?: string;
         name: string;
+        username?: string;
+        role?: string;
+        type?: 'outlet' | 'admin';
       };
     }
   }
@@ -27,8 +30,25 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { outlet: string; name: string };
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    // Handle both outlet and admin users
+    if (decoded.type === 'admin') {
+      req.user = {
+        username: decoded.username,
+        name: decoded.name,
+        role: decoded.role,
+        type: 'admin'
+      };
+    } else {
+      // Legacy outlet user
+      req.user = {
+        outlet: decoded.outlet,
+        name: decoded.name,
+        type: 'outlet'
+      };
+    }
+    
     next();
   } catch (error) {
     return res.status(403).json({ 
