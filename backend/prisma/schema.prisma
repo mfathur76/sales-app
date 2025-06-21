@@ -32,16 +32,14 @@ model OutletSale {
   grab        Float    @default(0)
   totalSales  Float    @default(0)
   
-  // Bank transfer amounts (input by admin)
-  cashBank    Float    @default(0)
+  // Bank transfer amounts (input by admin) - only for digital payments
   qrisBank    Float    @default(0)
   gojekBank   Float    @default(0)
   shopeeBank  Float    @default(0)
   grabBank    Float    @default(0)
   totalBank   Float    @default(0)
   
-  // Percentage calculations (auto-calculated)
-  cashPercent    Float    @default(0)
+  // Percentage calculations (auto-calculated) - only for digital payments
   qrisPercent    Float    @default(0)
   gojekPercent   Float    @default(0)
   shopeePercent  Float    @default(0)
@@ -58,7 +56,7 @@ model OutletSale {
   updatedAt   DateTime @updatedAt
 
   // Relation to outlet
-  outletRef Outlet @relation(fields: [outlet], references: [code])
+  outletRef Outlet? @relation(fields: [outlet], references: [code])
   
   // Relation to admin who verified
   verifiedByRef Admin? @relation("VerifiedByAdmin", fields: [verifiedBy], references: [username])

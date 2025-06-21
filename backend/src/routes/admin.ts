@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { AdminService } from '../services/adminService';
+import { OutletSalesService } from '../services/salesService';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -123,6 +124,143 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create admin'
     });
+  }
+});
+
+// Admin sales routes
+// GET /api/admin/test - Test route
+router.get('/test', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 Admin Test Route - req.user:', req.user);
+    console.log('🔍 Admin Test Route - req.user.type:', req.user?.type);
+    
+    res.json({ 
+      success: true, 
+      message: 'Admin test route working',
+      user: req.user 
+    });
+  } catch (error) {
+    console.error('Error in admin test route:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/admin/sales - Get all sales for admin
+router.get('/sales', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 Admin Sales Route - req.user:', req.user);
+    console.log('🔍 Admin Sales Route - req.user.type:', req.user?.type);
+    
+    // Check if user is admin
+    if (!req.user || req.user.type !== 'admin') {
+      console.log('🔍 Admin Sales Route - Access denied. User:', req.user);
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    console.log('🔍 Admin Sales Route - Admin access granted');
+    const { start_date, end_date, outlet } = req.query;
+    const filters = {
+      start_date: start_date as string,
+      end_date: end_date as string,
+      outlet: outlet as string
+    };
+
+    const sales = await OutletSalesService.getAllOutletSalesForAdmin(filters);
+    res.json(sales);
+  } catch (error) {
+    console.error('Error fetching admin sales:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /api/admin/sales/:outlet/:date/bank-transfer - Update bank transfer amounts
+router.put('/sales/:outlet/:date/bank-transfer', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    // Check if user is admin
+    if (!req.user || req.user.type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    const { outlet, date } = req.params;
+    const { qrisBank, gojekBank, shopeeBank, grabBank, notes } = req.body;
+
+    // Validate required fields (only digital payments need bank transfer)
+    if (qrisBank === undefined || gojekBank === undefined || 
+        shopeeBank === undefined || grabBank === undefined) {
+      return res.status(400).json({ error: 'All digital payment bank transfer amounts are required' });
+    }
+
+    const bankData = {
+      qrisBank: Number(qrisBank),
+      gojekBank: Number(gojekBank),
+      shopeeBank: Number(shopeeBank),
+      grabBank: Number(grabBank),
+      notes
+    };
+
+    const updatedSale = await OutletSalesService.updateBankTransferAmounts(
+      outlet,
+      date,
+      bankData,
+      req.user.username || ''
+    );
+
+    res.json(updatedSale);
+  } catch (error) {
+    console.error('Error updating bank transfer amounts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /api/admin/sales/:outlet/:date/status - Update sale status
+router.put('/sales/:outlet/:date/status', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    // Check if user is admin
+    if (!req.user || req.user.type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    const { outlet, date } = req.params;
+    const { status, notes } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be either "approved" or "rejected"' });
+    }
+
+    const updatedSale = await OutletSalesService.updateSaleStatus(
+      outlet,
+      date,
+      status,
+      notes
+    );
+
+    res.json(updatedSale);
+  } catch (error) {
+    console.error('Error updating sale status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/admin/stats - Get admin statistics
+router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    // Check if user is admin
+    if (!req.user || req.user.type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    const { start_date, end_date, outlet } = req.query;
+    const filters = {
+      start_date: start_date as string,
+      end_date: end_date as string,
+      outlet: outlet as string
+    };
+
+    const stats = await OutletSalesService.getAdminSalesStats(filters);
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching admin stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -265,4 +265,242 @@ export class OutletSalesService {
 
     return outlets.map(item => item.outlet);
   }
+
+  // Get all outlet sales records (for admin - all outlets)
+  static async getAllOutletSalesForAdmin(filters: OutletSaleFilters = {}) {
+    try {
+      const whereClause: any = {};
+      
+      if (filters.start_date) {
+        whereClause.date = {
+          gte: new Date(filters.start_date)
+        };
+      }
+      
+      if (filters.end_date) {
+        whereClause.date = {
+          ...whereClause.date,
+          lte: new Date(filters.end_date)
+        };
+      }
+      
+      if (filters.outlet) {
+        whereClause.outlet = filters.outlet;
+      }
+
+      const sales = await prisma.outletSale.findMany({
+        where: whereClause,
+        include: {
+          outletRef: {
+            select: {
+              code: true,
+              name: true
+            }
+          },
+          verifiedByRef: {
+            select: {
+              username: true,
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          date: 'desc'
+        }
+      });
+
+      return sales;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Update bank transfer amounts and calculate percentages
+  static async updateBankTransferAmounts(
+    outlet: string, 
+    date: string, 
+    bankData: {
+      qrisBank: number;
+      gojekBank: number;
+      shopeeBank: number;
+      grabBank: number;
+      notes?: string;
+    },
+    verifiedBy: string
+  ) {
+    try {
+      // Get current sale data
+      const sale = await prisma.outletSale.findUnique({
+        where: {
+          outlet_date: {
+            outlet,
+            date: new Date(date)
+          }
+        }
+      });
+
+      if (!sale) {
+        throw new Error('Sale record not found');
+      }
+
+      // Calculate percentages for digital payments only
+      const qrisPercent = sale.qris > 0 ? (bankData.qrisBank / sale.qris) * 100 : 0;
+      const gojekPercent = sale.gojek > 0 ? (bankData.gojekBank / sale.gojek) * 100 : 0;
+      const shopeePercent = sale.shopee > 0 ? (bankData.shopeeBank / sale.shopee) * 100 : 0;
+      const grabPercent = sale.grab > 0 ? (bankData.grabBank / sale.grab) * 100 : 0;
+
+      // Calculate total digital sales and total bank transfer
+      const totalDigitalSales = sale.qris + sale.gojek + sale.shopee + sale.grab;
+      const totalBank = bankData.qrisBank + bankData.gojekBank + bankData.shopeeBank + bankData.grabBank;
+      
+      // Calculate overall percentage based on digital sales only
+      const overallPercent = totalDigitalSales > 0 ? (totalBank / totalDigitalSales) * 100 : 0;
+
+      // Update sale with bank data
+      const updatedSale = await prisma.outletSale.update({
+        where: {
+          outlet_date: {
+            outlet,
+            date: new Date(date)
+          }
+        },
+        data: {
+          qrisBank: bankData.qrisBank,
+          gojekBank: bankData.gojekBank,
+          shopeeBank: bankData.shopeeBank,
+          grabBank: bankData.grabBank,
+          totalBank,
+          qrisPercent,
+          gojekPercent,
+          shopeePercent,
+          grabPercent,
+          overallPercent,
+          status: 'verified',
+          verifiedBy,
+          verifiedAt: new Date(),
+          notes: bankData.notes
+        },
+        include: {
+          outletRef: {
+            select: {
+              code: true,
+              name: true
+            }
+          },
+          verifiedByRef: {
+            select: {
+              username: true,
+              name: true
+            }
+          }
+        }
+      });
+
+      return updatedSale;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Approve or reject sale
+  static async updateSaleStatus(
+    outlet: string,
+    date: string,
+    status: 'approved' | 'rejected',
+    notes?: string
+  ) {
+    try {
+      const updatedSale = await prisma.outletSale.update({
+        where: {
+          outlet_date: {
+            outlet,
+            date: new Date(date)
+          }
+        },
+        data: {
+          status,
+          notes: notes || undefined
+        },
+        include: {
+          outletRef: {
+            select: {
+              code: true,
+              name: true
+            }
+          },
+          verifiedByRef: {
+            select: {
+              username: true,
+              name: true
+            }
+          }
+        }
+      });
+
+      return updatedSale;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get sales statistics for admin
+  static async getAdminSalesStats(filters: OutletSaleFilters = {}) {
+    try {
+      const whereClause: any = {};
+      
+      if (filters.start_date) {
+        whereClause.date = {
+          gte: new Date(filters.start_date)
+        };
+      }
+      
+      if (filters.end_date) {
+        whereClause.date = {
+          ...whereClause.date,
+          lte: new Date(filters.end_date)
+        };
+      }
+      
+      if (filters.outlet) {
+        whereClause.outlet = filters.outlet;
+      }
+
+      const sales = await prisma.outletSale.findMany({
+        where: whereClause,
+        include: {
+          outletRef: {
+            select: {
+              code: true,
+              name: true
+            }
+          }
+        }
+      });
+
+      // Calculate statistics
+      const totalSales = sales.length;
+      const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalSales, 0);
+      const totalBankTransfer = sales.reduce((sum, sale) => sum + sale.totalBank, 0);
+      const averageRealization = totalRevenue > 0 ? (totalBankTransfer / totalRevenue) * 100 : 0;
+
+      const pendingCount = sales.filter(sale => sale.status === 'pending').length;
+      const verifiedCount = sales.filter(sale => sale.status === 'verified').length;
+      const approvedCount = sales.filter(sale => sale.status === 'approved').length;
+      const rejectedCount = sales.filter(sale => sale.status === 'rejected').length;
+
+      return {
+        totalSales,
+        totalRevenue,
+        totalBankTransfer,
+        averageRealization,
+        pendingCount,
+        verifiedCount,
+        approvedCount,
+        rejectedCount,
+        sales
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 } 
