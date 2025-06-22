@@ -5,6 +5,11 @@ const getApiBaseUrl = () => {
   
   console.log('🔍 getApiBaseUrl - hostname:', hostname);
   console.log('🔍 getApiBaseUrl - protocol:', protocol);
+  console.log('🔍 getApiBaseUrl - full location:', window.location.href);
+  
+  // Force cache refresh with timestamp
+  const timestamp = Date.now();
+  console.log('🔍 getApiBaseUrl - timestamp:', timestamp);
   
   // Check if we're in production (deployed on DO)
   if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
@@ -22,6 +27,7 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 console.log('🔍 API_BASE_URL set to:', API_BASE_URL);
+console.log('🔍 Current time:', new Date().toISOString());
 
 // Helper function to log debug info persistently
 const debugLog = (message, data = null) => {
