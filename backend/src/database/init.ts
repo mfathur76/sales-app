@@ -29,7 +29,7 @@ export function initializeDatabase(): void {
     )
   `;
 
-  db.run(createTableSQL, (err) => {
+  db.run(createTableSQL, (err: Error | null) => {
     if (err) {
       console.error('Error creating table:', err);
     } else {
@@ -46,7 +46,7 @@ export function initializeDatabase(): void {
     END
   `;
 
-  db.run(createTriggerSQL, (err) => {
+  db.run(createTriggerSQL, (err: Error | null) => {
     if (err) {
       console.error('Error creating trigger:', err);
     } else {
@@ -65,7 +65,7 @@ export function initializeDatabase(): void {
     END
   `;
 
-  db.run(createTotalTriggerSQL, (err) => {
+  db.run(createTotalTriggerSQL, (err: Error | null) => {
     if (err) {
       console.error('Error creating total trigger:', err);
     } else {
@@ -84,7 +84,7 @@ export function initializeDatabase(): void {
     END
   `;
 
-  db.run(createUpdateTotalTriggerSQL, (err) => {
+  db.run(createUpdateTotalTriggerSQL, (err: Error | null) => {
     if (err) {
       console.error('Error creating update total trigger:', err);
     } else {
