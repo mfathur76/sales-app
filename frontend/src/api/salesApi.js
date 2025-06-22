@@ -26,12 +26,18 @@ const getApiBaseUrl = () => {
   return apiUrl;
 };
 
-// Force API URL for production
+// Force API URL for production with domain support
 const forceApiBaseUrl = () => {
   const hostname = window.location.hostname;
+  
+  // Check for specific domains
+  if (hostname === 'sales.risolmejik.com') {
+    return 'https://sales.risolmejik.com/api';
+  }
   if (hostname === '152.42.232.39') {
     return 'http://152.42.232.39/api';
   }
+  
   return getApiBaseUrl();
 };
 
