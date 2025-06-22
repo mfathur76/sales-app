@@ -1,5 +1,10 @@
 // Get the current hostname and use it for API calls
 const getApiBaseUrl = () => {
+  // Check if we're in production (deployed on DO)
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // Use the same hostname for API calls in production
+    return `${window.location.protocol}//${window.location.hostname}/api`;
+  }
   // Use localhost for development
   return 'http://localhost:3001/api';
 };
@@ -127,28 +132,41 @@ const makeAuthenticatedRequest = async (url, options = {}) => {
 export const authApi = {
   // Login outlet
   login: async (outlet, password) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ outlet, password }),
-    });
-
-    const data = await response.json();
+    debugLog('login - Starting login process', { outlet, password: '***' });
+    debugLog('login - API URL', `${API_BASE_URL}/auth/login`);
     
-    if (data.success && data.data) {
-      // Store user data with token
-      const userData = {
-        outlet: data.data.outlet,
-        name: data.data.name,
-        token: data.data.token,
-        isAuthenticated: true
-      };
-      localStorage.setItem('userData', JSON.stringify(userData));
-    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ outlet, password }),
+      });
 
-    return data;
+      debugLog('login - Response status', response.status);
+      debugLog('login - Response headers', Object.fromEntries(response.headers.entries()));
+
+      const data = await response.json();
+      debugLog('login - Response data', data);
+      
+      if (data.success && data.data) {
+        // Store user data with token
+        const userData = {
+          outlet: data.data.outlet,
+          name: data.data.name,
+          token: data.data.token,
+          isAuthenticated: true
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+        debugLog('login - User data stored', userData);
+      }
+
+      return data;
+    } catch (error) {
+      debugLog('login - Fetch error', error.message);
+      throw error;
+    }
   },
 
   // Get all outlets (for admin)
