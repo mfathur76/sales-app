@@ -1,15 +1,27 @@
 // Get the current hostname and use it for API calls
 const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  
+  console.log('🔍 getApiBaseUrl - hostname:', hostname);
+  console.log('🔍 getApiBaseUrl - protocol:', protocol);
+  
   // Check if we're in production (deployed on DO)
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
     // Use the same hostname for API calls in production
-    return `${window.location.protocol}//${window.location.hostname}/api`;
+    const apiUrl = `${protocol}//${hostname}/api`;
+    console.log('🔍 getApiBaseUrl - Production API URL:', apiUrl);
+    return apiUrl;
   }
+  
   // Use localhost for development
-  return 'http://localhost:3001/api';
+  const apiUrl = 'http://localhost:3001/api';
+  console.log('🔍 getApiBaseUrl - Development API URL:', apiUrl);
+  return apiUrl;
 };
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('🔍 API_BASE_URL set to:', API_BASE_URL);
 
 // Helper function to log debug info persistently
 const debugLog = (message, data = null) => {
