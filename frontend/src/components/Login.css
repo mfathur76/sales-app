@@ -1,0 +1,385 @@
+/* Mobile Login Styles */
+.mobile-login {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background */
+.login-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: -2;
+}
+
+.login-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: -1;
+}
+
+/* Content */
+.login-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 1;
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.login-logo {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.login-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.login-header p {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Login Card */
+.login-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.5s ease-out;
+}
+
+.login-card h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* Form */
+.login-form {
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+.outlet-select,
+.password-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #f9fafb;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.outlet-select:focus,
+.password-input:focus {
+  outline: none;
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.outlet-select:disabled,
+.password-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.outlet-select option {
+  padding: 8px;
+  background: white;
+  color: #374151;
+}
+
+/* Login Button */
+.login-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Error Message */
+.login-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Help Section */
+.login-help {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 20px;
+}
+
+.help-section {
+  margin-bottom: 20px;
+}
+
+.help-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.help-section p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.password-info h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.password-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.password-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.outlet-code {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.outlet-password {
+  font-size: 0.875rem;
+  color: #059669;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .login-content {
+    padding: 16px;
+  }
+  
+  .login-header {
+    margin-bottom: 24px;
+  }
+  
+  .login-logo {
+    font-size: 3rem;
+    margin-bottom: 12px;
+  }
+  
+  .login-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .login-header p {
+    font-size: 1rem;
+  }
+  
+  .login-card {
+    padding: 24px;
+    border-radius: 16px;
+  }
+  
+  .login-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .outlet-select,
+  .password-input {
+    padding: 14px;
+    font-size: 0.875rem;
+  }
+  
+  .login-btn {
+    padding: 14px;
+    font-size: 1rem;
+  }
+  
+  .help-section {
+    margin-bottom: 16px;
+  }
+  
+  .password-list {
+    gap: 6px;
+  }
+  
+  .password-item {
+    padding: 6px 10px;
+  }
+  
+  .outlet-code,
+  .outlet-password {
+    font-size: 0.8rem;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  .outlet-select,
+  .password-input,
+  .login-btn {
+    min-height: 48px;
+  }
+  
+  .password-item {
+    min-height: 44px;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .login-content {
+    padding: 12px;
+  }
+  
+  .login-header {
+    margin-bottom: 16px;
+  }
+  
+  .login-logo {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+  }
+  
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .login-header p {
+    font-size: 0.875rem;
+  }
+  
+  .login-card {
+    padding: 20px;
+  }
+  
+  .login-card h2 {
+    font-size: 1.125rem;
+    margin-bottom: 16px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .outlet-select,
+  .password-input {
+    padding: 12px;
+  }
+  
+  .login-btn {
+    padding: 12px;
+  }
+  
+  .help-section {
+    margin-bottom: 12px;
+  }
+  
+  .password-list {
+    gap: 4px;
+  }
+  
+  .password-item {
+    padding: 4px 8px;
+  }
+} 
