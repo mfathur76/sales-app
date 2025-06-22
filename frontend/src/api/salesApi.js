@@ -16,6 +16,7 @@ const getApiBaseUrl = () => {
     // Use the same hostname for API calls in production
     const apiUrl = `${protocol}//${hostname}/api`;
     console.log('🔍 getApiBaseUrl - Production API URL:', apiUrl);
+    console.log('🔍 getApiBaseUrl - FORCING PRODUCTION URL');
     return apiUrl;
   }
   
@@ -25,9 +26,19 @@ const getApiBaseUrl = () => {
   return apiUrl;
 };
 
-const API_BASE_URL = getApiBaseUrl();
+// Force API URL for production
+const forceApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  if (hostname === '152.42.232.39') {
+    return 'http://152.42.232.39/api';
+  }
+  return getApiBaseUrl();
+};
+
+const API_BASE_URL = forceApiBaseUrl();
 console.log('🔍 API_BASE_URL set to:', API_BASE_URL);
 console.log('🔍 Current time:', new Date().toISOString());
+console.log('🔍 FORCED API URL:', API_BASE_URL);
 
 // Helper function to log debug info persistently
 const debugLog = (message, data = null) => {
