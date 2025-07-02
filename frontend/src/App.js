@@ -48,7 +48,6 @@ const QuickInputForm = ({ user }) => {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [activePayment, setActivePayment] = useState('cash');
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
@@ -128,6 +127,27 @@ const QuickInputForm = ({ user }) => {
     setSale(prev => ({ ...prev, [method]: parseFloat(value) || 0 }));
   };
 
+  const getDisplayValue = (method) => {
+    const value = sale[method];
+    return value === 0 ? '' : value.toString();
+  };
+
+  const getDisplayAmount = (method) => {
+    const value = sale[method];
+    return value === 0 ? 'Rp 0' : formatCurrency(value);
+  };
+
+  const handleInputFocus = (e) => {
+    // Select all text when focusing on input
+    e.target.select();
+  };
+
+  const handleInputBlur = (method, value) => {
+    // Ensure the value is properly formatted when leaving the field
+    const numValue = parseFloat(value) || 0;
+    setSale(prev => ({ ...prev, [method]: numValue }));
+  };
+
   const paymentMethods = [
     { key: 'cash', icon: '💵', label: 'Cash', color: '#10B981' },
     { key: 'qris', icon: '📱', label: 'QRIS', color: '#3B82F6' },
@@ -166,97 +186,44 @@ const QuickInputForm = ({ user }) => {
         />
       </div>
 
-      {/* Payment Methods */}
+      {/* Simplified Payment Input */}
       <div className="payment-methods">
         <h3>💳 Input Pembayaran</h3>
         
-        {/* Payment Tabs */}
-        <div className="payment-tabs">
+        <div className="payment-inputs-grid">
           {paymentMethods.map((method) => (
-            <button
-              key={method.key}
-              className={`payment-tab ${activePayment === method.key ? 'active' : ''}`}
-              onClick={() => setActivePayment(method.key)}
-              style={{ '--tab-color': method.color }}
-            >
-              <span className="tab-icon">{method.icon}</span>
-              <span className="tab-label">{method.label}</span>
-            </button>
+            <div key={method.key} className="payment-input-item">
+              <div className="payment-input-header">
+                <span className="payment-icon">{method.icon}</span>
+                <span className="payment-label">{method.label}</span>
+              </div>
+              <div className="payment-input-wrapper">
+                <span className="currency-symbol">Rp</span>
+                                  <input
+                    type="number"
+                    value={getDisplayValue(method.key)}
+                    onChange={(e) => handlePaymentChange(method.key, e.target.value)}
+                    placeholder="Masukkan jumlah"
+                    className="payment-input-field"
+                    disabled={loading}
+                    onFocus={handleInputFocus}
+                    onBlur={(e) => handleInputBlur(method.key, e.target.value)}
+                  />
+              </div>
+              <div className="payment-amount-display">
+                {getDisplayAmount(method.key)}
+              </div>
+            </div>
           ))}
-        </div>
-
-        {/* Active Payment Input */}
-        <div className="payment-input-section">
-          <div className="payment-input-card">
-            <div className="input-header">
-              <span className="input-icon">{paymentMethods.find(m => m.key === activePayment)?.icon}</span>
-              <span className="input-label">{paymentMethods.find(m => m.key === activePayment)?.label}</span>
-            </div>
-            <div className="amount-input">
-              <span className="currency-symbol">Rp</span>
-              <input
-                type="number"
-                value={sale[activePayment]}
-                onChange={(e) => handlePaymentChange(activePayment, e.target.value)}
-                placeholder="0"
-                className="amount-field"
-                disabled={loading}
-              />
-            </div>
-            <div className="amount-display">
-              {formatCurrency(sale[activePayment])}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Amount Buttons */}
-        <div className="quick-amounts">
-          <button 
-            onClick={() => handlePaymentChange(activePayment, sale[activePayment] + 10000)}
-            className="quick-amount-btn"
-            disabled={loading}
-          >
-            +10K
-          </button>
-          <button 
-            onClick={() => handlePaymentChange(activePayment, sale[activePayment] + 50000)}
-            className="quick-amount-btn"
-            disabled={loading}
-          >
-            +50K
-          </button>
-          <button 
-            onClick={() => handlePaymentChange(activePayment, sale[activePayment] + 100000)}
-            className="quick-amount-btn"
-            disabled={loading}
-          >
-            +100K
-          </button>
-          <button 
-            onClick={() => handlePaymentChange(activePayment, 0)}
-            className="quick-amount-btn clear"
-            disabled={loading}
-          >
-            Clear
-          </button>
         </div>
       </div>
 
       {/* Summary */}
       <div className="summary-section">
         <div className="summary-card">
-          <h3>📊 Ringkasan</h3>
-          <div className="summary-grid">
-            {paymentMethods.map((method) => (
-              <div key={method.key} className="summary-item">
-                <span className="summary-icon">{method.icon}</span>
-                <span className="summary-label">{method.label}</span>
-                <span className="summary-amount">{formatCurrency(sale[method.key])}</span>
-              </div>
-            ))}
-          </div>
+          <h3>📊 Total</h3>
           <div className="total-summary">
-            <span className="total-label">Total</span>
+            <span className="total-label">Total Penjualan</span>
             <span className="total-amount">{formatCurrency(getTotalSales())}</span>
           </div>
         </div>

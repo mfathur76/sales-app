@@ -229,161 +229,102 @@ body {
   text-align: center;
 }
 
-/* Payment Tabs */
-.payment-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+/* New Simplified Payment Input Grid */
+.payment-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
 }
 
-.payment-tab {
-  flex: 1;
-  min-width: 80px;
-  padding: 12px 8px;
-  border: 2px solid #e5e7eb;
+.payment-input-item {
+  background: #f8fafc;
   border-radius: 12px;
-  background: #f9fafb;
-  color: #6b7280;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  border-color: var(--tab-color);
-}
-
-.payment-tab.active {
-  background: var(--tab-color);
-  color: white;
-  border-color: var(--tab-color);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.tab-icon {
-  font-size: 1.25rem;
-}
-
-.tab-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-/* Payment Input Section */
-.payment-input-section {
-  margin-bottom: 20px;
-}
-
-.payment-input-card {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 16px;
-  padding: 24px;
-  border: 2px solid #e5e7eb;
-  text-align: center;
-}
-
-.input-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.input-icon {
-  font-size: 1.5rem;
-}
-
-.input-label {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.amount-input {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.currency-symbol {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #6b7280;
-}
-
-.amount-field {
-  width: 200px;
   padding: 16px;
-  border: 2px solid #d1d5db;
-  border-radius: 12px;
-  font-size: 1.25rem;
-  font-weight: 600;
-  text-align: center;
-  background: white;
+  border: 2px solid #e2e8f0;
   transition: all 0.2s ease;
 }
 
-.amount-field:focus {
-  outline: none;
+.payment-input-item:focus-within {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.amount-display {
-  font-size: 1.125rem;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-/* Quick Amount Buttons */
-.quick-amounts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.payment-input-header {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-bottom: 12px;
 }
 
-.quick-amount-btn {
-  padding: 12px 8px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  background: white;
-  color: #374151;
-  font-size: 0.875rem;
+.payment-icon {
+  font-size: 1.25rem;
+}
+
+.payment-label {
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  color: #374151;
+  font-size: 1rem;
 }
 
-.quick-amount-btn:hover {
-  border-color: #667eea;
-  background: #f8fafc;
-  transform: translateY(-1px);
+.payment-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 8px;
+  padding: 4px 12px;
+  border: 1px solid #d1d5db;
+  margin-bottom: 8px;
 }
 
-.quick-amount-btn.clear {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
+.currency-symbol {
+  font-weight: 600;
+  color: #6b7280;
+  margin-right: 8px;
+  font-size: 0.9rem;
 }
 
-.quick-amount-btn.clear:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
+.payment-input-field {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  background: transparent;
+  text-align: right;
 }
 
-.quick-amount-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
+.payment-input-field:focus {
+  outline: none;
+}
+
+.payment-input-field::placeholder {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.payment-amount-display {
+  text-align: right;
+  font-weight: 600;
+  color: #059669;
+  font-size: 0.9rem;
+}
+
+/* Remove old tab styles */
+.payment-tabs,
+.payment-tab,
+.payment-input-section,
+.payment-input-card,
+.input-header,
+.input-icon,
+.input-label,
+.amount-input,
+.amount-field,
+.amount-display,
+.quick-amounts,
+.quick-amount-btn {
+  display: none;
 }
 
 /* Summary Section */
@@ -629,37 +570,8 @@ body {
     font-size: 0.75rem;
   }
   
-  .payment-tabs {
-    gap: 6px;
-  }
-  
-  .payment-tab {
-    min-width: 70px;
-    padding: 10px 6px;
-  }
-  
-  .tab-icon {
-    font-size: 1.125rem;
-  }
-  
-  .tab-label {
-    font-size: 0.7rem;
-  }
-  
-  .amount-field {
-    width: 160px;
-    padding: 14px;
-    font-size: 1.125rem;
-  }
-  
-  .quick-amounts {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-  }
-  
-  .quick-amount-btn {
-    padding: 10px 6px;
-    font-size: 0.8rem;
+  .payment-input-field {
+    font-size: 1rem;
   }
   
   .summary-item {
@@ -683,13 +595,11 @@ body {
 
 /* Touch-friendly improvements */
 @media (hover: none) and (pointer: coarse) {
-  .payment-tab,
-  .quick-amount-btn,
   .mobile-submit-btn {
     min-height: 44px; /* Minimum touch target size */
   }
   
-  .amount-field {
+  .payment-input-field {
     min-height: 48px;
   }
   
