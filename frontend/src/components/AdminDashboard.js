@@ -257,6 +257,12 @@ const AdminDashboard = () => {
                           {sale.grab > 0 && (
                             <p>Grab: {sale.grabPercent?.toFixed(2)}% ({formatCurrency(sale.grabBank)} / {formatCurrency(sale.grab)})</p>
                           )}
+                          {sale.bcaBank > 0 && (
+                            <p>BCA: {formatCurrency(sale.bcaBank)} transfer</p>
+                          )}
+                          {sale.mandiriBank > 0 && (
+                            <p>Mandiri: {formatCurrency(sale.mandiriBank)} transfer</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -432,6 +438,22 @@ const AdminDashboard = () => {
                           <span>Grab:</span>
                           <span className={bankTransferData.grabBank > selectedSale.grab ? 'percentage-warning' : 'percentage-normal'}>
                             {((bankTransferData.grabBank / selectedSale.grab) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                      )}
+                      {bankTransferData.bcaBank > 0 && (
+                        <div className="percentage-item">
+                          <span>BCA:</span>
+                          <span className="percentage-normal">
+                            {formatCurrency(bankTransferData.bcaBank)} transfer
+                          </span>
+                        </div>
+                      )}
+                      {bankTransferData.mandiriBank > 0 && (
+                        <div className="percentage-item">
+                          <span>Mandiri:</span>
+                          <span className="percentage-normal">
+                            {formatCurrency(bankTransferData.mandiriBank)} transfer
                           </span>
                         </div>
                       )}

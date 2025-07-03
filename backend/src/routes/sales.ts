@@ -429,20 +429,22 @@ adminRouter.put('/sales/:outlet/:date/bank-transfer', authenticateToken, async (
     }
 
     const { outlet, date } = req.params;
-    const { cashBank, qrisBank, gojekBank, shopeeBank, grabBank, notes } = req.body;
+    const { qrisBank, gojekBank, shopeeBank, grabBank, bcaBank, mandiriBank, notes } = req.body;
 
     // Validate required fields
-    if (cashBank === undefined || qrisBank === undefined || gojekBank === undefined || 
-        shopeeBank === undefined || grabBank === undefined) {
+    if (qrisBank === undefined || gojekBank === undefined || 
+        shopeeBank === undefined || grabBank === undefined ||
+        bcaBank === undefined || mandiriBank === undefined) {
       return res.status(400).json({ error: 'All bank transfer amounts are required' });
     }
 
     const bankData = {
-      cashBank: Number(cashBank),
       qrisBank: Number(qrisBank),
       gojekBank: Number(gojekBank),
       shopeeBank: Number(shopeeBank),
       grabBank: Number(grabBank),
+      bcaBank: Number(bcaBank),
+      mandiriBank: Number(mandiriBank),
       notes
     };
 

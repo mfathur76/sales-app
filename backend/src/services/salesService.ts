@@ -348,12 +348,14 @@ export class OutletSalesService {
       // Calculate percentages for digital payments only
       const qrisPercent = sale.qris > 0 ? (bankData.qrisBank / sale.qris) * 100 : 0;
       const gojekPercent = sale.gojek > 0 ? (bankData.gojekBank / sale.gojek) * 100 : 0;
-      const shopeePercent = sale.shopee > 0 ? (bankData.shopeeBank / sale.shopee) * 100 : 0;
-      const grabPercent = sale.grab > 0 ? (bankData.grabBank / sale.grab) * 100 : 0;
+              const shopeePercent = sale.shopee > 0 ? (bankData.shopeeBank / sale.shopee) * 100 : 0;
+        const grabPercent = sale.grab > 0 ? (bankData.grabBank / sale.grab) * 100 : 0;
+        const bcaPercent = sale.qris > 0 ? (bankData.bcaBank / sale.qris) * 100 : 0;
+        const mandiriPercent = sale.qris > 0 ? (bankData.mandiriBank / sale.qris) * 100 : 0;
 
-      // Calculate total digital sales and total bank transfer
-      const totalDigitalSales = sale.qris + sale.gojek + sale.shopee + sale.grab;
-      const totalBank = bankData.qrisBank + bankData.gojekBank + bankData.shopeeBank + bankData.grabBank + bankData.bcaBank + bankData.mandiriBank;
+        // Calculate total digital sales and total bank transfer
+        const totalDigitalSales = sale.qris + sale.gojek + sale.shopee + sale.grab;
+        const totalBank = bankData.qrisBank + bankData.gojekBank + bankData.shopeeBank + bankData.grabBank + bankData.bcaBank + bankData.mandiriBank;
       
       // Calculate overall percentage based on digital sales only
       const overallPercent = totalDigitalSales > 0 ? (totalBank / totalDigitalSales) * 100 : 0;
@@ -376,9 +378,11 @@ export class OutletSalesService {
           totalBank,
           qrisPercent,
           gojekPercent,
-          shopeePercent,
-          grabPercent,
-          overallPercent,
+                      shopeePercent,
+            grabPercent,
+            bcaPercent,
+            mandiriPercent,
+            overallPercent,
           status: 'verified',
           verifiedBy,
           verifiedAt: new Date(),
