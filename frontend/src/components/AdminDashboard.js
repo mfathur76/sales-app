@@ -12,6 +12,8 @@ const AdminDashboard = () => {
     gojekBank: 0,
     shopeeBank: 0,
     grabBank: 0,
+    bcaBank: 0,
+    mandiriBank: 0,
     notes: ''
   });
   const [filters, setFilters] = useState({
@@ -62,6 +64,8 @@ const AdminDashboard = () => {
         gojekBank: 0,
         shopeeBank: 0,
         grabBank: 0,
+        bcaBank: 0,
+        mandiriBank: 0,
         notes: ''
       });
       
@@ -82,6 +86,8 @@ const AdminDashboard = () => {
       gojekBank: sale.gojekBank || 0,
       shopeeBank: sale.shopeeBank || 0,
       grabBank: sale.grabBank || 0,
+      bcaBank: sale.bcaBank || 0,
+      mandiriBank: sale.mandiriBank || 0,
       notes: sale.notes || ''
     });
     setShowBankTransferModal(true);
@@ -95,6 +101,8 @@ const AdminDashboard = () => {
       gojekBank: 0,
       shopeeBank: 0,
       grabBank: 0,
+      bcaBank: 0,
+      mandiriBank: 0,
       notes: ''
     });
   };
@@ -361,6 +369,36 @@ const AdminDashboard = () => {
                     <small>Original: {formatCurrency(selectedSale.grab)}</small>
                   </div>
 
+                  <div className="input-group">
+                    <label>BCA Bank Transfer:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={bankTransferData.bcaBank}
+                      onChange={(e) => setBankTransferData({
+                        ...bankTransferData,
+                        bcaBank: parseFloat(e.target.value) || 0
+                      })}
+                      placeholder="0.00"
+                    />
+                    <small>Transfer to BCA account</small>
+                  </div>
+
+                  <div className="input-group">
+                    <label>Mandiri Bank Transfer:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={bankTransferData.mandiriBank}
+                      onChange={(e) => setBankTransferData({
+                        ...bankTransferData,
+                        mandiriBank: parseFloat(e.target.value) || 0
+                      })}
+                      placeholder="0.00"
+                    />
+                    <small>Transfer to Mandiri account</small>
+                  </div>
+
                   {/* Preview Percentages */}
                   <div className="preview-percentages">
                     <h4>Preview Percentages:</h4>
@@ -404,7 +442,7 @@ const AdminDashboard = () => {
                       <span className="percentage-normal">
                         {(() => {
                           const totalDigital = selectedSale.qris + selectedSale.gojek + selectedSale.shopee + selectedSale.grab;
-                          const totalBank = bankTransferData.qrisBank + bankTransferData.gojekBank + bankTransferData.shopeeBank + bankTransferData.grabBank;
+                          const totalBank = bankTransferData.qrisBank + bankTransferData.gojekBank + bankTransferData.shopeeBank + bankTransferData.grabBank + bankTransferData.bcaBank + bankTransferData.mandiriBank;
                           return totalDigital > 0 ? ((totalBank / totalDigital) * 100).toFixed(2) : '0.00';
                         })()}%
                       </span>

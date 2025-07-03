@@ -324,6 +324,8 @@ export class OutletSalesService {
       gojekBank: number;
       shopeeBank: number;
       grabBank: number;
+      bcaBank: number;
+      mandiriBank: number;
       notes?: string;
     },
     verifiedBy: string
@@ -351,7 +353,7 @@ export class OutletSalesService {
 
       // Calculate total digital sales and total bank transfer
       const totalDigitalSales = sale.qris + sale.gojek + sale.shopee + sale.grab;
-      const totalBank = bankData.qrisBank + bankData.gojekBank + bankData.shopeeBank + bankData.grabBank;
+      const totalBank = bankData.qrisBank + bankData.gojekBank + bankData.shopeeBank + bankData.grabBank + bankData.bcaBank + bankData.mandiriBank;
       
       // Calculate overall percentage based on digital sales only
       const overallPercent = totalDigitalSales > 0 ? (totalBank / totalDigitalSales) * 100 : 0;
@@ -369,6 +371,8 @@ export class OutletSalesService {
           gojekBank: bankData.gojekBank,
           shopeeBank: bankData.shopeeBank,
           grabBank: bankData.grabBank,
+          bcaBank: bankData.bcaBank,
+          mandiriBank: bankData.mandiriBank,
           totalBank,
           qrisPercent,
           gojekPercent,

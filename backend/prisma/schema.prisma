@@ -37,6 +37,8 @@ model OutletSale {
   gojekBank   Float    @default(0)
   shopeeBank  Float    @default(0)
   grabBank    Float    @default(0)
+  bcaBank     Float    @default(0)  // Transfer to BCA account
+  mandiriBank Float    @default(0)  // Transfer to Mandiri account
   totalBank   Float    @default(0)
   
   // Percentage calculations (auto-calculated) - only for digital payments
@@ -44,6 +46,8 @@ model OutletSale {
   gojekPercent   Float    @default(0)
   shopeePercent  Float    @default(0)
   grabPercent    Float    @default(0)
+  bcaPercent     Float    @default(0)
+  mandiriPercent Float    @default(0)
   overallPercent Float    @default(0)
   
   // Status for approval workflow

@@ -182,11 +182,12 @@ router.put('/sales/:outlet/:date/bank-transfer', authenticateToken, async (req: 
     }
 
     const { outlet, date } = req.params;
-    const { qrisBank, gojekBank, shopeeBank, grabBank, notes } = req.body;
+    const { qrisBank, gojekBank, shopeeBank, grabBank, bcaBank, mandiriBank, notes } = req.body;
 
     // Validate required fields (only digital payments need bank transfer)
     if (qrisBank === undefined || gojekBank === undefined || 
-        shopeeBank === undefined || grabBank === undefined) {
+        shopeeBank === undefined || grabBank === undefined ||
+        bcaBank === undefined || mandiriBank === undefined) {
       return res.status(400).json({ error: 'All digital payment bank transfer amounts are required' });
     }
 
@@ -195,6 +196,8 @@ router.put('/sales/:outlet/:date/bank-transfer', authenticateToken, async (req: 
       gojekBank: Number(gojekBank),
       shopeeBank: Number(shopeeBank),
       grabBank: Number(grabBank),
+      bcaBank: Number(bcaBank),
+      mandiriBank: Number(mandiriBank),
       notes
     };
 
