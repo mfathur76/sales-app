@@ -386,3 +386,54 @@ curl -I https://yourdomain.com
 - Frontend: https://yourdomain.com
 - Backend API: https://yourdomain.com/api
 - Admin Dashboard: https://yourdomain.com/admin 
+
+## Quick Deploy Scripts
+
+### 1. Deploy Admin Loading Fix
+**Problem**: After admin login, only shows "loading user" instead of admin dashboard.
+
+**Solution**: Fixed App.js to properly handle admin vs outlet user rendering.
+
+**Deploy using scripts:**
+```bash
+# Linux/Mac
+./deploy-admin-fix.sh
+
+# Windows Batch
+deploy-admin-fix.bat
+
+# Windows PowerShell
+.\deploy-admin-fix.ps1
+```
+
+**Option 1: Pull from GitHub (Recommended)**
+```bash
+# Linux/Mac
+./pull-and-deploy-admin-fix.sh
+
+# Windows Batch
+pull-and-deploy-admin-fix.bat
+
+# Windows PowerShell
+.\pull-and-deploy-admin-fix.ps1
+```
+
+**Option 2: Manual deployment**
+```bash
+# 1. Upload fixed App.js
+scp -i DOSSHKEY frontend/src/App.js root@your-server-ip:/var/www/sales-app/frontend/src/App.js
+
+# 2. SSH to server
+ssh -i DOSSHKEY root@your-server-ip
+
+# 3. Build and restart frontend
+cd /var/www/sales-app/frontend
+npm run build
+pm2 restart sales-frontend
+pm2 status
+```
+
+**Changes made:**
+- Added null check for admin data in renderPage()
+- Fixed routing to show AdminDashboard for admin users
+- Added proper user type checking in all page routes

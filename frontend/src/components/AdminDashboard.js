@@ -8,12 +8,12 @@ const AdminDashboard = () => {
   const [selectedSale, setSelectedSale] = useState(null);
   const [showBankTransferModal, setShowBankTransferModal] = useState(false);
   const [bankTransferData, setBankTransferData] = useState({
-    qrisBank: 0,
-    gojekBank: 0,
-    shopeeBank: 0,
-    grabBank: 0,
-    bcaBank: 0,
-    mandiriBank: 0,
+    qrisBank: '',
+    gojekBank: '',
+    shopeeBank: '',
+    grabBank: '',
+    bcaBank: '',
+    mandiriBank: '',
     notes: ''
   });
   const [filters, setFilters] = useState({
@@ -50,22 +50,34 @@ const AdminDashboard = () => {
 
     try {
       setLoading(true);
+      
+      // Convert empty strings to 0 for API
+      const apiData = {
+        qrisBank: bankTransferData.qrisBank || 0,
+        gojekBank: bankTransferData.gojekBank || 0,
+        shopeeBank: bankTransferData.shopeeBank || 0,
+        grabBank: bankTransferData.grabBank || 0,
+        bcaBank: bankTransferData.bcaBank || 0,
+        mandiriBank: bankTransferData.mandiriBank || 0,
+        notes: bankTransferData.notes || ''
+      };
+      
       await adminApi.updateBankTransfer(
         selectedSale.outlet,
         selectedSale.date,
-        bankTransferData
+        apiData
       );
       
       setSuccessMessage('Bank transfer amounts updated successfully!');
       setShowBankTransferModal(false);
       setSelectedSale(null);
       setBankTransferData({
-        qrisBank: 0,
-        gojekBank: 0,
-        shopeeBank: 0,
-        grabBank: 0,
-        bcaBank: 0,
-        mandiriBank: 0,
+        qrisBank: '',
+        gojekBank: '',
+        shopeeBank: '',
+        grabBank: '',
+        bcaBank: '',
+        mandiriBank: '',
         notes: ''
       });
       
@@ -82,12 +94,12 @@ const AdminDashboard = () => {
   const openBankTransferModal = (sale) => {
     setSelectedSale(sale);
     setBankTransferData({
-      qrisBank: sale.qrisBank || 0,
-      gojekBank: sale.gojekBank || 0,
-      shopeeBank: sale.shopeeBank || 0,
-      grabBank: sale.grabBank || 0,
-      bcaBank: sale.bcaBank || 0,
-      mandiriBank: sale.mandiriBank || 0,
+      qrisBank: sale.qrisBank || '',
+      gojekBank: sale.gojekBank || '',
+      shopeeBank: sale.shopeeBank || '',
+      grabBank: sale.grabBank || '',
+      bcaBank: sale.bcaBank || '',
+      mandiriBank: sale.mandiriBank || '',
       notes: sale.notes || ''
     });
     setShowBankTransferModal(true);
@@ -97,12 +109,12 @@ const AdminDashboard = () => {
     setShowBankTransferModal(false);
     setSelectedSale(null);
     setBankTransferData({
-      qrisBank: 0,
-      gojekBank: 0,
-      shopeeBank: 0,
-      grabBank: 0,
-      bcaBank: 0,
-      mandiriBank: 0,
+      qrisBank: '',
+      gojekBank: '',
+      shopeeBank: '',
+      grabBank: '',
+      bcaBank: '',
+      mandiriBank: '',
       notes: ''
     });
   };
@@ -323,9 +335,10 @@ const AdminDashboard = () => {
                       value={bankTransferData.qrisBank}
                       onChange={(e) => setBankTransferData({
                         ...bankTransferData,
-                        qrisBank: parseFloat(e.target.value) || 0
+                        qrisBank: e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                       })}
-                      placeholder="0.00"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="Enter amount"
                     />
                     <small>Original: {formatCurrency(selectedSale.qris)}</small>
                   </div>
@@ -338,9 +351,10 @@ const AdminDashboard = () => {
                       value={bankTransferData.gojekBank}
                       onChange={(e) => setBankTransferData({
                         ...bankTransferData,
-                        gojekBank: parseFloat(e.target.value) || 0
+                        gojekBank: e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                       })}
-                      placeholder="0.00"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="Enter amount"
                     />
                     <small>Original: {formatCurrency(selectedSale.gojek)}</small>
                   </div>
@@ -353,9 +367,10 @@ const AdminDashboard = () => {
                       value={bankTransferData.shopeeBank}
                       onChange={(e) => setBankTransferData({
                         ...bankTransferData,
-                        shopeeBank: parseFloat(e.target.value) || 0
+                        shopeeBank: e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                       })}
-                      placeholder="0.00"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="Enter amount"
                     />
                     <small>Original: {formatCurrency(selectedSale.shopee)}</small>
                   </div>
@@ -368,9 +383,10 @@ const AdminDashboard = () => {
                       value={bankTransferData.grabBank}
                       onChange={(e) => setBankTransferData({
                         ...bankTransferData,
-                        grabBank: parseFloat(e.target.value) || 0
+                        grabBank: e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                       })}
-                      placeholder="0.00"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="Enter amount"
                     />
                     <small>Original: {formatCurrency(selectedSale.grab)}</small>
                   </div>
@@ -383,9 +399,10 @@ const AdminDashboard = () => {
                       value={bankTransferData.bcaBank}
                       onChange={(e) => setBankTransferData({
                         ...bankTransferData,
-                        bcaBank: parseFloat(e.target.value) || 0
+                        bcaBank: e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                       })}
-                      placeholder="0.00"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="Enter amount"
                     />
                     <small>Transfer to BCA account</small>
                   </div>
@@ -398,9 +415,10 @@ const AdminDashboard = () => {
                       value={bankTransferData.mandiriBank}
                       onChange={(e) => setBankTransferData({
                         ...bankTransferData,
-                        mandiriBank: parseFloat(e.target.value) || 0
+                        mandiriBank: e.target.value === '' ? '' : parseFloat(e.target.value) || 0
                       })}
-                      placeholder="0.00"
+                      onFocus={(e) => e.target.select()}
+                      placeholder="Enter amount"
                     />
                     <small>Transfer to Mandiri account</small>
                   </div>
@@ -413,7 +431,7 @@ const AdminDashboard = () => {
                         <div className="percentage-item">
                           <span>QRIS:</span>
                           <span className={bankTransferData.qrisBank > selectedSale.qris ? 'percentage-warning' : 'percentage-normal'}>
-                            {((bankTransferData.qrisBank / selectedSale.qris) * 100).toFixed(2)}%
+                            {bankTransferData.qrisBank ? ((bankTransferData.qrisBank / selectedSale.qris) * 100).toFixed(2) : '0.00'}%
                           </span>
                         </div>
                       )}
@@ -421,7 +439,7 @@ const AdminDashboard = () => {
                         <div className="percentage-item">
                           <span>Gojek:</span>
                           <span className={bankTransferData.gojekBank > selectedSale.gojek ? 'percentage-warning' : 'percentage-normal'}>
-                            {((bankTransferData.gojekBank / selectedSale.gojek) * 100).toFixed(2)}%
+                            {bankTransferData.gojekBank ? ((bankTransferData.gojekBank / selectedSale.gojek) * 100).toFixed(2) : '0.00'}%
                           </span>
                         </div>
                       )}
@@ -429,7 +447,7 @@ const AdminDashboard = () => {
                         <div className="percentage-item">
                           <span>Shopee:</span>
                           <span className={bankTransferData.shopeeBank > selectedSale.shopee ? 'percentage-warning' : 'percentage-normal'}>
-                            {((bankTransferData.shopeeBank / selectedSale.shopee) * 100).toFixed(2)}%
+                            {bankTransferData.shopeeBank ? ((bankTransferData.shopeeBank / selectedSale.shopee) * 100).toFixed(2) : '0.00'}%
                           </span>
                         </div>
                       )}
@@ -437,7 +455,7 @@ const AdminDashboard = () => {
                         <div className="percentage-item">
                           <span>Grab:</span>
                           <span className={bankTransferData.grabBank > selectedSale.grab ? 'percentage-warning' : 'percentage-normal'}>
-                            {((bankTransferData.grabBank / selectedSale.grab) * 100).toFixed(2)}%
+                            {bankTransferData.grabBank ? ((bankTransferData.grabBank / selectedSale.grab) * 100).toFixed(2) : '0.00'}%
                           </span>
                         </div>
                       )}
@@ -464,7 +482,7 @@ const AdminDashboard = () => {
                       <span className="percentage-normal">
                         {(() => {
                           const totalDigital = selectedSale.qris + selectedSale.gojek + selectedSale.shopee + selectedSale.grab;
-                          const totalBank = bankTransferData.qrisBank + bankTransferData.gojekBank + bankTransferData.shopeeBank + bankTransferData.grabBank + bankTransferData.bcaBank + bankTransferData.mandiriBank;
+                          const totalBank = (bankTransferData.qrisBank || 0) + (bankTransferData.gojekBank || 0) + (bankTransferData.shopeeBank || 0) + (bankTransferData.grabBank || 0) + (bankTransferData.bcaBank || 0) + (bankTransferData.mandiriBank || 0);
                           return totalDigital > 0 ? ((totalBank / totalDigital) * 100).toFixed(2) : '0.00';
                         })()}%
                       </span>

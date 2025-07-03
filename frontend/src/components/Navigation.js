@@ -4,7 +4,8 @@ const Navigation = ({ activePage, onPageChange }) => {
   const pages = [
     { id: 'input', label: 'Input', icon: '📝' },
     { id: 'list', label: 'Data', icon: '📊' },
-    { id: 'dashboard', label: 'Dashboard', icon: '📈' }
+    { id: 'dashboard', label: 'Dashboard', icon: '📈' },
+    { id: 'report', label: 'Laporan', icon: '📑' }
   ];
 
   const handleClick = (pageId) => {

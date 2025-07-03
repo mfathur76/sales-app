@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
+import AdminReport from './components/AdminReport';
 import './App.css';
 
 // Loading Skeleton Component
@@ -37,7 +38,7 @@ const Logo = () => (
 // Quick Input Form Component - Mobile Optimized
 const QuickInputForm = ({ user }) => {
   const [sale, setSale] = useState({
-    outlet: user.outlet,
+    outlet: user?.outlet || '',
     date: new Date().toISOString().split('T')[0],
     cash: 0,
     qris: 0,
@@ -48,6 +49,15 @@ const QuickInputForm = ({ user }) => {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Add null check for user after hooks
+  if (!user) {
+    return (
+      <div className="mobile-container">
+        <div className="loading">Loading user data...</div>
+      </div>
+    );
+  }
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
@@ -93,7 +103,7 @@ const QuickInputForm = ({ user }) => {
 
       // Reset form
       setSale({
-        outlet: user.outlet,
+        outlet: user.outlet || '',
         date: new Date().toISOString().split('T')[0],
         cash: 0,
         qris: 0,
@@ -162,8 +172,8 @@ const QuickInputForm = ({ user }) => {
       <div className="mobile-header">
         <Logo />
         <div className="outlet-info">
-          <span className="outlet-name">{user.outlet}</span>
-          <span className="outlet-user">{user.name}</span>
+          <span className="outlet-name">{user.outlet || 'Unknown Outlet'}</span>
+          <span className="outlet-user">{user.name || 'Unknown User'}</span>
         </div>
       </div>
 
@@ -363,14 +373,31 @@ function App() {
       return <LoadingSkeleton />;
     }
 
+    // Add null check for user in outlet pages
+    if (userType === 'outlet' && !user) {
+      return <div className="loading">Loading user data...</div>;
+    }
+
+    // Add null check for admin in admin pages
+    if (userType === 'admin' && !admin) {
+      return <div className="loading">Loading admin data...</div>;
+    }
+
     switch (activePage) {
       case 'input':
+        if (userType === 'admin') return <AdminDashboard />;
         return <QuickInputForm user={user} />;
       case 'list':
+        if (userType === 'admin') return <AdminDashboard />;
         return <SalesList user={user} />;
       case 'dashboard':
+        if (userType === 'admin') return <AdminDashboard />;
+        return <Dashboard user={user} />;
+      case 'report':
+        if (userType === 'admin') return <AdminReport />;
         return <Dashboard user={user} />;
       default:
+        if (userType === 'admin') return <AdminDashboard />;
         return <QuickInputForm user={user} />;
     }
   };
@@ -407,10 +434,16 @@ function App() {
   // For admin users, show admin interface (to be implemented)
   if (admin && userType === 'admin') {
     try {
-      return <AdminDashboard />;
+      return (
+        <div className="admin-app">
+          <main className="admin-main">
+            {renderPage()}
+          </main>
+          <Navigation activePage={activePage} onPageChange={handlePageChange} />
+        </div>
+      );
     } catch (error) {
       console.error('Error rendering AdminDashboard:', error);
-      // Fallback to logout if admin dashboard crashes
       adminApi.logout();
       window.location.reload();
       return null;
@@ -423,8 +456,8 @@ function App() {
       <header className="mobile-app-header">
         <div className="header-content">
           <div className="header-info">
-            <span className="header-outlet">🏪 {user.outlet}</span>
-            <span className="header-user">{user.name}</span>
+            <span className="header-outlet">🏪 {user?.outlet || 'Unknown Outlet'}</span>
+            <span className="header-user">{user?.name || 'Unknown User'}</span>
           </div>
           <button onClick={handleLogout} className="header-logout-btn" title="Logout">
             🚪

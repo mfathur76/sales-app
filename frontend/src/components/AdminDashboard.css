@@ -413,18 +413,41 @@
 .input-group input,
 .input-group textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
   font-size: 14px;
-  box-sizing: border-box;
+  transition: all 0.3s ease;
+  background-color: #fff;
 }
 
 .input-group input:focus,
 .input-group textarea:focus {
   outline: none;
   border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  background-color: #fff;
+}
+
+.input-group input::placeholder,
+.input-group textarea::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.input-group input:hover,
+.input-group textarea:hover {
+  border-color: #007bff;
+}
+
+.input-group input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.input-group input[type="number"]::-webkit-outer-spin-button,
+.input-group input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .input-group small {
