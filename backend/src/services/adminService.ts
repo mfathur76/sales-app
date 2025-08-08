@@ -46,7 +46,9 @@ export class AdminService {
           username: admin.username,
           name: admin.name,
           role: admin.role,
-          token
+          token,
+          type: 'admin',
+          isAuthenticated: true
         },
         message: 'Admin login successful'
       };
@@ -139,6 +141,87 @@ export class AdminService {
       });
 
       return admin;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Change admin password
+  static async changePassword(username: string, oldPassword: string, newPassword: string) {
+    try {
+      // Get admin with password
+      const admin = await prisma.admin.findUnique({
+        where: { username }
+      });
+
+      if (!admin) {
+        throw new Error('Admin not found');
+      }
+
+      // Verify old password
+      const isOldPasswordValid = await bcrypt.compare(oldPassword, admin.password);
+      if (!isOldPasswordValid) {
+        throw new Error('Old password is incorrect');
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await prisma.admin.update({
+        where: { username },
+        data: { password: hashedNewPassword }
+      });
+
+      return { success: true, message: 'Password changed successfully' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Update admin
+  static async updateAdmin(username: string, updateData: {
+    name?: string;
+    role?: string;
+    isActive?: boolean;
+  }) {
+    try {
+      const admin = await prisma.admin.update({
+        where: { username },
+        data: updateData,
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          role: true,
+          isActive: true,
+          createdAt: true
+        }
+      });
+
+      return admin;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Delete admin
+  static async deleteAdmin(username: string) {
+    try {
+      // Check if admin has verified any sales
+      const verifiedSalesCount = await prisma.outletSale.count({
+        where: { verifiedBy: username }
+      });
+
+      if (verifiedSalesCount > 0) {
+        throw new Error('Cannot delete admin with verified sales records');
+      }
+
+      await prisma.admin.delete({
+        where: { username }
+      });
+
+      return { success: true, message: 'Admin deleted successfully' };
     } catch (error) {
       throw error;
     }

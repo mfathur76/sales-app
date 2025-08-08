@@ -35,6 +35,51 @@
   background-color: #c82333;
 }
 
+/* Admin Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  border-radius: 8px 8px 0 0;
+}
+
+.tab-btn:hover {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.tab-btn.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.tab-content {
+  min-height: 400px;
+}
+
+.sales-tab h2,
+.categories-tab h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
 /* Filters Section */
 .filters-section {
   background-color: #f8f9fa;
@@ -557,6 +602,22 @@
     flex-direction: column;
     gap: 15px;
     text-align: center;
+  }
+
+  .admin-tabs {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .tab-btn {
+    border-radius: 8px;
+    border-bottom: none;
+    border-left: 3px solid transparent;
+  }
+
+  .tab-btn.active {
+    border-left-color: #007bff;
+    border-bottom-color: transparent;
   }
   
   .filters-grid {

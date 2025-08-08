@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 import { salesRouter } from './routes/sales';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
+import expenseRoutes from './routes/expenses';
+import outletRoutes from './routes/outlets';
 import { AuthService } from './services/authService';
 
 const app = express();
@@ -34,6 +36,8 @@ async function initializeApp() {
 app.use('/api/auth', authRoutes);
 app.use('/api/sales', salesRouter);
 app.use('/api/admin', adminRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/outlets', outletRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -60,6 +64,7 @@ app.listen(Number(PORT), '0.0.0.0', async () => {
   console.log(`📊 Health check: http://0.0.0.0:${PORT}/api/health`);
   console.log(`🔐 Auth endpoints: http://0.0.0.0:${PORT}/api/auth`);
   console.log(`💰 Sales endpoints: http://0.0.0.0:${PORT}/api/sales`);
+  console.log(`💸 Expense endpoints: http://0.0.0.0:${PORT}/api/expenses`);
   console.log(`🌐 Accessible from: http://192.168.1.22:${PORT}`);
 });
 

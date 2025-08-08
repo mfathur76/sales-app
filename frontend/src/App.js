@@ -7,6 +7,8 @@ import Login from './components/Login';
 import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import AdminReport from './components/AdminReport';
+import ExpenseManager from './components/ExpenseManager';
+import ExpenseReport from './components/ExpenseReport';
 import './App.css';
 
 // Loading Skeleton Component
@@ -259,70 +261,61 @@ function App() {
   const [admin, setAdmin] = useState(null);
   const [userType, setUserType] = useState(null); // 'outlet' or 'admin'
 
-  // Function to show debug logs
-  const showDebugLogs = () => {
-    const logs = localStorage.getItem('debugLogs');
-    if (logs) {
-      const parsedLogs = JSON.parse(logs);
-      console.log('🔍 Debug Logs:', parsedLogs);
-      alert('Debug logs printed to console. Press F12 to view.');
-    } else {
-      alert('No debug logs found.');
-    }
-  };
 
-  // Add debug logs button to window for easy access
-  useEffect(() => {
-    window.showDebugLogs = showDebugLogs;
-    console.log('🔍 Debug function available: window.showDebugLogs()');
-  }, []);
+
+
 
   // Check authentication on component mount
   useEffect(() => {
-    try {
-      // Check for admin user first (higher priority)
-      const adminData = localStorage.getItem('adminData');
-      
-      if (adminData) {
-        try {
-          const parsedAdmin = JSON.parse(adminData);
-          
-          if (parsedAdmin.isAuthenticated && parsedAdmin.token) {
-            setAdmin(parsedAdmin);
-            setUserType('admin');
-            return; // Exit early if admin is authenticated
-          } else {
+    const checkAuth = () => {
+      try {
+        // Check for admin user first (higher priority)
+        const adminData = localStorage.getItem('adminData');
+        
+        if (adminData) {
+          try {
+            const parsedAdmin = JSON.parse(adminData);
+            
+            if (parsedAdmin.isAuthenticated && parsedAdmin.token) {
+              setAdmin(parsedAdmin);
+              setUserType('admin');
+              return; // Exit early if admin is authenticated
+            } else {
+              localStorage.removeItem('adminData');
+            }
+          } catch (error) {
+            console.error('Error parsing admin data:', error);
             localStorage.removeItem('adminData');
           }
-        } catch (error) {
-          console.error('Error parsing admin data:', error);
-          localStorage.removeItem('adminData');
         }
-      }
 
-      // Check for outlet user
-      const userData = localStorage.getItem('userData');
-      
-      if (userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          
-          if (parsedUser.isAuthenticated && parsedUser.token) {
-            setUser(parsedUser);
-            setUserType('outlet');
-            return;
-          } else {
+        // Check for outlet user
+        const userData = localStorage.getItem('userData');
+        
+        if (userData) {
+          try {
+            const parsedUser = JSON.parse(userData);
+            
+            if (parsedUser.isAuthenticated && parsedUser.token) {
+              setUser(parsedUser);
+              setUserType('outlet');
+              return;
+            } else {
+              localStorage.removeItem('userData');
+            }
+          } catch (error) {
+            console.error('Error parsing user data:', error);
             localStorage.removeItem('userData');
           }
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-          localStorage.removeItem('userData');
         }
+      } catch (error) {
+        console.error('Critical error in useEffect:', error);
       }
-    } catch (error) {
-      console.error('Critical error in useEffect:', error);
-    }
-  }, []);
+    };
+
+    // Only run once on mount
+    checkAuth();
+  }, []); // Empty dependency array to ensure it only runs once
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -330,21 +323,7 @@ function App() {
   };
 
   const handleAdminLogin = (adminData) => {
-    // Get the stored admin data from localStorage (which was saved by adminApi.login)
-    const storedAdminData = localStorage.getItem('adminData');
-    
-    if (storedAdminData) {
-      try {
-        const parsedAdmin = JSON.parse(storedAdminData);
-        setAdmin(parsedAdmin);
-        setUserType('admin');
-      } catch (error) {
-        console.error('Error parsing stored admin data:', error);
-        setAdmin(adminData);
-        setUserType('admin');
-      }
-    } else {
-      // Fallback to the passed data if localStorage is not available
+    if (adminData && adminData.isAuthenticated && adminData.token) {
       setAdmin(adminData);
       setUserType('admin');
     }
@@ -385,19 +364,22 @@ function App() {
 
     switch (activePage) {
       case 'input':
-        if (userType === 'admin') return <AdminDashboard />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} />;
         return <QuickInputForm user={user} />;
       case 'list':
-        if (userType === 'admin') return <AdminDashboard />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} />;
         return <SalesList user={user} />;
+      case 'expense':
+        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        return <ExpenseManager user={user} />;
       case 'dashboard':
-        if (userType === 'admin') return <AdminDashboard />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} />;
         return <Dashboard user={user} />;
       case 'report':
         if (userType === 'admin') return <AdminReport />;
-        return <Dashboard user={user} />;
+        return <ExpenseReport user={user} />;
       default:
-        if (userType === 'admin') return <AdminDashboard />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} />;
         return <QuickInputForm user={user} />;
     }
   };
@@ -409,6 +391,7 @@ function App() {
         <div className="login-selection-container">
           <h1>Sales Management System</h1>
           <p>Pilih jenis login:</p>
+          
           <div className="login-buttons">
             <button 
               onClick={() => setUserType('outlet')} 
@@ -431,7 +414,7 @@ function App() {
     );
   }
 
-  // For admin users, show admin interface (to be implemented)
+  // For admin users, show admin interface
   if (admin && userType === 'admin') {
     try {
       return (
@@ -439,14 +422,30 @@ function App() {
           <main className="admin-main">
             {renderPage()}
           </main>
-          <Navigation activePage={activePage} onPageChange={handlePageChange} />
+          <Navigation 
+            activePage={activePage} 
+            onPageChange={handlePageChange} 
+            userType={userType}
+            onLogout={handleLogout}
+          />
         </div>
       );
     } catch (error) {
-      console.error('Error rendering AdminDashboard:', error);
-      adminApi.logout();
-      window.location.reload();
-      return null;
+      console.error('Error rendering admin interface:', error);
+      
+      // Don't logout automatically, just show error
+      return (
+        <div className="admin-app">
+          <main className="admin-main">
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <h2>Error</h2>
+              <p>Terjadi kesalahan saat memuat halaman admin.</p>
+              <p>Error: {error.message}</p>
+              <button onClick={() => window.location.reload()}>Refresh Halaman</button>
+            </div>
+          </main>
+        </div>
+      );
     }
   }
 
@@ -468,7 +467,12 @@ function App() {
       <main className="mobile-main">
         {renderPage()}
       </main>
-      <Navigation activePage={activePage} onPageChange={handlePageChange} />
+      <Navigation 
+        activePage={activePage} 
+        onPageChange={handlePageChange} 
+        userType={userType}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }

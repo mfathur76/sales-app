@@ -127,6 +127,103 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
   }
 });
 
+// PUT /api/admin/:username - Update admin (super admin only)
+router.put('/:username', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (req.user?.type !== 'admin' || req.user?.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Super admin access required'
+      });
+    }
+
+    const { username } = req.params;
+    const { name, role, isActive } = req.body;
+
+    const admin = await AdminService.updateAdmin(username, {
+      name,
+      role,
+      isActive
+    });
+
+    res.json({
+      success: true,
+      data: admin,
+      message: 'Admin updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating admin:', error);
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update admin'
+    });
+  }
+});
+
+// DELETE /api/admin/:username - Delete admin (super admin only)
+router.delete('/:username', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (req.user?.type !== 'admin' || req.user?.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Super admin access required'
+      });
+    }
+
+    const { username } = req.params;
+    const result = await AdminService.deleteAdmin(username);
+
+    res.json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete admin'
+    });
+  }
+});
+
+// POST /api/admin/change-password - Change admin password
+router.post('/change-password', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (req.user?.type !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Old password and new password are required'
+      });
+    }
+
+    const result = await AdminService.changePassword(
+      req.user.username,
+      oldPassword,
+      newPassword
+    );
+
+    res.json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to change password'
+    });
+  }
+});
+
 // Admin sales routes
 // GET /api/admin/test - Test route
 router.get('/test', authenticateToken, async (req: Request, res: Response) => {

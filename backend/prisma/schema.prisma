@@ -20,6 +20,8 @@ model Outlet {
 
   // Relation to sales
   sales OutletSale[]
+  // Relation to expenses
+  expenses Expense[]
 }
 
 model OutletSale {
@@ -81,4 +83,69 @@ model Admin {
 
   // Relation to verified sales
   verifiedSales OutletSale[] @relation("VerifiedByAdmin")
+  // Relation to expenses
+  expenses Expense[] @relation("CreatedByAdmin")
+  approvedExpenses Expense[] @relation("ApprovedByAdmin")
+}
+
+model ExpenseCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  items ItemMaster[]
+
+  @@map("expense_categories")
+}
+
+model ItemMaster {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  categoryId    String
+  standardPrice Float?   // Optional reference price
+  unit          String   @default("kg") // kg, pcs, liter, etc.
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  categoryRef ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  expenses Expense[]
+
+  @@map("item_masters")
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  outlet      String
+  itemId      String   // Reference to ItemMaster
+  date        DateTime
+  quantity    Float    @default(1)
+  actualPrice Float    // Price actually paid
+  totalPrice  Float
+  notes       String?
+  // Payment method tracking
+  isCash      Boolean  @default(true)
+  
+  // Status for approval workflow
+  status      String    @default("pending") // pending, approved, rejected
+  approvedBy  String?   // admin username who approved
+  approvedAt  DateTime?
+  rejectionReason String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?  // admin username who created (optional for outlet users)
+
+  // Relations
+  outletRef Outlet? @relation(fields: [outlet], references: [code])
+  itemRef ItemMaster? @relation(fields: [itemId], references: [id])
+  createdByRef Admin? @relation("CreatedByAdmin", fields: [createdBy], references: [username])
+  approvedByRef Admin? @relation("ApprovedByAdmin", fields: [approvedBy], references: [username])
+
+  @@map("expenses")
 }

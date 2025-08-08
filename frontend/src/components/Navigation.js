@@ -1,12 +1,23 @@
 import React from 'react';
 
-const Navigation = ({ activePage, onPageChange }) => {
-  const pages = [
+const Navigation = ({ activePage, onPageChange, userType, onLogout }) => {
+  // Different pages for admin vs outlet
+  const outletPages = [
     { id: 'input', label: 'Input', icon: '📝' },
     { id: 'list', label: 'Data', icon: '📊' },
+    { id: 'expense', label: 'Pengeluaran', icon: '💰' },
     { id: 'dashboard', label: 'Dashboard', icon: '📈' },
     { id: 'report', label: 'Laporan', icon: '📑' }
   ];
+
+  const adminPages = [
+    { id: 'sales', label: 'Penjualan', icon: '📊' },
+    { id: 'outlets', label: 'Outlet', icon: '🏪' },
+    { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'password', label: 'Password', icon: '🔐' }
+  ];
+
+  const pages = userType === 'admin' ? adminPages : outletPages;
 
   const handleClick = (pageId) => {
     onPageChange(pageId);
@@ -72,6 +83,20 @@ const Navigation = ({ activePage, onPageChange }) => {
             <div style={labelStyle}>{page.label}</div>
           </button>
         ))}
+        
+        {/* Logout button */}
+        <button
+          style={{
+            ...tabStyle(false),
+            color: '#ef4444',
+            background: '#fef2f2'
+          }}
+          onClick={onLogout}
+          type="button"
+        >
+          <div style={iconStyle}>🚪</div>
+          <div style={labelStyle}>Logout</div>
+        </button>
       </div>
     </nav>
   );

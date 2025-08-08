@@ -31,10 +31,10 @@ const AdminLogin = ({ onLogin }) => {
     try {
       const response = await adminApi.login(formData.username, formData.password);
       
-      if (response.success) {
+      if (response.success && response.data) {
         onLogin(response.data);
       } else {
-        setError(response.error || 'Login gagal');
+        setError(response.error || response.message || 'Login gagal');
       }
     } catch (err) {
       console.error('Admin login error:', err);
@@ -44,9 +44,7 @@ const AdminLogin = ({ onLogin }) => {
     }
   };
 
-  const handleButtonClick = () => {
-    console.log('🖱️ Login button clicked');
-  };
+
 
   return (
     <div className="admin-login-container">
@@ -100,7 +98,6 @@ const AdminLogin = ({ onLogin }) => {
             type="submit" 
             className="admin-login-btn"
             disabled={loading}
-            onClick={handleButtonClick}
           >
             {loading ? '⏳ Logging in...' : '🔐 Login Admin'}
           </button>
