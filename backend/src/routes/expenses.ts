@@ -242,8 +242,8 @@ router.put('/:id/reject', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Get expense categories (admin only)
-router.get('/categories/all', authenticateToken, requireAdmin, async (req, res) => {
+// Get expense categories (all authenticated users)
+router.get('/categories/all', authenticateToken, async (req, res) => {
   try {
     const categories = await expenseService.getAllCategories();
     res.json(categories);
