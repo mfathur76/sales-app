@@ -394,7 +394,7 @@ router.get('/summary/:outlet', authenticateToken, async (req, res) => {
 // Get weekly report
 router.get('/reports/weekly', authenticateToken, async (req, res) => {
   try {
-    const { weekStart, outlets } = req.query;
+    const { weekStart, outlets, status } = req.query;
     
     if (!weekStart) {
       return res.status(400).json({ error: 'Week start date is required' });
@@ -405,10 +405,20 @@ router.get('/reports/weekly', authenticateToken, async (req, res) => {
     if (req.user?.type === 'outlet' && req.user?.outlet) {
       outletList = [req.user.outlet];
     } else if (outlets) {
-      outletList = Array.isArray(outlets) ? outlets.map(o => o as string) : [outlets as string];
+      // Handle both array and comma-separated string formats
+      if (Array.isArray(outlets)) {
+        outletList = outlets.map(o => o as string);
+      } else {
+        // Split comma-separated string into array
+        outletList = (outlets as string).split(',').map(o => o.trim()).filter(o => o.length > 0);
+      }
     }
 
-    const report = await expenseService.getWeeklyReport(outletList, new Date(weekStart as string));
+    const report = await expenseService.getWeeklyReport(
+      outletList, 
+      new Date(weekStart as string),
+      status as string
+    );
     res.json(report);
   } catch (error) {
     console.error('Error fetching weekly report:', error);
@@ -419,7 +429,7 @@ router.get('/reports/weekly', authenticateToken, async (req, res) => {
 // Get monthly report
 router.get('/reports/monthly', authenticateToken, async (req, res) => {
   try {
-    const { month, year, outlets } = req.query;
+    const { month, year, outlets, status } = req.query;
     
     if (!month || !year) {
       return res.status(400).json({ error: 'Month and year are required' });
@@ -430,13 +440,20 @@ router.get('/reports/monthly', authenticateToken, async (req, res) => {
     if (req.user?.type === 'outlet' && req.user?.outlet) {
       outletList = [req.user.outlet];
     } else if (outlets) {
-      outletList = Array.isArray(outlets) ? outlets.map(o => o as string) : [outlets as string];
+      // Handle both array and comma-separated string formats
+      if (Array.isArray(outlets)) {
+        outletList = outlets.map(o => o as string);
+      } else {
+        // Split comma-separated string into array
+        outletList = (outlets as string).split(',').map(o => o.trim()).filter(o => o.length > 0);
+      }
     }
 
     const report = await expenseService.getMonthlyReport(
       outletList,
       parseInt(month as string),
-      parseInt(year as string)
+      parseInt(year as string),
+      status as string
     );
     res.json(report);
   } catch (error) {

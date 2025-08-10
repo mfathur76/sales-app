@@ -426,21 +426,27 @@ export class ExpenseService {
   }
 
   // Get weekly expense report
-  async getWeeklyReport(outlets: string[], weekStart: Date): Promise<WeeklyReport> {
+  async getWeeklyReport(outlets: string[], weekStart: Date, status?: string): Promise<WeeklyReport> {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
-    const expenses = await prisma.expense.findMany({
-      where: {
-        outlet: {
-          in: outlets
-        },
-        date: {
-          gte: weekStart,
-          lte: weekEnd
-        },
-        status: 'approved'
+    const whereCondition: any = {
+      outlet: {
+        in: outlets
       },
+      date: {
+        gte: weekStart,
+        lte: weekEnd
+      }
+    };
+
+    // Add status filter if provided, otherwise show all
+    if (status) {
+      whereCondition.status = status;
+    }
+
+    const expenses = await prisma.expense.findMany({
+      where: whereCondition,
       include: {
         itemRef: {
           include: {
@@ -516,21 +522,27 @@ export class ExpenseService {
   }
 
   // Get monthly expense report
-  async getMonthlyReport(outlets: string[], month: number, year: number): Promise<MonthlyReport> {
+  async getMonthlyReport(outlets: string[], month: number, year: number, status?: string): Promise<MonthlyReport> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0); // Last day of the month
 
-    const expenses = await prisma.expense.findMany({
-      where: {
-        outlet: {
-          in: outlets
-        },
-        date: {
-          gte: startDate,
-          lte: endDate
-        },
-        status: 'approved'
+    const whereCondition: any = {
+      outlet: {
+        in: outlets
       },
+      date: {
+        gte: startDate,
+        lte: endDate
+      }
+    };
+
+    // Add status filter if provided, otherwise show all
+    if (status) {
+      whereCondition.status = status;
+    }
+
+    const expenses = await prisma.expense.findMany({
+      where: whereCondition,
       include: {
         itemRef: {
           include: {
