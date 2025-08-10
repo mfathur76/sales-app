@@ -104,10 +104,7 @@ const AdminLogin = ({ onLogin }) => {
         </form>
 
         <div className="admin-login-footer">
-          <p>Default credentials:</p>
-          <p><strong>Username:</strong> admin</p>
-          <p><strong>Password:</strong> admin123</p>
-          <p className="warning">⚠️ Ganti password setelah login pertama!</p>
+          <p>Hubungi sistem administrator untuk mendapatkan akses</p>
         </div>
       </div>
     </div>

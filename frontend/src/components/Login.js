@@ -142,28 +142,6 @@ const Login = ({ onLogin }) => {
               <h3>💡 Bantuan</h3>
               <p>Hubungi admin untuk mendapatkan password outlet</p>
             </div>
-            
-            <div className="password-info">
-              <h4>🔑 Password Default</h4>
-              <div className="password-list">
-                <div className="password-item">
-                  <span className="outlet-code">RM001:</span>
-                  <span className="outlet-password">rm0012024</span>
-                </div>
-                <div className="password-item">
-                  <span className="outlet-code">RM002:</span>
-                  <span className="outlet-password">rm0022024</span>
-                </div>
-                <div className="password-item">
-                  <span className="outlet-code">RM003:</span>
-                  <span className="outlet-password">rm0032024</span>
-                </div>
-                <div className="password-item">
-                  <span className="outlet-code">RM004:</span>
-                  <span className="outlet-password">rm0042024</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
