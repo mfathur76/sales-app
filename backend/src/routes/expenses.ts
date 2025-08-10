@@ -253,6 +253,18 @@ router.get('/categories/all', authenticateToken, requireAdmin, async (req, res) 
   }
 });
 
+// Delete expense category (admin only)
+router.delete('/categories/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await expenseService.deleteCategory(id);
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ error: 'Failed to delete category' });
+  }
+});
+
 // Get expense items with filters
 router.get('/items/all', authenticateToken, async (req, res) => {
   try {

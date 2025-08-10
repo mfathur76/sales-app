@@ -391,22 +391,38 @@ export class ExpenseService {
 
   // Delete expense category
   async deleteCategory(id: string): Promise<ExpenseCategory> {
-    // Check if category is being used by any expenses
-    const expenseCount = await prisma.expense.count({
-      where: { 
-        itemRef: {
-          categoryId: id
+    try {
+      // Check if category is being used by any expenses
+      const expenseCount = await prisma.expense.count({
+        where: { 
+          itemRef: {
+            categoryId: id
+          }
         }
+      });
+
+      if (expenseCount > 0) {
+        throw new Error(`Cannot delete category. It is being used by ${expenseCount} expense(s).`);
       }
-    });
 
-    if (expenseCount > 0) {
-      throw new Error(`Cannot delete category. It is being used by ${expenseCount} expense(s).`);
+      // Check if category is being used by any items
+      const itemCount = await prisma.itemMaster.count({
+        where: { categoryId: id }
+      });
+
+      if (itemCount > 0) {
+        throw new Error(`Cannot delete category. It is being used by ${itemCount} item(s).`);
+      }
+
+      return await prisma.expenseCategory.delete({
+        where: { id }
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to delete category');
     }
-
-    return await prisma.expenseCategory.delete({
-      where: { id }
-    });
   }
 
   // Get weekly expense report

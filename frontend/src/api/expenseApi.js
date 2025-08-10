@@ -18,7 +18,7 @@ class ExpenseApi {
   // Get all expense categories
   async getCategories() {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/categories`, {
+      const response = await fetch(`${this.baseURL}/expenses/categories/all`, {
         method: 'GET',
         headers: await this.getAuthHeaders()
       });
@@ -37,7 +37,7 @@ class ExpenseApi {
   // Get all item masters
   async getItems() {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/items`, {
+      const response = await fetch(`${this.baseURL}/expenses/items/all`, {
         method: 'GET',
         headers: await this.getAuthHeaders()
       });
@@ -161,7 +161,8 @@ class ExpenseApi {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete category' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();

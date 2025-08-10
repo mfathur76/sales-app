@@ -34,7 +34,7 @@ fi
 
 # Backup database (optional)
 print_status "Creating database backup..."
-DB_FILE="backend/data/sales.db"
+DB_FILE="/var/lib/sales-app/sales.db"
 if [ -f "$DB_FILE" ]; then
     BACKUP_DIR="/var/backups/sales-app"
     sudo mkdir -p "$BACKUP_DIR"
