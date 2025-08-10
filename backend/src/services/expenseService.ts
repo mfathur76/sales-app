@@ -393,7 +393,11 @@ export class ExpenseService {
   async deleteCategory(id: string): Promise<ExpenseCategory> {
     // Check if category is being used by any expenses
     const expenseCount = await prisma.expense.count({
-      where: { categoryId: id }
+      where: { 
+        itemRef: {
+          categoryId: id
+        }
+      }
     });
 
     if (expenseCount > 0) {

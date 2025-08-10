@@ -55,20 +55,20 @@ const AdminDashboard = ({ admin }) => {
 
       <div className="admin-tabs">
         {tabs.map(tab => (
-          <button
+                    <button
             key={tab.id}
             className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
             <span className="tab-icon">{tab.icon}</span>
             <span className="tab-label">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+                    </button>
+              ))}
+            </div>
 
       <div className="admin-content">
         {renderContent()}
-      </div>
+          </div>
     </div>
   );
 };

@@ -205,6 +205,13 @@ router.post('/change-password', authenticateToken, async (req: Request, res: Res
       });
     }
 
+    if (!req.user?.username) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
     const result = await AdminService.changePassword(
       req.user.username,
       oldPassword,
