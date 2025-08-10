@@ -311,7 +311,7 @@ class ExpenseApi {
   async approveExpense(id, approvedBy) {
     try {
       const response = await fetch(`${this.baseURL}/expenses/${id}/approve`, {
-        method: 'POST',
+        method: 'PUT',
         headers: await this.getAuthHeaders(),
         body: JSON.stringify({ approvedBy })
       });
@@ -331,7 +331,7 @@ class ExpenseApi {
   async rejectExpense(id, approvedBy, rejectionReason) {
     try {
       const response = await fetch(`${this.baseURL}/expenses/${id}/reject`, {
-        method: 'POST',
+        method: 'PUT',
         headers: await this.getAuthHeaders(),
         body: JSON.stringify({ approvedBy, rejectionReason })
       });
