@@ -253,6 +253,41 @@ router.get('/categories/all', authenticateToken, requireAdmin, async (req, res) 
   }
 });
 
+// Create expense category (admin only)
+router.post('/categories', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
+    
+    const category = await expenseService.createCategory(name, description);
+    res.status(201).json(category);
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({ error: 'Failed to create category' });
+  }
+});
+
+// Update expense category (admin only)
+router.put('/categories/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
+    
+    const category = await expenseService.updateCategory(id, name, description);
+    res.json(category);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+});
+
 // Delete expense category (admin only)
 router.delete('/categories/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -281,6 +316,49 @@ router.get('/items/all', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching items:', error);
     res.status(500).json({ error: 'Failed to fetch items' });
+  }
+});
+
+// Create expense item (admin only)
+router.post('/items', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { name, categoryId, standardPrice, unit } = req.body;
+    
+    if (!name || !categoryId) {
+      return res.status(400).json({ error: 'Item name and category are required' });
+    }
+    
+    const item = await expenseService.createItem({ name, categoryId, standardPrice, unit });
+    res.status(201).json(item);
+  } catch (error) {
+    console.error('Error creating item:', error);
+    res.status(500).json({ error: 'Failed to create item' });
+  }
+});
+
+// Update expense item (admin only)
+router.put('/items/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, categoryId, standardPrice, unit } = req.body;
+    
+    const item = await expenseService.updateItem(id, { name, categoryId, standardPrice, unit });
+    res.json(item);
+  } catch (error) {
+    console.error('Error updating item:', error);
+    res.status(500).json({ error: 'Failed to update item' });
+  }
+});
+
+// Delete expense item (admin only)
+router.delete('/items/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await expenseService.deleteItem(id);
+    res.json({ message: 'Item deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    res.status(500).json({ error: 'Failed to delete item' });
   }
 });
 
