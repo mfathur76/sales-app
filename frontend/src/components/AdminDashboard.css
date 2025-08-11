@@ -42,6 +42,42 @@
   margin-bottom: 30px;
   border-bottom: 2px solid #e0e0e0;
   padding-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-button:hover {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.tab-button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.tab-icon {
+  font-size: 18px;
+}
+
+.tab-label {
+  font-size: 14px;
 }
 
 .tab-btn {
@@ -70,6 +106,26 @@
 
 .tab-content {
   min-height: 400px;
+}
+
+/* Sales Verification Content */
+.sales-verification-content {
+  width: 100%;
+}
+
+.verification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.verification-header h1 {
+  color: #333;
+  margin: 0;
+  font-size: 28px;
 }
 
 .sales-tab h2,

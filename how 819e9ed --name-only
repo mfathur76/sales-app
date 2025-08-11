@@ -1,0 +1,20 @@
+[33m3778fe9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Perbaikan route untuk laporan expense
+[33m8c16759[m Perbaikan route untuk get item expense
+[33md73628d[m Hapus default psw dari halaman  login
+[33m064f06a[m Approve and reject expense fix
+[33mcd31d2f[m Complete CRUD routes for expense categories and items
+[33m5fd3d2b[m perbaikan get all expenses
+[33mcbcd5dd[m fix eror
+[33me28ebd0[m add expense dan manage user
+[33m02a6d2a[m untracked db files
+[33m8af597f[m add db to ignore
+[33ma30d899[m tambah laporan
+[33m61fbff9[m emergency fix
+[33m819e9ed[m perbaikan bca dan mandiri  tidak  mucul
+[33m700175d[m add field mandiri dan bca
+[33m94719fe[m update db
+[33mc817160[m ubah layout input
+[33mc8c99ff[m add domain support for sales.risolmejik.com
+[33m75a7791[m fix cache issue - force production API URL
+[33md06fc05[m add sh file
+[33m3da5f19[m restart FE BE

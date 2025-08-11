@@ -330,6 +330,37 @@ export const adminApi = {
   // Logout admin
   logout: () => {
     localStorage.removeItem('adminData');
+  },
+
+  // Get all sales for admin verification
+  getAllSales: async (filters = {}) => {
+    const queryParams = new URLSearchParams();
+    if (filters.start_date) queryParams.append('start_date', filters.start_date);
+    if (filters.end_date) queryParams.append('end_date', filters.end_date);
+    if (filters.outlet) queryParams.append('outlet', filters.outlet);
+    if (filters.status) queryParams.append('status', filters.status);
+    
+    const url = `${API_BASE_URL}/admin/sales${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return makeAuthenticatedRequest(url);
+  },
+
+  // Update bank transfer amounts
+  updateBankTransfer: async (outlet, date, bankData) => {
+    return makeAuthenticatedRequest(`${API_BASE_URL}/admin/sales/${outlet}/${date}/bank-transfer`, {
+      method: 'PUT',
+      body: JSON.stringify(bankData),
+    });
+  },
+
+  // Update sale status (approve/reject)
+  updateSaleStatus: async (outlet, date, status, notes) => {
+    const body = { status };
+    if (notes) body.notes = notes;
+    
+    return makeAuthenticatedRequest(`${API_BASE_URL}/admin/sales/${outlet}/${date}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
   }
 };
 
