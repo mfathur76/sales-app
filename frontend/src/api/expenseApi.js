@@ -348,12 +348,17 @@ class ExpenseApi {
   }
 
   // Get weekly expense report
-  async getWeeklyReport(outlets, weekStart) {
+  async getWeeklyReport(outlets, weekStart, status = 'approved') {
     try {
       const params = new URLSearchParams({
         outlets: Array.isArray(outlets) ? outlets.join(',') : outlets,
         weekStart
       });
+      
+      // Only add status parameter if provided
+      if (status) {
+        params.append('status', status);
+      }
 
       const response = await fetch(`${this.baseURL}/expenses/reports/weekly?${params}`, {
         method: 'GET',
@@ -372,13 +377,18 @@ class ExpenseApi {
   }
 
   // Get monthly expense report
-  async getMonthlyReport(outlets, month, year) {
+  async getMonthlyReport(outlets, month, year, status = 'approved') {
     try {
       const params = new URLSearchParams({
         outlets: Array.isArray(outlets) ? outlets.join(',') : outlets,
         month: month.toString(),
         year: year.toString()
       });
+      
+      // Only add status parameter if provided
+      if (status) {
+        params.append('status', status);
+      }
 
       const response = await fetch(`${this.baseURL}/expenses/reports/monthly?${params}`, {
         method: 'GET',

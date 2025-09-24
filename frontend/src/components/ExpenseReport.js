@@ -37,7 +37,7 @@ const ExpenseReport = ({ user }) => {
     
     setLoading(true);
     try {
-      const data = await expenseApi.getWeeklyReport(user?.outlet, weekStart);
+      const data = await expenseApi.getWeeklyReport(user?.outlet, weekStart, 'approved');
       setReportData(data);
     } catch (error) {
       console.error('Error loading weekly report:', error);
@@ -50,7 +50,7 @@ const ExpenseReport = ({ user }) => {
   const loadMonthlyReport = async () => {
     setLoading(true);
     try {
-      const data = await expenseApi.getMonthlyReport(user?.outlet, month, year);
+      const data = await expenseApi.getMonthlyReport(user?.outlet, month, year, 'approved');
       setReportData(data);
     } catch (error) {
       console.error('Error loading monthly report:', error);
