@@ -1,0 +1,450 @@
+service: sales-app-api
+
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, 'ap-southeast-1'}
+  stage: ${opt:stage, 'prod'}
+  memorySize: 256
+  timeout: 10
+
+  environment:
+    NODE_ENV: production
+    JWT_SECRET: ${env:JWT_SECRET}
+    OUTLETS_TABLE: ${self:service}-outlets-${self:provider.stage}
+    ADMINS_TABLE: ${self:service}-admins-${self:provider.stage}
+    SALES_TABLE: ${self:service}-sales-${self:provider.stage}
+    EXPENSES_TABLE: ${self:service}-expenses-${self:provider.stage}
+    EXPENSE_CATEGORIES_TABLE: ${self:service}-expense-categories-${self:provider.stage}
+    ITEM_MASTERS_TABLE: ${self:service}-item-masters-${self:provider.stage}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-*
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-*/index/*
+
+plugins:
+  - serverless-offline
+
+package:
+  individually: false
+  patterns:
+    - "!src/**"           # exclude original Express source
+    - "!prisma/**"
+    - "!data/**"
+    - "!*.md"
+    - "!ecosystem.config.js"
+    - "!nginx.conf"
+    - "lambda/dist/**"    # only include compiled Lambda output
+    - "node_modules/**"
+
+functions:
+  # ---- Health ----
+  healthCheck:
+    handler: lambda/dist/handlers/auth.healthCheck
+    events:
+      - http:
+          path: api/health
+          method: get
+          cors: true
+
+  # ---- Auth ----
+  outletLogin:
+    handler: lambda/dist/handlers/auth.outletLogin
+    events:
+      - http:
+          path: api/auth/login
+          method: post
+          cors: true
+
+  listOutletsPublic:
+    handler: lambda/dist/handlers/auth.listOutlets
+    events:
+      - http:
+          path: api/auth/outlets
+          method: get
+          cors: true
+
+  adminLogin:
+    handler: lambda/dist/handlers/auth.adminLogin
+    events:
+      - http:
+          path: api/admin/login
+          method: post
+          cors: true
+
+  # ---- Sales ----
+  getSales:
+    handler: lambda/dist/handlers/sales.getSales
+    events:
+      - http:
+          path: api/sales
+          method: get
+          cors: true
+
+  createSale:
+    handler: lambda/dist/handlers/sales.createSale
+    events:
+      - http:
+          path: api/sales
+          method: post
+          cors: true
+
+  getSalesStats:
+    handler: lambda/dist/handlers/sales.getSalesStats
+    events:
+      - http:
+          path: api/sales/stats
+          method: get
+          cors: true
+
+  getSalesStatsOverview:
+    handler: lambda/dist/handlers/sales.getSalesStats
+    events:
+      - http:
+          path: api/sales/stats/overview
+          method: get
+          cors: true
+
+  getSalesOutletOptions:
+    handler: lambda/dist/handlers/sales.getSalesOutletOptions
+    events:
+      - http:
+          path: api/sales/outlets
+          method: get
+          cors: true
+
+  getSaleByOutletDate:
+    handler: lambda/dist/handlers/sales.getSaleByOutletDate
+    events:
+      - http:
+          path: api/sales/{outlet}/{date}
+          method: get
+          cors: true
+
+  updateSale:
+    handler: lambda/dist/handlers/sales.updateSale
+    events:
+      - http:
+          path: api/sales/{outlet}/{date}
+          method: put
+          cors: true
+
+  updateSaleBank:
+    handler: lambda/dist/handlers/sales.updateSaleBank
+    events:
+      - http:
+          path: api/sales/{outlet}/{date}/bank
+          method: put
+          cors: true
+
+  deleteSale:
+    handler: lambda/dist/handlers/sales.deleteSale
+    events:
+      - http:
+          path: api/sales/{outlet}/{date}
+          method: delete
+          cors: true
+
+  # ---- Admin management ----
+  getAdminProfile:
+    handler: lambda/dist/handlers/admin.getProfile
+    events:
+      - http:
+          path: api/admin/profile
+          method: get
+          cors: true
+
+  listAdmins:
+    handler: lambda/dist/handlers/admin.listAdmins
+    events:
+      - http:
+          path: api/admin/list
+          method: get
+          cors: true
+
+  createAdmin:
+    handler: lambda/dist/handlers/admin.createAdminHandler
+    events:
+      - http:
+          path: api/admin/create
+          method: post
+          cors: true
+
+  updateAdmin:
+    handler: lambda/dist/handlers/admin.updateAdminHandler
+    events:
+      - http:
+          path: api/admin/{username}
+          method: put
+          cors: true
+
+  deleteAdmin:
+    handler: lambda/dist/handlers/admin.deleteAdminHandler
+    events:
+      - http:
+          path: api/admin/{username}
+          method: delete
+          cors: true
+
+  changePassword:
+    handler: lambda/dist/handlers/admin.changePasswordHandler
+    events:
+      - http:
+          path: api/admin/change-password
+          method: post
+          cors: true
+
+  # ---- Outlets management ----
+  getOutlets:
+    handler: lambda/dist/handlers/outlets.getOutlets
+    events:
+      - http:
+          path: api/outlets
+          method: get
+          cors: true
+
+  createOutlet:
+    handler: lambda/dist/handlers/outlets.createOutletHandler
+    events:
+      - http:
+          path: api/outlets
+          method: post
+          cors: true
+
+  getOutletByCode:
+    handler: lambda/dist/handlers/outlets.getOutletByCodeHandler
+    events:
+      - http:
+          path: api/outlets/{code}
+          method: get
+          cors: true
+
+  updateOutlet:
+    handler: lambda/dist/handlers/outlets.updateOutletHandler
+    events:
+      - http:
+          path: api/outlets/{code}
+          method: put
+          cors: true
+
+  deleteOutlet:
+    handler: lambda/dist/handlers/outlets.deleteOutletHandler
+    events:
+      - http:
+          path: api/outlets/{code}
+          method: delete
+          cors: true
+
+  # ---- Expenses ----
+  getExpenses:
+    handler: lambda/dist/handlers/expenses.getExpenses
+    events:
+      - http:
+          path: api/expenses
+          method: get
+          cors: true
+
+  createExpense:
+    handler: lambda/dist/handlers/expenses.createExpenseHandler
+    events:
+      - http:
+          path: api/expenses
+          method: post
+          cors: true
+
+  getExpense:
+    handler: lambda/dist/handlers/expenses.getExpense
+    events:
+      - http:
+          path: api/expenses/{id}
+          method: get
+          cors: true
+
+  updateExpense:
+    handler: lambda/dist/handlers/expenses.updateExpenseHandler
+    events:
+      - http:
+          path: api/expenses/{id}
+          method: put
+          cors: true
+
+  deleteExpense:
+    handler: lambda/dist/handlers/expenses.deleteExpenseHandler
+    events:
+      - http:
+          path: api/expenses/{id}
+          method: delete
+          cors: true
+
+  approveExpense:
+    handler: lambda/dist/handlers/expenses.approveExpenseHandler
+    events:
+      - http:
+          path: api/expenses/{id}/approve
+          method: post
+          cors: true
+
+  rejectExpense:
+    handler: lambda/dist/handlers/expenses.rejectExpenseHandler
+    events:
+      - http:
+          path: api/expenses/{id}/reject
+          method: post
+          cors: true
+
+  getCategories:
+    handler: lambda/dist/handlers/expenses.getCategories
+    events:
+      - http:
+          path: api/expenses/categories
+          method: get
+          cors: true
+
+  createCategory:
+    handler: lambda/dist/handlers/expenses.createCategoryHandler
+    events:
+      - http:
+          path: api/expenses/categories
+          method: post
+          cors: true
+
+  getItems:
+    handler: lambda/dist/handlers/expenses.getItems
+    events:
+      - http:
+          path: api/expenses/items
+          method: get
+          cors: true
+
+  createItem:
+    handler: lambda/dist/handlers/expenses.createItemHandler
+    events:
+      - http:
+          path: api/expenses/items
+          method: post
+          cors: true
+
+# ---- DynamoDB Tables ----
+resources:
+  Resources:
+    OutletsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-outlets-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    AdminsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-admins-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    SalesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-sales-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI_PK
+            AttributeType: S
+          - AttributeName: GSI_SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: AllSalesDateIndex
+            KeySchema:
+              - AttributeName: GSI_PK
+                KeyType: HASH
+              - AttributeName: GSI_SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    ExpensesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-expenses-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    ExpenseCategoriesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-expense-categories-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    ItemMastersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-item-masters-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
