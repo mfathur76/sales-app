@@ -103,7 +103,7 @@ const ExpenseForm = ({ onExpenseAdded }) => {
       setLoading(false);
     }
   };
-        (categoryMap[item.categoryId]?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
