@@ -94,10 +94,6 @@ const ExpenseForm = ({ onExpenseAdded }) => {
       }
     } catch (error) {
       console.error('Error creating expense:', error);
-  const categoryMap = categories.reduce((acc, category) => {
-    acc[category.id] = category;
-    return acc;
-  }, {});
       setMessage({ type: 'error', text: error.message || 'Failed to create expense' });
     } finally {
       setLoading(false);
