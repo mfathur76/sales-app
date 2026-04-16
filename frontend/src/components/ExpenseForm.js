@@ -193,7 +193,6 @@ const ExpenseForm = ({ onExpenseAdded }) => {
             {formData.itemId && (
               <button
                 type="button"
-                        <span className="category">{categoryMap[item.categoryId]?.name || '-'}</span>
                 onClick={handleClearSelection}
                 title="Clear selection"
               >
@@ -210,10 +209,8 @@ const ExpenseForm = ({ onExpenseAdded }) => {
                       onClick={() => handleItemSelect(item)}
                     >
                       <div className="item-name">{item.name}</div>
-            <p><strong>Category:</strong> {categoryMap[selectedItem.categoryId]?.name || '-'}</p>
-                        <span className="category">{item.categoryRef?.name}</span>
-                        <span className="unit">({item.unit})</span>
-                      </div>
+                      <span className="category">{item.categoryRef?.name}</span>
+                      <span className="unit">({item.unit})</span>
                     </div>
                   ))
                 ) : searchTerm ? (
