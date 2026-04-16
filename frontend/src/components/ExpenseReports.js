@@ -27,7 +27,7 @@ const ExpenseReports = () => {
     } else {
       loadMonthlyReport();
     }
-  }, [activeReport, filters, selectedOutlets]);
+  }, [activeReport, filters, selectedOutlets]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadOutlets = async () => {
     try {

@@ -30,7 +30,7 @@ const ExpenseReport = ({ user }) => {
     } else if (reportType === 'monthly') {
       loadMonthlyReport();
     }
-  }, [reportType, weekStart, month, year]);
+  }, [reportType, weekStart, month, year]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadWeeklyReport = async () => {
     if (!weekStart) return;

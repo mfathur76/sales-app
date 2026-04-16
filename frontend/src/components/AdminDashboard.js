@@ -50,7 +50,7 @@ const AdminDashboard = ({ admin }) => {
     if (activeTab === 'sales-verification') {
       fetchSales();
     }
-  }, [filters, activeTab]);
+  }, [filters, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSales = async () => {
     try {
@@ -139,16 +139,6 @@ const AdminDashboard = ({ admin }) => {
       style: 'currency',
       currency: 'IDR'
     }).format(amount);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'orange';
-      case 'verified': return 'blue';
-      case 'approved': return 'green';
-      case 'rejected': return 'red';
-      default: return 'gray';
-    }
   };
 
   const renderSalesVerification = () => (

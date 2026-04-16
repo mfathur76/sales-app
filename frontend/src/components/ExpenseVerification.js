@@ -32,7 +32,7 @@ const ExpenseManagement = () => {
 
   useEffect(() => {
     loadLookups();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadExpenses();

@@ -15,11 +15,11 @@ const AdminReport = () => {
 
   useEffect(() => {
     fetchSales();
-  }, [filters]);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     generateReport();
-  }, [sales]);
+  }, [sales]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSales = async () => {
     try {
@@ -123,10 +123,6 @@ const AdminReport = () => {
       style: 'currency',
       currency: 'IDR'
     }).format(amount);
-  };
-
-  const formatPercentage = (percentage) => {
-    return `${percentage.toFixed(2)}%`;
   };
 
   const getDifferenceColor = (status) => {

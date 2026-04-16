@@ -14,7 +14,6 @@ const ExpenseForm = ({ onExpenseAdded }) => {
   });
 
   const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
@@ -29,12 +28,8 @@ const ExpenseForm = ({ onExpenseAdded }) => {
 
   const loadData = async () => {
     try {
-      const [itemsData, categoriesData] = await Promise.all([
-        expenseApi.getItems(),
-        expenseApi.getCategories()
-      ]);
+      const itemsData = await expenseApi.getItems();
       setItems(itemsData);
-      setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading data:', error);
       setMessage({ type: 'error', text: 'Failed to load data' });

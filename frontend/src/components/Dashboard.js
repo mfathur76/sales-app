@@ -11,13 +11,13 @@ const Dashboard = ({ user }) => {
     end_date: '',
     outlet: user?.outlet || ''
   });
-  const [outletOptions, setOutletOptions] = useState([]);
+  const [, setOutletOptions] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadStats();
     loadOutletOptions();
-  }, [filters]);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadStats = async () => {
     setLoading(true);

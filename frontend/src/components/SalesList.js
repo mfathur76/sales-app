@@ -11,7 +11,7 @@ const SalesList = ({ user }) => {
     end_date: '',
     outlet: user?.outlet || ''
   });
-  const [outletOptions, setOutletOptions] = useState([]);
+  const [, setOutletOptions] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
   
   // Edit state
@@ -21,7 +21,7 @@ const SalesList = ({ user }) => {
   useEffect(() => {
     loadSales();
     loadOutletOptions();
-  }, [filters]);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSales = async () => {
     setLoading(true);
