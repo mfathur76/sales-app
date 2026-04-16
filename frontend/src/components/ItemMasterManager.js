@@ -16,6 +16,11 @@ const ItemMasterManager = () => {
     unit: 'kg'
   });
 
+  const categoryMap = categories.reduce((acc, category) => {
+    acc[category.id] = category;
+    return acc;
+  }, {});
+
   useEffect(() => {
     loadData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -257,7 +262,7 @@ const ItemMasterManager = () => {
               <div className="item-details">
                 <div className="detail-row">
                   <span className="label">Category:</span>
-                  <span className="value">{item.categoryRef?.name}</span>
+                  <span className="value">{categoryMap[item.categoryId]?.name || '-'}</span>
                 </div>
                 <div className="detail-row">
                   <span className="label">Unit:</span>

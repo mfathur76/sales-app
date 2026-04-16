@@ -39,11 +39,16 @@ async function dbUpdate(table, key, updates) {
     const names = {};
     const values = {};
     for (const [k, v] of Object.entries(updates)) {
+        if (v === undefined)
+            continue;
         const attrName = `#${k}`;
         const attrVal = `:${k}`;
         setExpressions.push(`${attrName} = ${attrVal}`);
         names[attrName] = k;
         values[attrVal] = v;
+    }
+    if (setExpressions.length === 0) {
+        return dbGet(table, key);
     }
     const res = await exports.dynamo.send(new lib_dynamodb_1.UpdateCommand({
         TableName: table,
@@ -62,11 +67,12 @@ async function dbQuery(params) {
     const res = await exports.dynamo.send(new lib_dynamodb_1.QueryCommand(params));
     return res.Items ?? [];
 }
-async function dbScan(table, filterExpression, expressionValues) {
+async function dbScan(table, filterExpression, expressionValues, expressionNames) {
     const res = await exports.dynamo.send(new lib_dynamodb_1.ScanCommand({
         TableName: table,
         FilterExpression: filterExpression,
         ExpressionAttributeValues: expressionValues,
+        ExpressionAttributeNames: expressionNames,
     }));
     return res.Items ?? [];
 }

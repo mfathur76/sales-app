@@ -4,8 +4,6 @@ exports.getExpenses = getExpenses;
 exports.getExpense = getExpense;
 exports.createExpenseHandler = createExpenseHandler;
 exports.updateExpenseHandler = updateExpenseHandler;
-exports.approveExpenseHandler = approveExpenseHandler;
-exports.rejectExpenseHandler = rejectExpenseHandler;
 exports.deleteExpenseHandler = deleteExpenseHandler;
 exports.getCategories = getCategories;
 exports.createCategoryHandler = createCategoryHandler;
@@ -118,61 +116,25 @@ async function updateExpenseHandler(event) {
         if (body.quantity !== undefined && body.quantity <= 0) {
             return (0, response_1.badRequest)('Quantity must be greater than 0');
         }
+        if (body.actualPrice !== undefined && body.actualPrice <= 0) {
+            return (0, response_1.badRequest)('actualPrice must be greater than 0');
+        }
+        if (user.type === 'outlet' && body.outlet && body.outlet !== existing.outlet) {
+            return (0, response_1.forbidden)('Access denied: You can only move expenses within your own outlet');
+        }
         const updated = await (0, expenseService_1.updateExpense)(id, {
+            outlet: body.outlet,
             itemId: body.itemId,
             date: body.date ? new Date(body.date) : undefined,
             quantity: body.quantity,
             actualPrice: body.actualPrice,
             notes: body.notes,
+            isCash: typeof body.isCash === 'boolean' ? body.isCash : undefined,
+            updatedBy: user.username ?? user.name,
         });
         if (!updated)
             return (0, response_1.notFound)('Expense not found');
         return (0, response_1.ok)(updated);
-    }
-    catch (err) {
-        return (0, response_1.serverError)(err);
-    }
-}
-/** POST /api/expenses/{id}/approve  – admin only */
-async function approveExpenseHandler(event) {
-    if (event.httpMethod === 'OPTIONS')
-        return (0, response_1.preflight)();
-    const user = getUser(event);
-    if (!user)
-        return (0, response_1.unauthorized)('Access token required');
-    if (user.type !== 'admin')
-        return (0, response_1.forbidden)('Admin access required');
-    const { id } = event.pathParameters || {};
-    if (!id)
-        return (0, response_1.badRequest)('Expense id path parameter is required');
-    try {
-        const updated = await (0, expenseService_1.approveExpense)(id, user.username);
-        if (!updated)
-            return (0, response_1.notFound)('Expense not found');
-        return (0, response_1.ok)(updated, 'Expense approved');
-    }
-    catch (err) {
-        return (0, response_1.serverError)(err);
-    }
-}
-/** POST /api/expenses/{id}/reject  – admin only */
-async function rejectExpenseHandler(event) {
-    if (event.httpMethod === 'OPTIONS')
-        return (0, response_1.preflight)();
-    const user = getUser(event);
-    if (!user)
-        return (0, response_1.unauthorized)('Access token required');
-    if (user.type !== 'admin')
-        return (0, response_1.forbidden)('Admin access required');
-    const { id } = event.pathParameters || {};
-    if (!id)
-        return (0, response_1.badRequest)('Expense id path parameter is required');
-    try {
-        const body = JSON.parse(event.body || '{}');
-        const updated = await (0, expenseService_1.rejectExpense)(id, user.username, body.reason);
-        if (!updated)
-            return (0, response_1.notFound)('Expense not found');
-        return (0, response_1.ok)(updated, 'Expense rejected');
     }
     catch (err) {
         return (0, response_1.serverError)(err);

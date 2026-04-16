@@ -4,8 +4,6 @@ import {
   getExpenseById,
   createExpense,
   updateExpense,
-  approveExpense,
-  rejectExpense,
   deleteExpense,
   getAllCategories,
   createCategory,
@@ -138,58 +136,26 @@ export async function updateExpenseHandler(event: APIGatewayProxyEvent): Promise
     if (body.quantity !== undefined && body.quantity <= 0) {
       return badRequest('Quantity must be greater than 0');
     }
+    if (body.actualPrice !== undefined && body.actualPrice <= 0) {
+      return badRequest('actualPrice must be greater than 0');
+    }
+    if (user.type === 'outlet' && body.outlet && body.outlet !== existing.outlet) {
+      return forbidden('Access denied: You can only move expenses within your own outlet');
+    }
 
     const updated = await updateExpense(id, {
-      itemId:      body.itemId,
-      date:         body.date ? new Date(body.date) : undefined,
-      quantity:     body.quantity,
-      actualPrice:  body.actualPrice,
-      notes:        body.notes,
+      outlet: body.outlet,
+      itemId: body.itemId,
+      date: body.date ? new Date(body.date) : undefined,
+      quantity: body.quantity,
+      actualPrice: body.actualPrice,
+      notes: body.notes,
+      isCash: typeof body.isCash === 'boolean' ? body.isCash : undefined,
+      updatedBy: user.username ?? user.name,
     });
 
     if (!updated) return notFound('Expense not found');
     return ok(updated);
-  } catch (err) {
-    return serverError(err);
-  }
-}
-
-/** POST /api/expenses/{id}/approve  – admin only */
-export async function approveExpenseHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
-  if (event.httpMethod === 'OPTIONS') return preflight();
-
-  const user = getUser(event);
-  if (!user) return unauthorized('Access token required');
-  if (user.type !== 'admin') return forbidden('Admin access required');
-
-  const { id } = event.pathParameters || {};
-  if (!id) return badRequest('Expense id path parameter is required');
-
-  try {
-    const updated = await approveExpense(id, user.username!);
-    if (!updated) return notFound('Expense not found');
-    return ok(updated, 'Expense approved');
-  } catch (err) {
-    return serverError(err);
-  }
-}
-
-/** POST /api/expenses/{id}/reject  – admin only */
-export async function rejectExpenseHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
-  if (event.httpMethod === 'OPTIONS') return preflight();
-
-  const user = getUser(event);
-  if (!user) return unauthorized('Access token required');
-  if (user.type !== 'admin') return forbidden('Admin access required');
-
-  const { id } = event.pathParameters || {};
-  if (!id) return badRequest('Expense id path parameter is required');
-
-  try {
-    const body = JSON.parse(event.body || '{}');
-    const updated = await rejectExpense(id, user.username!, body.reason);
-    if (!updated) return notFound('Expense not found');
-    return ok(updated, 'Expense rejected');
   } catch (err) {
     return serverError(err);
   }

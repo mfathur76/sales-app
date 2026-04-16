@@ -1,18 +1,20 @@
 service: sales-app-api
 
-frameworkVersion: "4"
+frameworkVersion: "3"
 
 provider:
   name: aws
   runtime: nodejs18.x
-  region: ${opt:region, 'ap-southeast-1'}
+  region: ${opt:region, 'ap-southeast-3'}
   stage: ${opt:stage, 'prod'}
+  profile: risolmejik
   memorySize: 256
   timeout: 10
 
   environment:
     NODE_ENV: production
     JWT_SECRET: ${env:JWT_SECRET}
+    CORS_ALLOWED_ORIGINS: ${env:CORS_ALLOWED_ORIGINS, '*'}
     OUTLETS_TABLE: ${self:service}-outlets-${self:provider.stage}
     ADMINS_TABLE: ${self:service}-admins-${self:provider.stage}
     SALES_TABLE: ${self:service}-sales-${self:provider.stage}
@@ -36,10 +38,20 @@ provider:
             - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-*/index/*
 
 plugins:
+  - serverless-esbuild
   - serverless-offline
 
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: false
+    target: node18
+    platform: node
+    concurrency: 10
+
 package:
-  individually: false
+  individually: true
   patterns:
     - "!src/**"           # exclude original Express source
     - "!prisma/**"
@@ -47,13 +59,14 @@ package:
     - "!*.md"
     - "!ecosystem.config.js"
     - "!nginx.conf"
-    - "lambda/dist/**"    # only include compiled Lambda output
-    - "node_modules/**"
+    - "!dist/**"
+    - "!dist-lambda/**"
+    - "!node_modules/.cache/**"
 
 functions:
   # ---- Health ----
   healthCheck:
-    handler: lambda/dist/handlers/auth.healthCheck
+    handler: lambda/handlers/auth.healthCheck
     events:
       - http:
           path: api/health
@@ -62,7 +75,7 @@ functions:
 
   # ---- Auth ----
   outletLogin:
-    handler: lambda/dist/handlers/auth.outletLogin
+    handler: lambda/handlers/auth.outletLogin
     events:
       - http:
           path: api/auth/login
@@ -70,7 +83,7 @@ functions:
           cors: true
 
   listOutletsPublic:
-    handler: lambda/dist/handlers/auth.listOutlets
+    handler: lambda/handlers/auth.listOutlets
     events:
       - http:
           path: api/auth/outlets
@@ -78,7 +91,7 @@ functions:
           cors: true
 
   adminLogin:
-    handler: lambda/dist/handlers/auth.adminLogin
+    handler: lambda/handlers/auth.adminLogin
     events:
       - http:
           path: api/admin/login
@@ -87,7 +100,7 @@ functions:
 
   # ---- Sales ----
   getSales:
-    handler: lambda/dist/handlers/sales.getSales
+    handler: lambda/handlers/sales.getSales
     events:
       - http:
           path: api/sales
@@ -95,7 +108,7 @@ functions:
           cors: true
 
   createSale:
-    handler: lambda/dist/handlers/sales.createSale
+    handler: lambda/handlers/sales.createSale
     events:
       - http:
           path: api/sales
@@ -103,7 +116,7 @@ functions:
           cors: true
 
   getSalesStats:
-    handler: lambda/dist/handlers/sales.getSalesStats
+    handler: lambda/handlers/sales.getSalesStats
     events:
       - http:
           path: api/sales/stats
@@ -111,7 +124,7 @@ functions:
           cors: true
 
   getSalesStatsOverview:
-    handler: lambda/dist/handlers/sales.getSalesStats
+    handler: lambda/handlers/sales.getSalesStats
     events:
       - http:
           path: api/sales/stats/overview
@@ -119,7 +132,7 @@ functions:
           cors: true
 
   getSalesOutletOptions:
-    handler: lambda/dist/handlers/sales.getSalesOutletOptions
+    handler: lambda/handlers/sales.getSalesOutletOptions
     events:
       - http:
           path: api/sales/outlets
@@ -127,7 +140,7 @@ functions:
           cors: true
 
   getSaleByOutletDate:
-    handler: lambda/dist/handlers/sales.getSaleByOutletDate
+    handler: lambda/handlers/sales.getSaleByOutletDate
     events:
       - http:
           path: api/sales/{outlet}/{date}
@@ -135,7 +148,7 @@ functions:
           cors: true
 
   updateSale:
-    handler: lambda/dist/handlers/sales.updateSale
+    handler: lambda/handlers/sales.updateSale
     events:
       - http:
           path: api/sales/{outlet}/{date}
@@ -143,7 +156,7 @@ functions:
           cors: true
 
   updateSaleBank:
-    handler: lambda/dist/handlers/sales.updateSaleBank
+    handler: lambda/handlers/sales.updateSaleBank
     events:
       - http:
           path: api/sales/{outlet}/{date}/bank
@@ -151,7 +164,7 @@ functions:
           cors: true
 
   deleteSale:
-    handler: lambda/dist/handlers/sales.deleteSale
+    handler: lambda/handlers/sales.deleteSale
     events:
       - http:
           path: api/sales/{outlet}/{date}
@@ -160,7 +173,7 @@ functions:
 
   # ---- Admin management ----
   getAdminProfile:
-    handler: lambda/dist/handlers/admin.getProfile
+    handler: lambda/handlers/admin.getProfile
     events:
       - http:
           path: api/admin/profile
@@ -168,7 +181,7 @@ functions:
           cors: true
 
   listAdmins:
-    handler: lambda/dist/handlers/admin.listAdmins
+    handler: lambda/handlers/admin.listAdmins
     events:
       - http:
           path: api/admin/list
@@ -176,7 +189,7 @@ functions:
           cors: true
 
   createAdmin:
-    handler: lambda/dist/handlers/admin.createAdminHandler
+    handler: lambda/handlers/admin.createAdminHandler
     events:
       - http:
           path: api/admin/create
@@ -184,7 +197,7 @@ functions:
           cors: true
 
   updateAdmin:
-    handler: lambda/dist/handlers/admin.updateAdminHandler
+    handler: lambda/handlers/admin.updateAdminHandler
     events:
       - http:
           path: api/admin/{username}
@@ -192,7 +205,7 @@ functions:
           cors: true
 
   deleteAdmin:
-    handler: lambda/dist/handlers/admin.deleteAdminHandler
+    handler: lambda/handlers/admin.deleteAdminHandler
     events:
       - http:
           path: api/admin/{username}
@@ -200,7 +213,7 @@ functions:
           cors: true
 
   changePassword:
-    handler: lambda/dist/handlers/admin.changePasswordHandler
+    handler: lambda/handlers/admin.changePasswordHandler
     events:
       - http:
           path: api/admin/change-password
@@ -209,7 +222,7 @@ functions:
 
   # ---- Outlets management ----
   getOutlets:
-    handler: lambda/dist/handlers/outlets.getOutlets
+    handler: lambda/handlers/outlets.getOutlets
     events:
       - http:
           path: api/outlets
@@ -217,7 +230,7 @@ functions:
           cors: true
 
   createOutlet:
-    handler: lambda/dist/handlers/outlets.createOutletHandler
+    handler: lambda/handlers/outlets.createOutletHandler
     events:
       - http:
           path: api/outlets
@@ -225,7 +238,7 @@ functions:
           cors: true
 
   getOutletByCode:
-    handler: lambda/dist/handlers/outlets.getOutletByCodeHandler
+    handler: lambda/handlers/outlets.getOutletByCodeHandler
     events:
       - http:
           path: api/outlets/{code}
@@ -233,7 +246,7 @@ functions:
           cors: true
 
   updateOutlet:
-    handler: lambda/dist/handlers/outlets.updateOutletHandler
+    handler: lambda/handlers/outlets.updateOutletHandler
     events:
       - http:
           path: api/outlets/{code}
@@ -241,7 +254,7 @@ functions:
           cors: true
 
   deleteOutlet:
-    handler: lambda/dist/handlers/outlets.deleteOutletHandler
+    handler: lambda/handlers/outlets.deleteOutletHandler
     events:
       - http:
           path: api/outlets/{code}
@@ -250,7 +263,7 @@ functions:
 
   # ---- Expenses ----
   getExpenses:
-    handler: lambda/dist/handlers/expenses.getExpenses
+    handler: lambda/handlers/expenses.getExpenses
     events:
       - http:
           path: api/expenses
@@ -258,7 +271,7 @@ functions:
           cors: true
 
   createExpense:
-    handler: lambda/dist/handlers/expenses.createExpenseHandler
+    handler: lambda/handlers/expenses.createExpenseHandler
     events:
       - http:
           path: api/expenses
@@ -266,7 +279,7 @@ functions:
           cors: true
 
   getExpense:
-    handler: lambda/dist/handlers/expenses.getExpense
+    handler: lambda/handlers/expenses.getExpense
     events:
       - http:
           path: api/expenses/{id}
@@ -274,7 +287,7 @@ functions:
           cors: true
 
   updateExpense:
-    handler: lambda/dist/handlers/expenses.updateExpenseHandler
+    handler: lambda/handlers/expenses.updateExpenseHandler
     events:
       - http:
           path: api/expenses/{id}
@@ -282,31 +295,15 @@ functions:
           cors: true
 
   deleteExpense:
-    handler: lambda/dist/handlers/expenses.deleteExpenseHandler
+    handler: lambda/handlers/expenses.deleteExpenseHandler
     events:
       - http:
           path: api/expenses/{id}
           method: delete
           cors: true
 
-  approveExpense:
-    handler: lambda/dist/handlers/expenses.approveExpenseHandler
-    events:
-      - http:
-          path: api/expenses/{id}/approve
-          method: post
-          cors: true
-
-  rejectExpense:
-    handler: lambda/dist/handlers/expenses.rejectExpenseHandler
-    events:
-      - http:
-          path: api/expenses/{id}/reject
-          method: post
-          cors: true
-
   getCategories:
-    handler: lambda/dist/handlers/expenses.getCategories
+    handler: lambda/handlers/expenses.getCategories
     events:
       - http:
           path: api/expenses/categories
@@ -314,7 +311,7 @@ functions:
           cors: true
 
   createCategory:
-    handler: lambda/dist/handlers/expenses.createCategoryHandler
+    handler: lambda/handlers/expenses.createCategoryHandler
     events:
       - http:
           path: api/expenses/categories
@@ -322,7 +319,7 @@ functions:
           cors: true
 
   getItems:
-    handler: lambda/dist/handlers/expenses.getItems
+    handler: lambda/handlers/expenses.getItems
     events:
       - http:
           path: api/expenses/items
@@ -330,7 +327,7 @@ functions:
           cors: true
 
   createItem:
-    handler: lambda/dist/handlers/expenses.createItemHandler
+    handler: lambda/handlers/expenses.createItemHandler
     events:
       - http:
           path: api/expenses/items

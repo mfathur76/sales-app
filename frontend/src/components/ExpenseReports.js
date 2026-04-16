@@ -53,7 +53,7 @@ const ExpenseReports = () => {
       setLoading(true);
       setMessage({ type: '', text: '' });
       const weekStartDate = new Date(filters.weekStart);
-      const data = await expenseApi.getWeeklyReport(selectedOutlets, weekStartDate, 'approved');
+      const data = await expenseApi.getWeeklyReport(selectedOutlets, weekStartDate);
       setWeeklyReport(data);
     } catch (error) {
       console.error('Error loading weekly report:', error);
@@ -72,7 +72,7 @@ const ExpenseReports = () => {
     try {
       setLoading(true);
       setMessage({ type: '', text: '' });
-      const data = await expenseApi.getMonthlyReport(selectedOutlets, filters.month, filters.year, 'approved');
+      const data = await expenseApi.getMonthlyReport(selectedOutlets, filters.month, filters.year);
       setMonthlyReport(data);
     } catch (error) {
       console.error('Error loading monthly report:', error);

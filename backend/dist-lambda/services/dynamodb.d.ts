@@ -13,5 +13,5 @@ export declare function dbPut(table: string, item: Record<string, unknown>): Pro
 export declare function dbUpdate(table: string, key: Record<string, unknown>, updates: Record<string, unknown>): Promise<Record<string, any> | null>;
 export declare function dbDelete(table: string, key: Record<string, unknown>): Promise<void>;
 export declare function dbQuery(params: QueryCommandInput): Promise<Record<string, any>[]>;
-export declare function dbScan(table: string, filterExpression?: string, expressionValues?: Record<string, unknown>): Promise<Record<string, any>[]>;
+export declare function dbScan(table: string, filterExpression?: string, expressionValues?: Record<string, unknown>, expressionNames?: Record<string, string>): Promise<Record<string, any>[]>;
 //# sourceMappingURL=dynamodb.d.ts.map

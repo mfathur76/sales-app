@@ -4,14 +4,14 @@ import './ExpenseList.css';
 
 const ExpenseList = forwardRef(({ user }, ref) => {
   const [expenses, setExpenses] = useState([]);
+  const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [filters, setFilters] = useState({
     categoryId: '',
     startDate: '',
-    endDate: '',
-    status: ''
+    endDate: ''
   });
 
   useEffect(() => {
@@ -21,11 +21,13 @@ const ExpenseList = forwardRef(({ user }, ref) => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [expensesData, categoriesData] = await Promise.all([
+      const [expensesData, itemsData, categoriesData] = await Promise.all([
         expenseApi.getExpenses(filters),
+        expenseApi.getItems(),
         expenseApi.getCategories()
       ]);
       setExpenses(expensesData);
+      setItems(itemsData);
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading expenses:', error);
@@ -50,10 +52,19 @@ const ExpenseList = forwardRef(({ user }, ref) => {
     setFilters({
       categoryId: '',
       startDate: '',
-      endDate: '',
-      status: ''
+      endDate: ''
     });
   };
+
+  const itemMap = items.reduce((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  }, {});
+
+  const categoryMap = categories.reduce((acc, category) => {
+    acc[category.id] = category;
+    return acc;
+  }, {});
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', {
@@ -61,19 +72,6 @@ const ExpenseList = forwardRef(({ user }, ref) => {
       currency: 'IDR',
       minimumFractionDigits: 0
     }).format(amount);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved':
-        return 'green';
-      case 'rejected':
-        return 'red';
-      case 'pending':
-        return 'orange';
-      default:
-        return 'gray';
-    }
   };
 
   if (loading && expenses.length === 0) {
@@ -136,20 +134,6 @@ const ExpenseList = forwardRef(({ user }, ref) => {
             />
           </div>
 
-          <div className="filter-group">
-            <label htmlFor="statusFilter">Status:</label>
-            <select
-              id="statusFilter"
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-
           <button onClick={clearFilters} className="clear-filters-btn">
             Clear Filters
           </button>
@@ -178,24 +162,18 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                       <th>Qty</th>
                       <th>Harga</th>
                       <th>Total</th>
-                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {expenses.filter(exp => exp.isCash).map(expense => (
                       <tr key={expense.id}>
                         <td>{new Date(expense.date).toLocaleDateString('id-ID')}</td>
-                        <td>{expense.itemRef?.name || '-'}</td>
-                        <td>{expense.itemRef?.categoryRef?.name || '-'}</td>
-                        <td>{expense.itemRef?.unit || '-'}</td>
+                        <td>{itemMap[expense.itemId]?.name || '-'}</td>
+                        <td>{categoryMap[itemMap[expense.itemId]?.categoryId]?.name || '-'}</td>
+                        <td>{itemMap[expense.itemId]?.unit || '-'}</td>
                         <td>{expense.quantity}</td>
                         <td>{formatCurrency(expense.actualPrice)}</td>
                         <td className="cell-total">{formatCurrency(expense.totalPrice)}</td>
-                        <td>
-                          <span className={`status-badge status-${expense.status || 'unknown'}`}>
-                            {expense.status}
-                          </span>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -205,7 +183,6 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                       <td className="tfoot-total">
                         {formatCurrency(expenses.filter(exp => exp.isCash).reduce((sum, exp) => sum + exp.totalPrice, 0))}
                       </td>
-                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -228,24 +205,18 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                       <th>Qty</th>
                       <th>Harga</th>
                       <th>Total</th>
-                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {expenses.filter(exp => !exp.isCash).map(expense => (
                       <tr key={expense.id}>
                         <td>{new Date(expense.date).toLocaleDateString('id-ID')}</td>
-                        <td>{expense.itemRef?.name || '-'}</td>
-                        <td>{expense.itemRef?.categoryRef?.name || '-'}</td>
-                        <td>{expense.itemRef?.unit || '-'}</td>
+                        <td>{itemMap[expense.itemId]?.name || '-'}</td>
+                        <td>{categoryMap[itemMap[expense.itemId]?.categoryId]?.name || '-'}</td>
+                        <td>{itemMap[expense.itemId]?.unit || '-'}</td>
                         <td>{expense.quantity}</td>
                         <td>{formatCurrency(expense.actualPrice)}</td>
                         <td className="cell-total">{formatCurrency(expense.totalPrice)}</td>
-                        <td>
-                          <span className={`status-badge status-${expense.status || 'unknown'}`}>
-                            {expense.status}
-                          </span>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -255,7 +226,6 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                       <td className="tfoot-total">
                         {formatCurrency(expenses.filter(exp => !exp.isCash).reduce((sum, exp) => sum + exp.totalPrice, 0))}
                       </td>
-                      <td></td>
                     </tr>
                   </tfoot>
                 </table>

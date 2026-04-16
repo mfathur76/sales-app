@@ -1,10 +1,8 @@
-import { authApi } from './salesApi';
-
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+import { authApi, API_BASE_URL } from './salesApi';
 
 class ExpenseApi {
   constructor() {
-    this.baseURL = BASE_URL;
+    this.baseURL = API_BASE_URL;
   }
 
   async getAuthHeaders() {
@@ -15,19 +13,30 @@ class ExpenseApi {
     };
   }
 
+  async request(path, options = {}) {
+    const response = await fetch(`${this.baseURL}${path}`, {
+      ...options,
+      headers: await this.getAuthHeaders()
+    });
+
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const message = payload?.error || payload?.message || `HTTP error! status: ${response.status}`;
+      throw new Error(message);
+    }
+
+    if (payload && typeof payload === 'object' && 'data' in payload) {
+      return payload.data;
+    }
+
+    return payload;
+  }
+
   // Get all expense categories
   async getCategories() {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/categories/all`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request('/expenses/categories', { method: 'GET' });
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw error;
@@ -37,16 +46,7 @@ class ExpenseApi {
   // Get all item masters
   async getItems() {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/items/all`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request('/expenses/items', { method: 'GET' });
     } catch (error) {
       console.error('Error fetching items:', error);
       throw error;
@@ -56,17 +56,10 @@ class ExpenseApi {
   // Create new expense category
   async createCategory(name, description) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/categories`, {
+      return await this.request('/expenses/categories', {
         method: 'POST',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify({ name, description })
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error creating category:', error);
       throw error;
@@ -76,17 +69,10 @@ class ExpenseApi {
   // Create new item master
   async createItem(itemData) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/items`, {
+      return await this.request('/expenses/items', {
         method: 'POST',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify(itemData)
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error creating item:', error);
       throw error;
@@ -96,17 +82,10 @@ class ExpenseApi {
   // Update item master
   async updateItem(id, itemData) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/items/${id}`, {
+      return await this.request(`/expenses/items/${id}`, {
         method: 'PUT',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify(itemData)
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error updating item:', error);
       throw error;
@@ -116,16 +95,7 @@ class ExpenseApi {
   // Delete item master
   async deleteItem(id) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/items/${id}`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/items/${id}`, { method: 'DELETE' });
     } catch (error) {
       console.error('Error deleting item:', error);
       throw error;
@@ -135,17 +105,10 @@ class ExpenseApi {
   // Update expense category
   async updateCategory(id, updateData) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/categories/${id}`, {
+      return await this.request(`/expenses/categories/${id}`, {
         method: 'PUT',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify(updateData)
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error updating category:', error);
       throw error;
@@ -155,17 +118,7 @@ class ExpenseApi {
   // Delete expense category
   async deleteCategory(id) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/categories/${id}`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to delete category' }));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/categories/${id}`, { method: 'DELETE' });
     } catch (error) {
       console.error('Error deleting category:', error);
       throw error;
@@ -182,18 +135,8 @@ class ExpenseApi {
         }
       });
 
-      const url = `${this.baseURL}/expenses${params.toString() ? `?${params.toString()}` : ''}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      const path = `/expenses${params.toString() ? `?${params.toString()}` : ''}`;
+      return await this.request(path, { method: 'GET' });
     } catch (error) {
       console.error('Error fetching expenses:', error);
       throw error;
@@ -210,18 +153,8 @@ class ExpenseApi {
       if (endDate) params.append('endDate', endDate.toISOString());
       if (status) params.append('status', status);
 
-      const url = `${this.baseURL}/expenses${params.toString() ? `?${params.toString()}` : ''}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      const path = `/expenses${params.toString() ? `?${params.toString()}` : ''}`;
+      return await this.request(path, { method: 'GET' });
     } catch (error) {
       console.error('Error fetching expenses:', error);
       throw error;
@@ -231,16 +164,7 @@ class ExpenseApi {
   // Get expense by ID
   async getExpenseById(id) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/${id}`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/${id}`, { method: 'GET' });
     } catch (error) {
       console.error('Error fetching expense:', error);
       throw error;
@@ -250,18 +174,10 @@ class ExpenseApi {
   // Create new expense
   async createExpense(expenseData) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses`, {
+      return await this.request('/expenses', {
         method: 'POST',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify(expenseData)
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error creating expense:', error);
       throw error;
@@ -271,17 +187,10 @@ class ExpenseApi {
   // Update expense
   async updateExpense(id, updateData) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/${id}`, {
+      return await this.request(`/expenses/${id}`, {
         method: 'PUT',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify(updateData)
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error updating expense:', error);
       throw error;
@@ -291,68 +200,19 @@ class ExpenseApi {
   // Delete expense
   async deleteExpense(id) {
     try {
-      const response = await fetch(`${this.baseURL}/expenses/${id}`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/${id}`, { method: 'DELETE' });
     } catch (error) {
       console.error('Error deleting expense:', error);
       throw error;
     }
   }
 
-  // Approve expense
-  async approveExpense(id, approvedBy) {
-    try {
-      const response = await fetch(`${this.baseURL}/expenses/${id}/approve`, {
-        method: 'PUT',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ approvedBy })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error approving expense:', error);
-      throw error;
-    }
-  }
-
-  // Reject expense
-  async rejectExpense(id, approvedBy, rejectionReason) {
-    try {
-      const response = await fetch(`${this.baseURL}/expenses/${id}/reject`, {
-        method: 'PUT',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ approvedBy, rejectionReason })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error rejecting expense:', error);
-      throw error;
-    }
-  }
-
   // Get weekly expense report
-  async getWeeklyReport(outlets, weekStart, status = 'approved') {
+  async getWeeklyReport(outlets, weekStart, status) {
     try {
       const params = new URLSearchParams({
         outlets: Array.isArray(outlets) ? outlets.join(',') : outlets,
-        weekStart
+        weekStart: weekStart instanceof Date ? weekStart.toISOString() : weekStart
       });
       
       // Only add status parameter if provided
@@ -360,16 +220,7 @@ class ExpenseApi {
         params.append('status', status);
       }
 
-      const response = await fetch(`${this.baseURL}/expenses/reports/weekly?${params}`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/reports/weekly?${params}`, { method: 'GET' });
     } catch (error) {
       console.error('Error fetching weekly report:', error);
       throw error;
@@ -377,7 +228,7 @@ class ExpenseApi {
   }
 
   // Get monthly expense report
-  async getMonthlyReport(outlets, month, year, status = 'approved') {
+  async getMonthlyReport(outlets, month, year, status) {
     try {
       const params = new URLSearchParams({
         outlets: Array.isArray(outlets) ? outlets.join(',') : outlets,
@@ -390,16 +241,7 @@ class ExpenseApi {
         params.append('status', status);
       }
 
-      const response = await fetch(`${this.baseURL}/expenses/reports/monthly?${params}`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/reports/monthly?${params}`, { method: 'GET' });
     } catch (error) {
       console.error('Error fetching monthly report:', error);
       throw error;
@@ -415,16 +257,7 @@ class ExpenseApi {
         endDate
       });
 
-      const response = await fetch(`${this.baseURL}/expenses/reports/summary?${params}`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.request(`/expenses/reports/summary?${params}`, { method: 'GET' });
     } catch (error) {
       console.error('Error fetching expense summary:', error);
       throw error;

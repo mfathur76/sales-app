@@ -1,36 +1,24 @@
-// Get the current hostname and use it for API calls
+const DEFAULT_AWS_API_BASE_URL = 'https://c28ub1rja2.execute-api.ap-southeast-3.amazonaws.com/prod/api';
+
+const normalizeApiUrl = (url) => url.replace(/\/$/, '');
+
+// Default to AWS API in production; localhost remains for local development.
 const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
-  
-  // Check if we're in production (deployed on DO)
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    // Use the same hostname for API calls in production
-    const apiUrl = `${protocol}//${hostname}/api`;
-    return apiUrl;
+  const envApiBaseUrl = process.env.REACT_APP_API_BASE_URL;
+
+  if (envApiBaseUrl) {
+    return normalizeApiUrl(envApiBaseUrl);
   }
-  
-  // Use localhost for development
-  const apiUrl = 'http://localhost:3001/api';
-  return apiUrl;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3001/api';
+  }
+
+  return DEFAULT_AWS_API_BASE_URL;
 };
 
-// Force API URL for production with domain support
-const forceApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-  
-  // Check for specific domains
-  if (hostname === 'sales.risolmejik.com') {
-    return 'https://sales.risolmejik.com/api';
-  }
-  if (hostname === '152.42.232.39') {
-    return 'http://152.42.232.39/api';
-  }
-  
-  return getApiBaseUrl();
-};
-
-const API_BASE_URL = forceApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 // Helper function to get auth token
 const getAuthToken = () => {

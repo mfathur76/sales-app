@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { dbGet, dbPut, dbUpdate, dbDelete, dbQuery, dbScan, TABLES } from './dynamodb';
+import { dbPut, dbUpdate, dbDelete, dbQuery, dbScan, TABLES } from './dynamodb';
 import { Expense, ExpenseCategory, ItemMaster } from '../types';
 
 // ---- Expense Categories ----
@@ -79,13 +79,53 @@ function toExpense(item: Record<string, any>): Expense {
     totalPrice: item.totalPrice,
     notes: item.notes,
     isCash: item.isCash ?? true,
-    status: item.status ?? 'pending',
+    status: item.status ?? 'approved',
     approvedBy: item.approvedBy,
     approvedAt: item.approvedAt,
     rejectionReason: item.rejectionReason,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     createdBy: item.createdBy,
+  };
+}
+
+function buildExpenseItem(data: {
+  id: string;
+  outlet: string;
+  itemId: string;
+  date: string;
+  quantity: number;
+  actualPrice: number;
+  totalPrice: number;
+  notes?: string;
+  isCash: boolean;
+  status: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}) {
+  return {
+    PK: `EXPENSE#${data.outlet}`,
+    SK: `DATE#${data.date}#ID#${data.id}`,
+    id: data.id,
+    outlet: data.outlet,
+    itemId: data.itemId,
+    date: data.date,
+    quantity: data.quantity,
+    actualPrice: data.actualPrice,
+    totalPrice: data.totalPrice,
+    notes: data.notes,
+    isCash: data.isCash,
+    status: data.status,
+    approvedBy: data.approvedBy,
+    approvedAt: data.approvedAt,
+    rejectionReason: data.rejectionReason,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    createdBy: data.createdBy,
   };
 }
 
@@ -128,7 +168,7 @@ export async function getAllExpenses(
 }
 
 export async function getExpenseById(id: string): Promise<Expense | null> {
-  const items = await dbScan(EXP_TABLE, '#id = :id', { ':id': id });
+  const items = await dbScan(EXP_TABLE, '#id = :id', { ':id': id }, { '#id': 'id' });
   return items.length > 0 ? toExpense(items[0]) : null;
 }
 
@@ -147,9 +187,7 @@ export async function createExpense(data: {
   const now = new Date().toISOString();
   const dateStr = data.date.toISOString().split('T')[0];
 
-  const item = {
-    PK: `EXPENSE#${data.outlet}`,
-    SK: `DATE#${dateStr}#ID#${id}`,
+  const item = buildExpenseItem({
     id,
     outlet: data.outlet,
     itemId: data.itemId,
@@ -159,11 +197,13 @@ export async function createExpense(data: {
     totalPrice: data.totalPrice,
     notes: data.notes,
     isCash: data.isCash ?? true,
-    status: 'pending',
+    status: 'approved',
+    approvedBy: data.createdBy,
+    approvedAt: now,
     createdBy: data.createdBy,
     createdAt: now,
     updatedAt: now,
-  };
+  });
 
   await dbPut(EXP_TABLE, item);
   return toExpense(item);
@@ -171,70 +211,78 @@ export async function createExpense(data: {
 
 export async function updateExpense(
   id: string,
-  updates: { itemId?: string; date?: Date; quantity?: number; actualPrice?: number; notes?: string },
+  updates: {
+    outlet?: string;
+    itemId?: string;
+    date?: Date;
+    quantity?: number;
+    actualPrice?: number;
+    notes?: string;
+    isCash?: boolean;
+    updatedBy?: string;
+  },
 ): Promise<Expense | null> {
   const existing = await getExpenseById(id);
   if (!existing) return null;
 
-  const quantity    = updates.quantity    ?? existing.quantity;
+  const quantity = updates.quantity ?? existing.quantity;
   const actualPrice = updates.actualPrice ?? existing.actualPrice;
-  const totalPrice  = quantity * actualPrice;
+  const totalPrice = quantity * actualPrice;
+  const nextDate = updates.date ? updates.date.toISOString().split('T')[0] : existing.date;
+  const nextOutlet = updates.outlet ?? existing.outlet;
+  const now = new Date().toISOString();
+
+  const updatedItem = buildExpenseItem({
+    id,
+    outlet: nextOutlet,
+    itemId: updates.itemId ?? existing.itemId,
+    date: nextDate,
+    quantity,
+    actualPrice,
+    totalPrice,
+    notes: updates.notes !== undefined ? updates.notes : existing.notes,
+    isCash: updates.isCash ?? existing.isCash,
+    status: 'approved',
+    approvedBy: existing.approvedBy ?? updates.updatedBy ?? existing.createdBy,
+    approvedAt: existing.approvedAt ?? now,
+    createdAt: existing.createdAt,
+    updatedAt: now,
+    createdBy: existing.createdBy,
+  });
+
+  const oldKey = {
+    PK: `EXPENSE#${existing.outlet}`,
+    SK: `DATE#${existing.date}#ID#${id}`,
+  };
+  const newKey = {
+    PK: `EXPENSE#${nextOutlet}`,
+    SK: `DATE#${nextDate}#ID#${id}`,
+  };
+
+  if (oldKey.PK !== newKey.PK || oldKey.SK !== newKey.SK) {
+    await dbPut(EXP_TABLE, updatedItem);
+    await dbDelete(EXP_TABLE, oldKey);
+    return toExpense(updatedItem);
+  }
 
   const payload: Record<string, unknown> = {
-    totalPrice,
-    updatedAt: new Date().toISOString(),
+    itemId: updatedItem.itemId,
+    quantity: updatedItem.quantity,
+    actualPrice: updatedItem.actualPrice,
+    totalPrice: updatedItem.totalPrice,
+    notes: updatedItem.notes,
+    isCash: updatedItem.isCash,
+    status: updatedItem.status,
+    approvedBy: updatedItem.approvedBy,
+    approvedAt: updatedItem.approvedAt,
+    rejectionReason: undefined,
+    updatedAt: updatedItem.updatedAt,
   };
-  if (updates.itemId    !== undefined) payload.itemId    = updates.itemId;
-  if (updates.quantity  !== undefined) payload.quantity  = updates.quantity;
-  if (updates.actualPrice !== undefined) payload.actualPrice = updates.actualPrice;
-  if (updates.notes     !== undefined) payload.notes     = updates.notes;
-  if (updates.date      !== undefined) payload.date      = updates.date.toISOString().split('T')[0];
 
-  const dateStr = existing.date;
   const updated = await dbUpdate(
     EXP_TABLE,
-    { PK: `EXPENSE#${existing.outlet}`, SK: `DATE#${dateStr}#ID#${id}` },
+    oldKey,
     payload,
-  );
-
-  return updated ? toExpense(updated as any) : null;
-}
-
-export async function approveExpense(id: string, adminUsername: string): Promise<Expense | null> {
-  const existing = await getExpenseById(id);
-  if (!existing) return null;
-
-  const updated = await dbUpdate(
-    EXP_TABLE,
-    { PK: `EXPENSE#${existing.outlet}`, SK: `DATE#${existing.date}#ID#${id}` },
-    {
-      status: 'approved',
-      approvedBy: adminUsername,
-      approvedAt: new Date().toISOString(),
-      updatedAt:  new Date().toISOString(),
-    },
-  );
-
-  return updated ? toExpense(updated as any) : null;
-}
-
-export async function rejectExpense(
-  id: string,
-  adminUsername: string,
-  reason?: string,
-): Promise<Expense | null> {
-  const existing = await getExpenseById(id);
-  if (!existing) return null;
-
-  const updated = await dbUpdate(
-    EXP_TABLE,
-    { PK: `EXPENSE#${existing.outlet}`, SK: `DATE#${existing.date}#ID#${id}` },
-    {
-      status: 'rejected',
-      approvedBy: adminUsername,
-      rejectionReason: reason,
-      updatedAt: new Date().toISOString(),
-    },
   );
 
   return updated ? toExpense(updated as any) : null;

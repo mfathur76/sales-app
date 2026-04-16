@@ -94,12 +94,16 @@ const ExpenseForm = ({ onExpenseAdded }) => {
       }
     } catch (error) {
       console.error('Error creating expense:', error);
+  const categoryMap = categories.reduce((acc, category) => {
+    acc[category.id] = category;
+    return acc;
+  }, {});
       setMessage({ type: 'error', text: error.message || 'Failed to create expense' });
     } finally {
       setLoading(false);
     }
   };
-
+        (categoryMap[item.categoryId]?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -189,7 +193,7 @@ const ExpenseForm = ({ onExpenseAdded }) => {
             {formData.itemId && (
               <button
                 type="button"
-                className="clear-btn"
+                        <span className="category">{categoryMap[item.categoryId]?.name || '-'}</span>
                 onClick={handleClearSelection}
                 title="Clear selection"
               >
@@ -206,7 +210,7 @@ const ExpenseForm = ({ onExpenseAdded }) => {
                       onClick={() => handleItemSelect(item)}
                     >
                       <div className="item-name">{item.name}</div>
-                      <div className="item-details">
+            <p><strong>Category:</strong> {categoryMap[selectedItem.categoryId]?.name || '-'}</p>
                         <span className="category">{item.categoryRef?.name}</span>
                         <span className="unit">({item.unit})</span>
                       </div>

@@ -51,11 +51,16 @@ export async function dbUpdate(
   const values: Record<string, unknown> = {};
 
   for (const [k, v] of Object.entries(updates)) {
+    if (v === undefined) continue;
     const attrName = `#${k}`;
     const attrVal = `:${k}`;
     setExpressions.push(`${attrName} = ${attrVal}`);
     names[attrName] = k;
     values[attrVal] = v;
+  }
+
+  if (setExpressions.length === 0) {
+    return dbGet(table, key);
   }
 
   const res = await dynamo.send(
@@ -81,12 +86,18 @@ export async function dbQuery(params: QueryCommandInput) {
   return res.Items ?? [];
 }
 
-export async function dbScan(table: string, filterExpression?: string, expressionValues?: Record<string, unknown>) {
+export async function dbScan(
+  table: string,
+  filterExpression?: string,
+  expressionValues?: Record<string, unknown>,
+  expressionNames?: Record<string, string>,
+) {
   const res = await dynamo.send(
     new ScanCommand({
       TableName: table,
       FilterExpression: filterExpression,
       ExpressionAttributeValues: expressionValues as any,
+      ExpressionAttributeNames: expressionNames,
     }),
   );
   return res.Items ?? [];

@@ -46,13 +46,14 @@ export declare function createExpense(data: {
     createdBy?: string;
 }): Promise<Expense>;
 export declare function updateExpense(id: string, updates: {
+    outlet?: string;
     itemId?: string;
     date?: Date;
     quantity?: number;
     actualPrice?: number;
     notes?: string;
+    isCash?: boolean;
+    updatedBy?: string;
 }): Promise<Expense | null>;
-export declare function approveExpense(id: string, adminUsername: string): Promise<Expense | null>;
-export declare function rejectExpense(id: string, adminUsername: string, reason?: string): Promise<Expense | null>;
 export declare function deleteExpense(id: string): Promise<void>;
 //# sourceMappingURL=expenseService.d.ts.map
