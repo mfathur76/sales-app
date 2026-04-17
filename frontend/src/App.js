@@ -260,6 +260,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [admin, setAdmin] = useState(null);
   const [userType, setUserType] = useState(null); // 'outlet' or 'admin'
+  const buildMarker = 'cf-admin-fix-2026-04-17-v2';
 
 
 
@@ -275,9 +276,10 @@ function App() {
         if (adminData) {
           try {
             const parsedAdmin = JSON.parse(adminData);
+            const normalizedAdmin = parsedAdmin?.data ? parsedAdmin.data : parsedAdmin;
             
-            if (parsedAdmin.isAuthenticated && parsedAdmin.token) {
-              setAdmin(parsedAdmin);
+            if (normalizedAdmin && normalizedAdmin.token) {
+              setAdmin({ ...normalizedAdmin, isAuthenticated: true });
               setUserType('admin');
               return; // Exit early if admin is authenticated
             } else {
@@ -323,9 +325,10 @@ function App() {
   };
 
   const handleAdminLogin = (adminData) => {
-    console.log('[handleAdminLogin] called, data:', JSON.stringify(adminData));
-    if (adminData && adminData.token) {
-      const enriched = { ...adminData, isAuthenticated: true };
+    const normalizedAdmin = adminData?.data ? adminData.data : adminData;
+    console.log('[handleAdminLogin] called, data:', JSON.stringify(normalizedAdmin));
+    if (normalizedAdmin && normalizedAdmin.token) {
+      const enriched = { ...normalizedAdmin, isAuthenticated: true };
       localStorage.setItem('adminData', JSON.stringify(enriched));
       setAdmin(enriched);
       setUserType('admin');
@@ -396,6 +399,9 @@ function App() {
       <div className="login-selection">
         <div className="login-selection-container">
           <h1>Sales Management System</h1>
+          <p style={{ marginTop: '-8px', fontSize: '12px', color: '#6B7280' }}>
+            Build: {buildMarker}
+          </p>
           <p>Pilih jenis login:</p>
           
           <div className="login-buttons">
