@@ -47,7 +47,7 @@ A comprehensive sales management system for retail outlets with bank transfer ve
 ### **Infrastructure**
 - **Web Server**: Nginx
 - **SSL**: Let's Encrypt
-- **Hosting**: DigitalOcean (recommended)
+- **Hosting**: Cloudflare Pages + AWS Lambda/API Gateway
 - **Backup**: Automated daily backups
 
 ## 🚀 Quick Start
@@ -91,20 +91,12 @@ npx prisma db seed
 
 ### **Production Deployment**
 
-#### **DigitalOcean Deployment (Recommended)**
+#### **Cloudflare + AWS Deployment (Recommended)**
 ```bash
-# 1. Create DigitalOcean droplet
-# 2. Connect to server
-ssh root@your-droplet-ip
-
-# 3. Clone and deploy
-git clone https://github.com/mfathur/sales-app.git
-cd sales-app
-chmod +x deploy.sh
-./deploy.sh
-
-# 4. Setup domain & SSL
-sudo certbot --nginx -d yourdomain.com
+# 1. Deploy frontend ke Cloudflare Pages
+# 2. Deploy backend ke AWS Lambda via Serverless
+# 3. Set custom domain di Cloudflare (sales.risolmejik.com)
+# 4. Set CORS_ALLOWED_ORIGINS sesuai domain frontend
 ```
 
 #### **Manual Deployment**
@@ -234,10 +226,10 @@ const getApiBaseUrl = () => {
 
 ## 💰 Cost Estimation
 
-### **DigitalOcean (Recommended)**
-- **Droplet**: $24/month (2 vCPU, 4GB RAM)
+### **Cloudflare + AWS (Recommended)**
+- **Cloudflare Pages**: free tier available
+- **AWS Lambda + API Gateway + DynamoDB**: pay-as-you-go
 - **Domain**: $10-15/year
-- **Total**: ~$25/month
 
 ### **Other Providers**
 - **Alibaba Cloud**: $53/month
@@ -304,7 +296,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Prisma** for excellent ORM
 - **Express.js** for robust backend framework
 - **React** for powerful frontend
-- **DigitalOcean** for reliable hosting
 - **Let's Encrypt** for free SSL certificates
 
 ---

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Setup SSH Key untuk GitHub di DigitalOcean Server
+# Setup SSH Key untuk GitHub di Server
 # Usage: ./setup-github-ssh.sh
 
 set -e
@@ -55,7 +55,7 @@ echo ""
 echo "📋 Steps to add to GitHub:"
 echo "1. Go to: https://github.com/settings/keys"
 echo "2. Click 'New SSH key'"
-echo "3. Title: 'DigitalOcean Server'"
+echo "3. Title: 'Sales App Server'"
 echo "4. Key type: 'Authentication Key'"
 echo "5. Key: Paste the public key above"
 echo "6. Click 'Add SSH key'"
