@@ -9,8 +9,13 @@ exports.forbidden = forbidden;
 exports.notFound = notFound;
 exports.serverError = serverError;
 exports.preflight = preflight;
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '*')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+const defaultOrigin = allowedOrigins[0] || '*';
 const CORS_HEADERS = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': defaultOrigin,
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
     'Content-Type': 'application/json',

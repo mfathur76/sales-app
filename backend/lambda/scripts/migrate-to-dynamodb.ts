@@ -30,12 +30,12 @@ const stage = process.env.STAGE || 'prod';
 const SERVICE = 'sales-app-api';
 
 const TABLES = {
-  OUTLETS:   `${SERVICE}-outlets-${stage}`,
-  ADMINS:    `${SERVICE}-admins-${stage}`,
-  SALES:     `${SERVICE}-sales-${stage}`,
-  EXPENSES:  `${SERVICE}-expenses-${stage}`,
-  CATEGORIES:`${SERVICE}-expense-categories-${stage}`,
-  ITEMS:     `${SERVICE}-item-masters-${stage}`,
+  OUTLETS:   process.env.OUTLETS_TABLE || `${SERVICE}-outlets-${stage}`,
+  ADMINS:    process.env.ADMINS_TABLE || `${SERVICE}-admins-${stage}`,
+  SALES:     process.env.SALES_TABLE || `${SERVICE}-sales-${stage}`,
+  EXPENSES:  process.env.EXPENSES_TABLE || `${SERVICE}-expenses-${stage}`,
+  CATEGORIES: process.env.EXPENSE_CATEGORIES_TABLE || `${SERVICE}-expense-categories-${stage}`,
+  ITEMS:     process.env.ITEM_MASTERS_TABLE || `${SERVICE}-item-masters-${stage}`,
 };
 
 async function putItem(table: string, item: Record<string, unknown>) {
@@ -205,6 +205,7 @@ async function main() {
   console.log('🚀 Starting SQLite → DynamoDB migration...');
   console.log(`   Stage   : ${stage}`);
   console.log(`   Region  : ${process.env.AWS_REGION || 'ap-southeast-1'}`);
+  console.log('   Tables  :', TABLES);
 
   try {
     await migrateOutlets();
