@@ -3,12 +3,13 @@ import { salesApi } from '../api/salesApi';
 import './SalesList.css';
 
 const SalesList = ({ user }) => {
+  const today = new Date().toISOString().split('T')[0];
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
+    start_date: today,
+    end_date: today,
     outlet: user?.outlet || ''
   });
   const [, setOutletOptions] = useState([]);
@@ -123,8 +124,8 @@ const SalesList = ({ user }) => {
 
   const clearFilters = () => {
     setFilters({
-      start_date: '',
-      end_date: '',
+      start_date: today,
+      end_date: today,
       outlet: user?.outlet || ''
     });
   };
