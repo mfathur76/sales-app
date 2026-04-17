@@ -77,30 +77,13 @@ const QuickInputForm = ({ user }) => {
     setLoading(true);
     
     try {
-      let existingSale = null;
-      
       try {
-        const existingSaleResponse = await salesApi.getSaleByOutletAndDate(sale.outlet, sale.date);
-        
-        // Handle different response formats
-        existingSale = existingSaleResponse.success && existingSaleResponse.data 
-          ? existingSaleResponse.data 
-          : existingSaleResponse;
-      } catch (error) {
-        // If 404 error, it means no existing sale found, which is fine
-        if (error.message.includes('404') || error.message.includes('not found')) {
-          existingSale = null;
-        } else {
-          throw error; // Re-throw other errors
-        }
-      }
-      
-      if (existingSale && Object.keys(existingSale).length > 0) {
-        await salesApi.updateSale(sale.outlet, sale.date, sale);
-        showMessage('success', 'Data berhasil diperbarui!');
-      } else {
         await salesApi.createSale(sale);
         showMessage('success', 'Data berhasil disimpan!');
+      } catch (createError) {
+        // If create fails (usually because record exists), try update as fallback.
+        await salesApi.updateSale(sale.outlet, sale.date, sale);
+        showMessage('success', 'Data berhasil diperbarui!');
       }
 
       // Reset form

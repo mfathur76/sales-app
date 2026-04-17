@@ -49,6 +49,7 @@ custom:
     target: node18
     platform: node
     concurrency: 10
+    keepOutputDirectory: true
 
 package:
   individually: true
