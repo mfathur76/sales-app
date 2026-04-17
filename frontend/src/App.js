@@ -323,11 +323,15 @@ function App() {
   };
 
   const handleAdminLogin = (adminData) => {
+    console.log('[handleAdminLogin] called, data:', JSON.stringify(adminData));
     if (adminData && adminData.token) {
       const enriched = { ...adminData, isAuthenticated: true };
       localStorage.setItem('adminData', JSON.stringify(enriched));
       setAdmin(enriched);
       setUserType('admin');
+      console.log('[handleAdminLogin] state updated, should redirect now');
+    } else {
+      console.warn('[handleAdminLogin] missing token! adminData:', adminData);
     }
   };
 

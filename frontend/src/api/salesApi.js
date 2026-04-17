@@ -252,11 +252,13 @@ export const adminApi = {
       }
       
       const data = await response.json();
+      console.log('[adminApi.login] raw response:', JSON.stringify(data));
       
       if (data.success && data.data) {
         // Store admin data with token, add isAuthenticated flag required by App.js
         const adminData = { ...data.data, isAuthenticated: true };
         localStorage.setItem('adminData', JSON.stringify(adminData));
+        console.log('[adminApi.login] success, adminData keys:', Object.keys(adminData));
         
         // Return the admin data for immediate use
         return {
@@ -266,6 +268,7 @@ export const adminApi = {
       } else {
         // If login failed, clear any existing admin data
         localStorage.removeItem('adminData');
+        console.warn('[adminApi.login] login failed, response:', data);
       }
 
       return data;
