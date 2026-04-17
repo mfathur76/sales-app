@@ -254,13 +254,14 @@ export const adminApi = {
       const data = await response.json();
       
       if (data.success && data.data) {
-        // Store admin data with token (backend already includes type and isAuthenticated)
-        localStorage.setItem('adminData', JSON.stringify(data.data));
+        // Store admin data with token, add isAuthenticated flag required by App.js
+        const adminData = { ...data.data, isAuthenticated: true };
+        localStorage.setItem('adminData', JSON.stringify(adminData));
         
         // Return the admin data for immediate use
         return {
           success: true,
-          data: data.data
+          data: adminData
         };
       } else {
         // If login failed, clear any existing admin data
