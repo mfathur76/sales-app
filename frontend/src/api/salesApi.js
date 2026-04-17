@@ -332,13 +332,13 @@ export const adminApi = {
     if (filters.outlet) queryParams.append('outlet', filters.outlet);
     if (filters.status) queryParams.append('status', filters.status);
     
-    const url = `${API_BASE_URL}/admin/sales${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const url = `${API_BASE_URL}/sales${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     return makeAuthenticatedRequest(url);
   },
 
   // Update bank transfer amounts
   updateBankTransfer: async (outlet, date, bankData) => {
-    return makeAuthenticatedRequest(`${API_BASE_URL}/admin/sales/${outlet}/${date}/bank-transfer`, {
+    return makeAuthenticatedRequest(`${API_BASE_URL}/sales/${outlet}/${date}/bank`, {
       method: 'PUT',
       body: JSON.stringify(bankData),
     });
