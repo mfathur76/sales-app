@@ -323,8 +323,10 @@ function App() {
   };
 
   const handleAdminLogin = (adminData) => {
-    if (adminData && adminData.isAuthenticated && adminData.token) {
-      setAdmin(adminData);
+    if (adminData && adminData.token) {
+      const enriched = { ...adminData, isAuthenticated: true };
+      localStorage.setItem('adminData', JSON.stringify(enriched));
+      setAdmin(enriched);
       setUserType('admin');
     }
   };
