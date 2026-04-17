@@ -161,18 +161,24 @@ export async function updateExpenseHandler(event: APIGatewayProxyEvent): Promise
   }
 }
 
-/** DELETE /api/expenses/{id}  – admin only */
+/** DELETE /api/expenses/{id} */
 export async function deleteExpenseHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
 
   const user = getUser(event);
   if (!user) return unauthorized('Access token required');
-  if (user.type !== 'admin') return forbidden('Admin access required');
 
   const { id } = event.pathParameters || {};
   if (!id) return badRequest('Expense id path parameter is required');
 
   try {
+    const existing = await getExpenseById(id);
+    if (!existing) return notFound('Expense not found');
+
+    if (user.type === 'outlet' && user.outlet !== existing.outlet) {
+      return forbidden('Access denied: You can only delete expenses for your own outlet');
+    }
+
     await deleteExpense(id);
     return ok(null, 'Expense deleted successfully');
   } catch (err) {

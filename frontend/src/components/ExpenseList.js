@@ -9,6 +9,8 @@ const ExpenseList = forwardRef(({ user }, ref) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [filters, setFilters] = useState({
     categoryId: '',
     startDate: today,
@@ -55,6 +57,74 @@ const ExpenseList = forwardRef(({ user }, ref) => {
       startDate: today,
       endDate: today
     });
+  };
+
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+  };
+
+  const handleDeleteExpense = async (expense) => {
+    if (!window.confirm('Hapus data expense ini?')) return;
+
+    try {
+      await expenseApi.deleteExpense(expense.id);
+      showMessage('success', 'Expense berhasil dihapus');
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      showMessage('error', error.message || 'Gagal menghapus expense');
+    }
+  };
+
+  const handleOpenEdit = (expense) => {
+    setEditingExpense({
+      id: expense.id,
+      date: (expense.date || '').split('T')[0],
+      quantity: expense.quantity,
+      actualPrice: expense.actualPrice,
+      notes: expense.notes || '',
+      isCash: !!expense.isCash,
+    });
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditingExpense((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingExpense) return;
+
+    const quantity = Number(editingExpense.quantity);
+    const actualPrice = Number(editingExpense.actualPrice);
+
+    if (!editingExpense.date || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(actualPrice) || actualPrice <= 0) {
+      showMessage('error', 'Tanggal, quantity, dan harga harus valid');
+      return;
+    }
+
+    try {
+      setSavingEdit(true);
+      await expenseApi.updateExpense(editingExpense.id, {
+        date: editingExpense.date,
+        quantity,
+        actualPrice,
+        notes: editingExpense.notes,
+        isCash: !!editingExpense.isCash,
+      });
+
+      setEditingExpense(null);
+      showMessage('success', 'Expense berhasil diperbarui');
+      await loadData();
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      showMessage('error', error.message || 'Gagal memperbarui expense');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const itemMap = items.reduce((acc, item) => {
@@ -163,6 +233,7 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                       <th>Qty</th>
                       <th>Harga</th>
                       <th>Total</th>
+                      <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -175,12 +246,30 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                         <td>{expense.quantity}</td>
                         <td>{formatCurrency(expense.actualPrice)}</td>
                         <td className="cell-total">{formatCurrency(expense.totalPrice)}</td>
+                        <td>
+                          <div className="table-actions">
+                            <button
+                              type="button"
+                              className="action-btn edit"
+                              onClick={() => handleOpenEdit(expense)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="action-btn delete"
+                              onClick={() => handleDeleteExpense(expense)}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan="6" className="tfoot-label">Total Cash</td>
+                      <td colSpan="7" className="tfoot-label">Total Cash</td>
                       <td className="tfoot-total">
                         {formatCurrency(expenses.filter(exp => exp.isCash).reduce((sum, exp) => sum + exp.totalPrice, 0))}
                       </td>
@@ -206,6 +295,7 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                       <th>Qty</th>
                       <th>Harga</th>
                       <th>Total</th>
+                      <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -218,12 +308,30 @@ const ExpenseList = forwardRef(({ user }, ref) => {
                         <td>{expense.quantity}</td>
                         <td>{formatCurrency(expense.actualPrice)}</td>
                         <td className="cell-total">{formatCurrency(expense.totalPrice)}</td>
+                        <td>
+                          <div className="table-actions">
+                            <button
+                              type="button"
+                              className="action-btn edit"
+                              onClick={() => handleOpenEdit(expense)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="action-btn delete"
+                              onClick={() => handleDeleteExpense(expense)}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan="6" className="tfoot-label">Total Non-Cash</td>
+                      <td colSpan="7" className="tfoot-label">Total Non-Cash</td>
                       <td className="tfoot-total">
                         {formatCurrency(expenses.filter(exp => !exp.isCash).reduce((sum, exp) => sum + exp.totalPrice, 0))}
                       </td>
@@ -274,6 +382,89 @@ const ExpenseList = forwardRef(({ user }, ref) => {
               <span className="stat-value">
                 {formatCurrency(expenses.reduce((sum, exp) => sum + exp.totalPrice, 0))}
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingExpense && (
+        <div className="expense-modal-overlay">
+          <div className="expense-modal">
+            <h3>Edit Expense</h3>
+
+            <div className="expense-modal-form">
+              <div className="filter-group">
+                <label>Tanggal</label>
+                <input
+                  type="date"
+                  value={editingExpense.date}
+                  onChange={(e) => handleEditChange('date', e.target.value)}
+                />
+              </div>
+
+              <div className="filter-group">
+                <label>Quantity</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={editingExpense.quantity}
+                  onChange={(e) => handleEditChange('quantity', e.target.value)}
+                />
+              </div>
+
+              <div className="filter-group">
+                <label>Harga Aktual</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editingExpense.actualPrice}
+                  onChange={(e) => handleEditChange('actualPrice', e.target.value)}
+                />
+              </div>
+
+              <div className="filter-group">
+                <label>Pembayaran</label>
+                <select
+                  value={editingExpense.isCash ? 'cash' : 'non-cash'}
+                  onChange={(e) => handleEditChange('isCash', e.target.value === 'cash')}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="non-cash">Non-Cash</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Catatan</label>
+                <textarea
+                  rows="3"
+                  value={editingExpense.notes}
+                  onChange={(e) => handleEditChange('notes', e.target.value)}
+                />
+              </div>
+
+              <div className="expense-edit-total">
+                Total: {formatCurrency(Number(editingExpense.quantity || 0) * Number(editingExpense.actualPrice || 0))}
+              </div>
+
+              <div className="expense-modal-actions">
+                <button
+                  type="button"
+                  className="action-btn"
+                  onClick={() => setEditingExpense(null)}
+                  disabled={savingEdit}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  className="action-btn edit"
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

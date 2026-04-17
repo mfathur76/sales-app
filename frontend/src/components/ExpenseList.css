@@ -289,6 +289,86 @@
   color: #721c24;
 }
 
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  border: 1px solid #d0d7de;
+  background: #fff;
+  color: #2c3e50;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.action-btn.edit {
+  border-color: #3498db;
+  color: #1f6fb2;
+}
+
+.action-btn.delete {
+  border-color: #e74c3c;
+  color: #c0392b;
+}
+
+.action-btn:hover {
+  filter: brightness(0.98);
+}
+
+.expense-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.expense-modal {
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.expense-modal h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.expense-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.expense-modal-form input,
+.expense-modal-form select,
+.expense-modal-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.expense-edit-total {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.expense-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 /* Expense Details */
 .expense-details {
   display: flex;
