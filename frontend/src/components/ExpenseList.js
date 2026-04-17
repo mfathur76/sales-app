@@ -3,6 +3,7 @@ import { expenseApi } from '../api/expenseApi';
 import './ExpenseList.css';
 
 const ExpenseList = forwardRef(({ user }, ref) => {
+  const today = new Date().toISOString().split('T')[0];
   const [expenses, setExpenses] = useState([]);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -10,8 +11,8 @@ const ExpenseList = forwardRef(({ user }, ref) => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [filters, setFilters] = useState({
     categoryId: '',
-    startDate: '',
-    endDate: ''
+    startDate: today,
+    endDate: today
   });
 
   useEffect(() => {
@@ -51,8 +52,8 @@ const ExpenseList = forwardRef(({ user }, ref) => {
   const clearFilters = () => {
     setFilters({
       categoryId: '',
-      startDate: '',
-      endDate: ''
+      startDate: today,
+      endDate: today
     });
   };
 

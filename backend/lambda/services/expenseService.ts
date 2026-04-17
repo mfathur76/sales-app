@@ -147,9 +147,17 @@ export async function getAllExpenses(
     if (startDate && endDate) {
       const start = startDate.toISOString().split('T')[0];
       const end   = endDate.toISOString().split('T')[0];
-      params.KeyConditionExpression += ' AND begins_with(SK, :datePrefix) AND SK BETWEEN :start AND :end';
+      params.KeyConditionExpression += ' AND SK BETWEEN :start AND :end';
       params.ExpressionAttributeValues[':start'] = `DATE#${start}`;
       params.ExpressionAttributeValues[':end']   = `DATE#${end}~`;
+    } else if (startDate) {
+      const start = startDate.toISOString().split('T')[0];
+      params.KeyConditionExpression += ' AND SK >= :start';
+      params.ExpressionAttributeValues[':start'] = `DATE#${start}`;
+    } else if (endDate) {
+      const end = endDate.toISOString().split('T')[0];
+      params.KeyConditionExpression += ' AND SK <= :end';
+      params.ExpressionAttributeValues[':end'] = `DATE#${end}~`;
     }
 
     const items = await dbQuery(params);
