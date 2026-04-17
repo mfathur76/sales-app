@@ -149,6 +149,7 @@ Thumbs.db
 # Serverless artifacts
 .serverless/
 .serverles/
+.sls-package/
 
 /backend/prisma/data/*.db
 /backend/data/*.db
