@@ -333,7 +333,17 @@ export const adminApi = {
     if (filters.status) queryParams.append('status', filters.status);
     
     const url = `${API_BASE_URL}/sales${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    return makeAuthenticatedRequest(url);
+    const response = await makeAuthenticatedRequest(url);
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (response && Array.isArray(response.data)) {
+      return response.data;
+    }
+
+    return [];
   },
 
   // Update bank transfer amounts
