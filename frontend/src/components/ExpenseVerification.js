@@ -14,6 +14,7 @@ const defaultFormState = {
 };
 
 const ExpenseManagement = () => {
+  const today = new Date().toISOString().split('T')[0];
   const [expenses, setExpenses] = useState([]);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -26,8 +27,8 @@ const ExpenseManagement = () => {
   const [filters, setFilters] = useState({
     outlet: '',
     categoryId: '',
-    startDate: '',
-    endDate: ''
+    startDate: today,
+    endDate: today
   });
 
   useEffect(() => {
