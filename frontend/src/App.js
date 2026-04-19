@@ -459,7 +459,6 @@ function App() {
       <Navigation 
         activePage={activePage} 
         onPageChange={handlePageChange} 
-        userType={userType}
         onLogout={handleLogout}
       />
     </div>

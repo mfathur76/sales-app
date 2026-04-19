@@ -1,23 +1,13 @@
 import React from 'react';
 
-const Navigation = ({ activePage, onPageChange, userType, onLogout }) => {
-  // Different pages for admin vs outlet
-  const outletPages = [
+const Navigation = ({ activePage, onPageChange, onLogout }) => {
+  const pages = [
     { id: 'input', label: 'Input', icon: '📝' },
     { id: 'list', label: 'Data', icon: '📊' },
     { id: 'expense', label: 'Pengeluaran', icon: '💰' },
     { id: 'dashboard', label: 'Dashboard', icon: '📈' },
     { id: 'report', label: 'Laporan', icon: '📑' }
   ];
-
-  const adminPages = [
-    { id: 'sales', label: 'Penjualan', icon: '📊' },
-    { id: 'outlets', label: 'Outlet', icon: '🏪' },
-    { id: 'users', label: 'Users', icon: '👥' },
-    { id: 'password', label: 'Password', icon: '🔐' }
-  ];
-
-  const pages = userType === 'admin' ? adminPages : outletPages;
 
   const handleClick = (pageId) => {
     onPageChange(pageId);

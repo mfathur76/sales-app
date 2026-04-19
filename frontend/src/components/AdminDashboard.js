@@ -11,6 +11,7 @@ import ChangePassword from './ChangePassword';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ admin, onLogout }) => {
+  const today = new Date().toISOString().split('T')[0];
   const [activeTab, setActiveTab] = useState('sales-verification');
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +27,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
     notes: ''
   });
   const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
+    start_date: today,
+    end_date: today,
     outlet: '',
     status: ''
   });
