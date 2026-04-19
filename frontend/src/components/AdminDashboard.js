@@ -10,7 +10,7 @@ import UserManager from './UserManager';
 import ChangePassword from './ChangePassword';
 import './AdminDashboard.css';
 
-const AdminDashboard = ({ admin }) => {
+const AdminDashboard = ({ admin, onLogout }) => {
   const [activeTab, setActiveTab] = useState('sales-verification');
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -144,16 +144,7 @@ const AdminDashboard = ({ admin }) => {
   const renderSalesVerification = () => (
     <div className="sales-verification-content">
       <div className="verification-header">
-        <h1>Admin Dashboard - Bank Transfer Verification</h1>
-        <button
-          className="logout-btn"
-          onClick={() => {
-            adminApi.logout();
-            window.location.reload();
-          }}
-        >
-          Logout
-        </button>
+        <h1>Bank Transfer Verification</h1>
       </div>
 
       {/* Filters */}
@@ -542,8 +533,11 @@ const AdminDashboard = ({ admin }) => {
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
-        <h1>Admin Dashboard</h1>
-        <p>Welcome, {admin?.name || 'Administrator'}</p>
+        <div className="admin-header-left">
+          <h1>Admin Dashboard</h1>
+          <p>Welcome, {admin?.name || 'Administrator'}</p>
+        </div>
+        <button className="logout-btn" onClick={onLogout}>Logout</button>
       </div>
 
       <div className="admin-tabs">

@@ -356,22 +356,22 @@ function App() {
 
     switch (activePage) {
       case 'input':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <QuickInputForm user={user} />;
       case 'list':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <SalesList user={user} />;
       case 'expense':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <ExpenseManager user={user} />;
       case 'dashboard':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <Dashboard user={user} />;
       case 'report':
         if (userType === 'admin') return <AdminReport />;
         return <ExpenseReport user={user} />;
       default:
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <QuickInputForm user={user} />;
     }
   };
@@ -417,12 +417,6 @@ function App() {
           <main className="admin-main">
             {renderPage()}
           </main>
-          <Navigation 
-            activePage={activePage} 
-            onPageChange={handlePageChange} 
-            userType={userType}
-            onLogout={handleLogout}
-          />
         </div>
       );
     } catch (error) {
