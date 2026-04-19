@@ -7,6 +7,7 @@ const ItemMasterManager = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
@@ -20,6 +21,16 @@ const ItemMasterManager = () => {
     acc[category.id] = category;
     return acc;
   }, {});
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredItems = items.filter((item) => {
+    if (!normalizedSearchTerm) return true;
+
+    const categoryName = categoryMap[item.categoryId]?.name || '';
+    return [item.name, categoryName, item.unit]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(normalizedSearchTerm));
+  });
 
   useEffect(() => {
     loadData();
@@ -150,6 +161,13 @@ const ItemMasterManager = () => {
         >
           ➕ Add New Item
         </button>
+        <input
+          type="text"
+          className="item-search-input"
+          placeholder="Cari item, kategori, atau unit..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       {showForm && (
@@ -231,12 +249,12 @@ const ItemMasterManager = () => {
       )}
 
       <div className="items-grid">
-        {items.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <div className="no-items">
-            <p>No items found. Create your first item!</p>
+            <p>{items.length === 0 ? 'No items found. Create your first item!' : 'Tidak ada item yang cocok dengan pencarian.'}</p>
           </div>
         ) : (
-          items.map(item => (
+          filteredItems.map(item => (
             <div key={item.id} className="item-card">
               <div className="item-header">
                 <h3>{item.name}</h3>
@@ -296,7 +314,7 @@ const ItemMasterManager = () => {
           <div className="summary-stats">
             <div className="stat">
               <span className="stat-label">Total Items:</span>
-              <span className="stat-value">{items.length}</span>
+              <span className="stat-value">{filteredItems.length} / {items.length}</span>
             </div>
             <div className="stat">
               <span className="stat-label">Categories:</span>
