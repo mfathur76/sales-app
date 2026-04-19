@@ -1,303 +1,299 @@
-# 🏪 Sales App - Outlet Sales Management System
+# Sales App
 
-A comprehensive sales management system for retail outlets with bank transfer verification features.
+Sistem penjualan outlet untuk input sales harian, verifikasi admin, pengelolaan pengeluaran, dan pelaporan.
 
-## 🌟 Features
+Arsitektur produksi saat ini:
+- Frontend: Cloudflare Pages
+- Backend: AWS Lambda + API Gateway
+- Database: DynamoDB
 
-### **📊 Sales Management**
-- ✅ Input daily sales data per outlet
-- ✅ Multiple payment methods (Cash, QRIS, Gojek, Shopee, Grab)
-- ✅ Sales statistics and reporting
-- ✅ Date range filtering
+## Fitur Utama
 
-### **🏦 Bank Transfer Verification**
-- ✅ Admin input bank transfer amounts
-- ✅ Real-time percentage calculation
-- ✅ Digital payment verification (QRIS, Gojek, Shopee, Grab)
-- ✅ Cash received directly (no bank transfer needed)
-- ✅ Verification workflow with notes
+### Sales
+- Input sales harian per outlet
+- Breakdown metode pembayaran: cash, QRIS, Gojek, Shopee, Grab
+- Filter data berdasarkan rentang tanggal
+- Dashboard dan rekap penjualan
 
-### **👥 User Management**
-- ✅ Outlet login system
-- ✅ Admin dashboard
-- ✅ Multi-level admin roles
-- ✅ Secure authentication with JWT
+### Expense
+- Input pengeluaran per outlet
+- Kelola kategori expense dan item master
+- Edit dan hapus expense
+- Laporan mingguan, bulanan, dan summary
 
-### **📈 Analytics & Reporting**
-- ✅ Sales overview dashboard
-- ✅ Payment method breakdown
-- ✅ Bank transfer realization percentage
-- ✅ Export capabilities
+### Admin
+- Verifikasi sales dan input transfer bank
+- Kelola outlet
+- Kelola expense categories dan item master
+- Kelola data expense
+- Manajemen admin khusus `super_admin`
 
-## 🏗️ Tech Stack
+## Roles
 
-### **Backend**
-- **Runtime**: Node.js + TypeScript
-- **Framework**: Express.js
-- **Database**: SQLite with Prisma ORM
-- **Authentication**: JWT
-- **Process Manager**: PM2
+### Outlet User
+- Input sales harian untuk outlet sendiri
+- Melihat data, dashboard, expense, dan laporan milik outlet sendiri
+- Tidak bisa mengakses menu administrasi global
 
-### **Frontend**
-- **Framework**: React.js
-- **Styling**: CSS3 with responsive design
-- **State Management**: React Hooks
-- **HTTP Client**: Fetch API
+### Admin
+- Mengakses admin dashboard
+- Verifikasi sales dan input bank transfer
+- Kelola kategori pengeluaran, item master, outlet, dan data pengeluaran
+- Tidak bisa membuka manajemen user admin
 
-### **Infrastructure**
-- **Web Server**: Nginx
-- **SSL**: Let's Encrypt
-- **Hosting**: Cloudflare Pages + AWS Lambda/API Gateway
-- **Backup**: Automated daily backups
+### Super Admin
+- Memiliki semua akses `Admin`
+- Bisa membuka `Manajemen User`
+- Bisa membuat, mengubah, dan menghapus akun admin lain
 
-## 🚀 Quick Start
+Catatan:
+- Endpoint `admin/list`, `admin/create`, `admin/{username}`, dan hapus admin dibatasi untuk `super_admin`.
+- Jika akun admin biasa perlu dinaikkan aksesnya, role user harus diubah menjadi `super_admin` di data admin backend.
 
-### **Prerequisites**
-- Node.js 18+ 
-- npm or yarn
-- Git
+## Arsitektur
 
-### **Local Development**
+### Frontend
+- React 19
+- CRA (`react-scripts`)
+- Base URL API bisa diatur lewat `REACT_APP_API_BASE_URL`
+- Default production fallback mengarah ke API Gateway AWS
 
-#### **1. Clone Repository**
-```bash
-git clone https://github.com/mfathur/sales-app.git
-cd sales-app
+### Backend
+- Node.js 18+
+- TypeScript
+- Serverless Framework v3
+- AWS Lambda handlers di folder `backend/lambda/handlers`
+- DynamoDB tables dibuat dari `backend/serverless.yml`
+
+### Deployment
+- Cloudflare Pages build frontend dari folder `frontend`
+- AWS Lambda deploy backend lewat Serverless Framework
+- CORS dibaca dari environment terminal saat deploy
+
+## Struktur Repo
+
+```text
+sales-app/
+├── backend/
+│   ├── lambda/              # Lambda handlers, services, scripts
+│   ├── src/                 # Kode backend lama / local dev compatibility
+│   ├── prisma/              # Legacy Prisma assets yang masih tersisa di repo
+│   ├── serverless.yml       # Definisi Lambda, API Gateway, DynamoDB
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── api/             # API client
+│   │   ├── components/      # UI pages dan components
+│   │   └── App.js
+│   └── package.json
+├── Deploy/
+│   └── DEPLOYMENT.md        # Panduan deploy Cloudflare + AWS
+├── domain-setup.md          # Catatan domain dan CORS
+└── README.md
 ```
 
-#### **2. Backend Setup**
+## Menjalankan Lokal
+
+### Prasyarat
+- Node.js 18+
+- npm
+- Git
+
+### Backend local
+
 ```bash
 cd backend
 npm install
-cp env.production.example .env
-# Edit .env with your settings
 npm run dev
 ```
 
-#### **3. Frontend Setup**
+Default local API berjalan di `http://localhost:3001`.
+
+### Frontend local
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-#### **4. Database Setup**
-```bash
-cd backend
-npx prisma generate
-npx prisma migrate dev
-npx prisma db seed
-```
+Frontend akan memakai:
+- `http://localhost:3001/api` jika dibuka dari `localhost`
+- `REACT_APP_API_BASE_URL` jika env itu di-set
+- fallback API AWS saat build production tanpa env override
 
-### **Production Deployment**
+### Opsi env frontend lokal
 
-#### **Cloudflare + AWS Deployment (Recommended)**
-```bash
-# 1. Deploy frontend ke Cloudflare Pages
-# 2. Deploy backend ke AWS Lambda via Serverless
-# 3. Set custom domain di Cloudflare (sales.risolmejik.com)
-# 4. Set CORS_ALLOWED_ORIGINS sesuai domain frontend
-```
+Buat `frontend/.env.local` jika ingin memaksa base URL tertentu:
 
-#### **Manual Deployment**
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
-
-## 📁 Project Structure
-
-```
-sales-app/
-├── backend/                 # Backend API
-│   ├── src/
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # Business logic
-│   │   ├── middleware/     # Auth middleware
-│   │   └── types/          # TypeScript types
-│   ├── prisma/             # Database schema & migrations
-│   ├── ecosystem.config.js # PM2 configuration
-│   └── nginx.conf          # Nginx configuration
-├── frontend/               # React frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── api/           # API service
-│   │   └── App.js         # Main app component
-│   └── public/            # Static files
-├── deploy.sh              # Deployment script
-├── maintenance.sh         # Maintenance script
-├── setup-cron.sh          # Cron jobs setup
-├── DEPLOYMENT.md          # Deployment guide
-├── QUICK_START.md         # Quick start guide
-└── README.md              # This file
-```
-
-## 🔧 Configuration
-
-### **Environment Variables**
-
-#### **Backend (.env)**
 ```env
-NODE_ENV=production
-PORT=3001
-DATABASE_URL="file:./data/sales.db"
-JWT_SECRET=your-super-secret-jwt-key
-CORS_ORIGIN=https://yourdomain.com
+REACT_APP_API_BASE_URL=http://localhost:3001/api
 ```
 
-#### **Frontend (src/api/salesApi.js)**
-```javascript
-const getApiBaseUrl = () => {
-  return 'https://yourdomain.com/api';
-};
+## Konfigurasi Environment
+
+### Backend
+
+Minimal env yang penting untuk deploy:
+
+```env
+JWT_SECRET=<secret-yang-kuat>
+CORS_ALLOWED_ORIGINS=https://sales.risolmejik.com
 ```
 
-## 📊 API Endpoints
+`serverless.yml` membaca env ini dari terminal saat deploy, jadi untuk PowerShell jalankan di terminal yang sama:
 
-### **Authentication**
-- `POST /api/auth/login` - Outlet login
-- `POST /api/admin/login` - Admin login
+```powershell
+$env:JWT_SECRET="<isi-jwt-secret-yang-kuat>"
+$env:CORS_ALLOWED_ORIGINS="https://sales.risolmejik.com"
+```
 
-### **Sales Management**
-- `GET /api/sales` - Get sales data
-- `POST /api/sales` - Create sale record
-- `PUT /api/sales/:outlet/:date` - Update sale
-- `DELETE /api/sales/:outlet/:date` - Delete sale
+### Frontend
 
-### **Admin Features**
-- `GET /api/admin/sales` - Get all sales for admin
-- `PUT /api/admin/sales/:outlet/:date/bank-transfer` - Update bank transfer
-- `PUT /api/admin/sales/:outlet/:date/status` - Update sale status
-- `GET /api/admin/stats` - Admin statistics
+```env
+REACT_APP_API_BASE_URL=https://your-api-id.execute-api.ap-southeast-3.amazonaws.com/prod/api
+```
 
-### **Statistics**
-- `GET /api/sales/stats` - Sales statistics
-- `GET /api/sales/stats/overview` - Overview statistics
+Contoh ada di [frontend/.env.production.example](./frontend/.env.production.example).
 
-## 🛠️ Maintenance
+## Deploy Ringkas
 
-### **Daily Operations**
+### Frontend
+- Push ke branch yang terhubung ke Cloudflare Pages
+- Cloudflare akan build otomatis dari folder `frontend`
+
+### Backend
+
 ```bash
-# Check status
-./maintenance.sh status
-
-# View logs
-./maintenance.sh logs
-
-# Create backup
-./maintenance.sh backup
-
-# Restart services
-./maintenance.sh restart
-```
-
-### **Automated Tasks**
-```bash
-# Setup cron jobs
-./setup-cron.sh
-
-# Cron jobs include:
-# - Daily backup at 2 AM
-# - Weekly system update at 3 AM (Sunday)
-# - Daily log cleanup at 4 AM
-# - SSL renewal check at 5 AM
-```
-
-## 🔒 Security Features
-
-- ✅ JWT authentication
-- ✅ CORS protection
-- ✅ Input validation
-- ✅ SQL injection prevention (Prisma)
-- ✅ XSS protection
-- ✅ HTTPS/SSL encryption
-- ✅ Firewall configuration
-
-## 📈 Performance
-
-### **Recommended Server Specs**
-- **Development**: 1 vCPU, 1GB RAM
-- **Production**: 2 vCPU, 4GB RAM (recommended)
-- **High Traffic**: 4 vCPU, 8GB RAM
-
-### **Optimizations**
-- Gzip compression
-- Browser caching
-- Database indexing
-- PM2 process management
-- Nginx reverse proxy
-
-## 💰 Cost Estimation
-
-### **Cloudflare + AWS (Recommended)**
-- **Cloudflare Pages**: free tier available
-- **AWS Lambda + API Gateway + DynamoDB**: pay-as-you-go
-- **Domain**: $10-15/year
-
-### **Other Providers**
-- **Alibaba Cloud**: $53/month
-- **AWS Lightsail**: $20/month
-- **Vultr**: $24/month
-
-## 🐛 Troubleshooting
-
-### **Common Issues**
-
-#### **1. Application Not Starting**
-```bash
-# Check PM2 logs
-pm2 logs sales-backend
-
-# Check if port is in use
-sudo netstat -tlnp | grep :3001
-
-# Restart PM2
-pm2 delete sales-backend
-pm2 start ecosystem.config.js
-```
-
-#### **2. Database Issues**
-```bash
-# Check database file
-ls -la backend/data/
-
-# Run migrations
 cd backend
-npx prisma migrate deploy
-npx prisma generate
+npm install
+npx serverless deploy --stage prod
 ```
 
-#### **3. SSL Certificate Issues**
+Jika route, handler, atau resource berubah, lakukan full deploy backend.
+
+Panduan detail ada di [Deploy/DEPLOYMENT.md](./Deploy/DEPLOYMENT.md).
+
+## Command Yang Sering Dipakai
+
+### Backend
+
 ```bash
-# Check certificate status
-sudo certbot certificates
+cd backend
 
-# Renew certificate
-sudo certbot renew
+# local dev backend
+npm run dev
+
+# build lambda package
+npm run build:lambda
+
+# deploy lambda production
+npm run deploy:lambda
+
+# deploy lambda dev
+npm run deploy:lambda:dev
+
+# serverless offline
+npm run offline
+
+# cek info deployment
+npx serverless info --stage prod
+
+# lihat logs
+npx serverless logs -f getSales --stage prod --tail
 ```
 
-## 🤝 Contributing
+### Admin tools
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+```bash
+cd backend
 
-## 📄 License
+# reset password admin
+npm run reset:admin
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+# ubah role admin, contoh jadi super_admin
+npm run promote:admin -- admin super_admin
+```
 
-## 📞 Support
+Setelah role admin diubah, login ulang supaya token baru ikut membawa role terbaru.
 
-- **Documentation**: [DEPLOYMENT.md](./DEPLOYMENT.md)
-- **Quick Start**: [QUICK_START.md](./QUICK_START.md)
-- **Issues**: [GitHub Issues](https://github.com/mfathur/sales-app/issues)
+### Frontend
 
-## 🙏 Acknowledgments
+```bash
+cd frontend
 
-- **Prisma** for excellent ORM
-- **Express.js** for robust backend framework
-- **React** for powerful frontend
-- **Let's Encrypt** for free SSL certificates
+# local dev
+npm start
 
----
+# build production
+npm run build
+```
 
-**🎉 Happy coding! Your sales management system is ready to go!**
+## API Ringkas
+
+### Auth
+- `POST /api/auth/login`
+- `GET /api/auth/outlets`
+- `POST /api/admin/login`
+- `GET /api/admin/profile`
+
+### Sales
+- `GET /api/sales`
+- `POST /api/sales`
+- `GET /api/sales/{outlet}/{date}`
+- `PUT /api/sales/{outlet}/{date}`
+- `PUT /api/sales/{outlet}/{date}/bank`
+- `DELETE /api/sales/{outlet}/{date}`
+- `GET /api/sales/stats`
+- `GET /api/sales/stats/overview`
+
+### Admin dan Master Data
+- `GET /api/admin/list`
+- `POST /api/admin/create`
+- `PUT /api/admin/{username}`
+- `DELETE /api/admin/{username}`
+- `POST /api/admin/change-password`
+- `GET /api/outlets`
+- `POST /api/outlets`
+- `PUT /api/outlets/{code}`
+- `DELETE /api/outlets/{code}`
+
+### Expense
+- `GET /api/expenses`
+- `POST /api/expenses`
+- `GET /api/expenses/{id}`
+- `PUT /api/expenses/{id}`
+- `DELETE /api/expenses/{id}`
+- `GET /api/expenses/categories`
+- `POST /api/expenses/categories`
+- `GET /api/expenses/items`
+- `POST /api/expenses/items`
+- `GET /api/expenses/reports/weekly`
+- `GET /api/expenses/reports/monthly`
+- `GET /api/expenses/reports/summary`
+
+Daftar endpoint paling akurat tetap ada di [backend/serverless.yml](./backend/serverless.yml).
+
+## Troubleshooting Singkat
+
+### CORS error
+- Pastikan `CORS_ALLOWED_ORIGINS` cocok dengan domain frontend
+- Redeploy backend setelah env diubah
+
+### Admin login gagal atau 401
+- Jalankan `npm run reset:admin` dari folder `backend`
+- Login ulang setelah reset selesai
+
+### Manajemen User tidak muncul
+- Pastikan akun login punya role `super_admin`
+- Jika baru dipromosikan, logout lalu login lagi
+
+### Frontend memanggil API yang salah
+- Cek `REACT_APP_API_BASE_URL`
+- Cek fallback di `frontend/src/api/salesApi.js`
+
+## Dokumen Terkait
+
+- [Deploy/DEPLOYMENT.md](./Deploy/DEPLOYMENT.md)
+- [backend/README.md](./backend/README.md)
+- [domain-setup.md](./domain-setup.md)
