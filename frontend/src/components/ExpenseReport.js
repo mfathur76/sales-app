@@ -7,6 +7,7 @@ const ExpenseReport = ({ user }) => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [expandedCategories, setExpandedCategories] = useState({});
   
   // Weekly report state
   const [weekStart, setWeekStart] = useState('');
@@ -39,6 +40,7 @@ const ExpenseReport = ({ user }) => {
     try {
       const data = await expenseApi.getWeeklyReport(user?.outlet, weekStart);
       setReportData(data);
+      setExpandedCategories({});
     } catch (error) {
       console.error('Error loading weekly report:', error);
       showMessage('error', 'Gagal memuat laporan mingguan');
@@ -52,6 +54,7 @@ const ExpenseReport = ({ user }) => {
     try {
       const data = await expenseApi.getMonthlyReport(user?.outlet, month, year);
       setReportData(data);
+      setExpandedCategories({});
     } catch (error) {
       console.error('Error loading monthly report:', error);
       showMessage('error', 'Gagal memuat laporan bulanan');
@@ -89,6 +92,68 @@ const ExpenseReport = ({ user }) => {
     return months[monthNumber - 1];
   };
 
+  const getCategoryKey = (category, index) => `${reportType}-${category.categoryId || category.categoryName || index}`;
+
+  const toggleCategory = (category, index) => {
+    const key = getCategoryKey(category, index);
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const renderCategorySection = () => {
+    if (!reportData?.expensesByCategory) return null;
+
+    return (
+      <div className="categories-section">
+        <h4>Pengeluaran per Kategori</h4>
+        {reportData.expensesByCategory.map((category, index) => {
+          const key = getCategoryKey(category, index);
+          const isExpanded = !!expandedCategories[key];
+
+          return (
+            <div key={key} className="category-card">
+              <div className="category-header">
+                <h5>{category.categoryName}</h5>
+                <div className="category-total">{formatCurrency(category.totalAmount)}</div>
+              </div>
+
+              <div className="category-stats">
+                <span className="stat-item">{category.itemCount} item</span>
+                <button
+                  type="button"
+                  className="toggle-details-btn"
+                  onClick={() => toggleCategory(category, index)}
+                >
+                  {isExpanded ? 'Sembunyikan Detail' : 'Lihat Detail'}
+                </button>
+              </div>
+
+              {isExpanded && (
+                <div className="items-list">
+                  {category.items.map((item, itemIndex) => (
+                    <div key={itemIndex} className="item-row">
+                      <div className="item-info">
+                        <span className="item-name">{item.description}</span>
+                        <span className="item-date">{formatDate(item.date)}</span>
+                      </div>
+                      <div className="item-details">
+                        <span className="item-quantity">{item.quantity}</span>
+                        <span className="item-price">{formatCurrency(item.unitPrice)}</span>
+                        <span className="item-total">{formatCurrency(item.totalPrice)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderWeeklyReport = () => {
     if (!reportData) return null;
 
@@ -111,41 +176,7 @@ const ExpenseReport = ({ user }) => {
           </div>
         </div>
 
-        <div className="categories-section">
-          <h4>Pengeluaran per Kategori</h4>
-          {reportData.expensesByCategory.map((category, index) => (
-            <div key={index} className="category-card">
-              <div className="category-header">
-                <h5>{category.categoryName}</h5>
-                <div className="category-total">
-                  {formatCurrency(category.totalAmount)}
-                </div>
-              </div>
-              
-              <div className="category-stats">
-                <span className="stat-item">
-                  {category.itemCount} item
-                </span>
-              </div>
-
-              <div className="items-list">
-                {category.items.map((item, itemIndex) => (
-                  <div key={itemIndex} className="item-row">
-                    <div className="item-info">
-                      <span className="item-name">{item.description}</span>
-                      <span className="item-date">{formatDate(item.date)}</span>
-                    </div>
-                    <div className="item-details">
-                      <span className="item-quantity">{item.quantity}</span>
-                      <span className="item-price">{formatCurrency(item.unitPrice)}</span>
-                      <span className="item-total">{formatCurrency(item.totalPrice)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        {renderCategorySection()}
       </div>
     );
   };
@@ -170,41 +201,7 @@ const ExpenseReport = ({ user }) => {
           </div>
         </div>
 
-        <div className="categories-section">
-          <h4>Pengeluaran per Kategori</h4>
-          {reportData.expensesByCategory.map((category, index) => (
-            <div key={index} className="category-card">
-              <div className="category-header">
-                <h5>{category.categoryName}</h5>
-                <div className="category-total">
-                  {formatCurrency(category.totalAmount)}
-                </div>
-              </div>
-              
-              <div className="category-stats">
-                <span className="stat-item">
-                  {category.itemCount} item
-                </span>
-              </div>
-
-              <div className="items-list">
-                {category.items.map((item, itemIndex) => (
-                  <div key={itemIndex} className="item-row">
-                    <div className="item-info">
-                      <span className="item-name">{item.description}</span>
-                      <span className="item-date">{formatDate(item.date)}</span>
-                    </div>
-                    <div className="item-details">
-                      <span className="item-quantity">{item.quantity}</span>
-                      <span className="item-price">{formatCurrency(item.unitPrice)}</span>
-                      <span className="item-total">{formatCurrency(item.totalPrice)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        {renderCategorySection()}
       </div>
     );
   };

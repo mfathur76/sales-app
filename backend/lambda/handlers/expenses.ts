@@ -9,6 +9,9 @@ import {
   createCategory,
   getAllItems,
   createItem,
+  getWeeklyExpenseReport,
+  getMonthlyExpenseReport,
+  getExpenseSummaryReport,
 } from '../services/expenseService';
 import { verifyToken, extractBearerToken } from '../utils/jwt';
 import {
@@ -252,6 +255,82 @@ export async function createItemHandler(event: APIGatewayProxyEvent): Promise<AP
     if (!body.name || !body.categoryId) return badRequest('name and categoryId are required');
     const item = await createItem(body);
     return created(item);
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** GET /api/expenses/reports/weekly */
+export async function getWeeklyExpenseReportHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  try {
+    const qs = event.queryStringParameters || {};
+    if (!qs.weekStart) return badRequest('weekStart is required (YYYY-MM-DD)');
+
+    const weekStart = new Date(qs.weekStart);
+    if (Number.isNaN(weekStart.getTime())) return badRequest('Invalid weekStart format');
+
+    const outletList = user.type === 'outlet'
+      ? [user.outlet as string]
+      : (qs.outlets ? qs.outlets.split(',').map((v) => v.trim()).filter(Boolean) : []);
+
+    const report = await getWeeklyExpenseReport(outletList, weekStart, qs.status);
+    return ok(report);
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** GET /api/expenses/reports/monthly */
+export async function getMonthlyExpenseReportHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  try {
+    const qs = event.queryStringParameters || {};
+    const month = Number(qs.month);
+    const year = Number(qs.year);
+
+    if (!month || !year) return badRequest('month and year are required');
+    if (month < 1 || month > 12) return badRequest('month must be between 1 and 12');
+
+    const outletList = user.type === 'outlet'
+      ? [user.outlet as string]
+      : (qs.outlets ? qs.outlets.split(',').map((v) => v.trim()).filter(Boolean) : []);
+
+    const report = await getMonthlyExpenseReport(outletList, month, year, qs.status);
+    return ok(report);
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** GET /api/expenses/reports/summary */
+export async function getExpenseSummaryReportHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  try {
+    const qs = event.queryStringParameters || {};
+    if (!qs.startDate || !qs.endDate) return badRequest('startDate and endDate are required');
+
+    const startDate = new Date(qs.startDate);
+    const endDate = new Date(qs.endDate);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return badRequest('Invalid startDate/endDate format');
+    }
+
+    const outlet = user.type === 'outlet' ? user.outlet : qs.outlet;
+    const report = await getExpenseSummaryReport(outlet, startDate, endDate);
+    return ok(report);
   } catch (err) {
     return serverError(err);
   }

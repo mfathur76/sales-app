@@ -335,6 +335,30 @@ functions:
           method: post
           cors: true
 
+  getWeeklyExpenseReport:
+    handler: lambda/handlers/expenses.getWeeklyExpenseReportHandler
+    events:
+      - http:
+          path: api/expenses/reports/weekly
+          method: get
+          cors: true
+
+  getMonthlyExpenseReport:
+    handler: lambda/handlers/expenses.getMonthlyExpenseReportHandler
+    events:
+      - http:
+          path: api/expenses/reports/monthly
+          method: get
+          cors: true
+
+  getExpenseSummaryReport:
+    handler: lambda/handlers/expenses.getExpenseSummaryReportHandler
+    events:
+      - http:
+          path: api/expenses/reports/summary
+          method: get
+          cors: true
+
 # ---- DynamoDB Tables ----
 resources:
   Resources:

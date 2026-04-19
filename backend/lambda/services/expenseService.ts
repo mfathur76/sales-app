@@ -304,3 +304,156 @@ export async function deleteExpense(id: string): Promise<void> {
     SK: `DATE#${existing.date}#ID#${id}`,
   });
 }
+
+type ExpenseReportItem = {
+  description: string;
+  date: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+};
+
+type ExpenseReportCategory = {
+  categoryId: string;
+  categoryName: string;
+  totalAmount: number;
+  itemCount: number;
+  items: ExpenseReportItem[];
+};
+
+function formatDateOnly(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+async function buildGroupedExpenseReport(expenses: Expense[]) {
+  const [items, categories] = await Promise.all([getAllItems(), getAllCategories()]);
+
+  const itemMap = new Map(items.map((i) => [i.id, i]));
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
+  const grouped = new Map<string, ExpenseReportCategory>();
+
+  for (const exp of expenses) {
+    const item = itemMap.get(exp.itemId);
+    const categoryId = item?.categoryId || 'uncategorized';
+    const categoryName = categoryMap.get(categoryId)?.name || 'Uncategorized';
+
+    if (!grouped.has(categoryId)) {
+      grouped.set(categoryId, {
+        categoryId,
+        categoryName,
+        totalAmount: 0,
+        itemCount: 0,
+        items: [],
+      });
+    }
+
+    const bucket = grouped.get(categoryId)!;
+    bucket.totalAmount += Number(exp.totalPrice || 0);
+    bucket.itemCount += 1;
+    bucket.items.push({
+      description: item?.name || exp.notes || 'Expense Item',
+      date: exp.date,
+      quantity: Number(exp.quantity || 0),
+      unitPrice: Number(exp.actualPrice || 0),
+      totalPrice: Number(exp.totalPrice || 0),
+    });
+  }
+
+  const expensesByCategory = Array.from(grouped.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+  const totalExpense = expensesByCategory.reduce((sum, c) => sum + c.totalAmount, 0);
+
+  return {
+    totalExpense,
+    expensesByCategory,
+  };
+}
+
+export async function getWeeklyExpenseReport(
+  outlets: string[],
+  weekStart: Date,
+  status?: string,
+) {
+  const start = new Date(weekStart);
+  start.setHours(0, 0, 0, 0);
+  const end = addDays(start, 6);
+
+  let expenses: Expense[] = [];
+
+  if (outlets.length > 0) {
+    const results = await Promise.all(
+      outlets.map((outlet) => getAllExpenses(outlet, undefined, start, end, status)),
+    );
+    expenses = results.flat();
+  } else {
+    expenses = await getAllExpenses(undefined, undefined, start, end, status);
+  }
+
+  const grouped = await buildGroupedExpenseReport(expenses);
+  return {
+    weekStart: formatDateOnly(start),
+    weekEnd: formatDateOnly(end),
+    ...grouped,
+  };
+}
+
+export async function getMonthlyExpenseReport(
+  outlets: string[],
+  month: number,
+  year: number,
+  status?: string,
+) {
+  const start = new Date(year, month - 1, 1);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(year, month, 0);
+  end.setHours(0, 0, 0, 0);
+
+  let expenses: Expense[] = [];
+
+  if (outlets.length > 0) {
+    const results = await Promise.all(
+      outlets.map((outlet) => getAllExpenses(outlet, undefined, start, end, status)),
+    );
+    expenses = results.flat();
+  } else {
+    expenses = await getAllExpenses(undefined, undefined, start, end, status);
+  }
+
+  const grouped = await buildGroupedExpenseReport(expenses);
+  return {
+    month,
+    year,
+    ...grouped,
+  };
+}
+
+export async function getExpenseSummaryReport(
+  outlet: string | undefined,
+  startDate: Date,
+  endDate: Date,
+) {
+  const expenses = await getAllExpenses(outlet, undefined, startDate, endDate);
+
+  const totalExpense = expenses.reduce((sum, e) => sum + Number(e.totalPrice || 0), 0);
+  const cashExpense = expenses
+    .filter((e) => e.isCash)
+    .reduce((sum, e) => sum + Number(e.totalPrice || 0), 0);
+  const nonCashExpense = expenses
+    .filter((e) => !e.isCash)
+    .reduce((sum, e) => sum + Number(e.totalPrice || 0), 0);
+
+  return {
+    outlet,
+    startDate: formatDateOnly(startDate),
+    endDate: formatDateOnly(endDate),
+    totalExpense,
+    cashExpense,
+    nonCashExpense,
+    totalRecords: expenses.length,
+  };
+}

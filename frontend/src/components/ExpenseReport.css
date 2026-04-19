@@ -262,6 +262,10 @@
 
 .category-stats {
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .stat-item {
@@ -271,6 +275,21 @@
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
+}
+
+.toggle-details-btn {
+  border: 1px solid #cfd8dc;
+  background: #fff;
+  color: #2c3e50;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-details-btn:hover {
+  background: #f5f7fa;
 }
 
 /* Items List */
