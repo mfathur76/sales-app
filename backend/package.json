@@ -17,7 +17,8 @@
     "deploy:lambda:pkg": "node node_modules/serverless/bin/serverless.js deploy --package .sls-package",
     "offline": "npm run build:lambda && node node_modules/serverless/bin/serverless.js offline",
     "migrate:dynamodb": "ts-node lambda/scripts/migrate-to-dynamodb.ts",
-    "reset:admin": "ts-node lambda/scripts/reset-admin-password.ts"
+    "reset:admin": "ts-node lambda/scripts/reset-admin-password.ts",
+    "promote:admin": "ts-node lambda/scripts/set-admin-role.ts"
   },
   "keywords": [],
   "author": "",

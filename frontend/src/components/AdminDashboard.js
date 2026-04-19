@@ -12,6 +12,7 @@ import './AdminDashboard.css';
 
 const AdminDashboard = ({ admin, onLogout }) => {
   const today = new Date().toISOString().split('T')[0];
+  const isSuperAdmin = admin?.role === 'super_admin';
   const [activeTab, setActiveTab] = useState('sales-verification');
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +48,19 @@ const AdminDashboard = ({ admin, onLogout }) => {
     { id: 'change-password', label: 'Ganti Password', icon: '🔐' }
   ];
 
+  const visibleTabs = tabs.filter((tab) => isSuperAdmin || tab.id !== 'user-management');
+
   useEffect(() => {
     if (activeTab === 'sales-verification') {
       fetchSales();
     }
   }, [filters, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isSuperAdmin && activeTab === 'user-management') {
+      setActiveTab('sales-verification');
+    }
+  }, [activeTab, isSuperAdmin]);
 
   const fetchSales = async () => {
     try {
@@ -523,6 +532,9 @@ const AdminDashboard = ({ admin, onLogout }) => {
       case 'outlet-management':
         return <OutletManager />;
       case 'user-management':
+        if (!isSuperAdmin) {
+          return renderSalesVerification();
+        }
         return <UserManager />;
       case 'change-password':
         return <ChangePassword />;
@@ -542,7 +554,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
       </div>
 
       <div className="admin-tabs">
-        {tabs.map(tab => (
+        {visibleTabs.map(tab => (
           <button
             key={tab.id}
             className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
