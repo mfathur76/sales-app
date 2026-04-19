@@ -3,12 +3,23 @@ import { salesApi } from '../api/salesApi';
 import './Dashboard.css';
 
 const Dashboard = ({ user }) => {
+  const formatDateInput = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const now = new Date();
+  const monthStart = formatDateInput(new Date(now.getFullYear(), now.getMonth(), 1));
+  const monthEnd = formatDateInput(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
+    start_date: monthStart,
+    end_date: monthEnd,
     outlet: user?.outlet || ''
   });
   const [, setOutletOptions] = useState([]);
@@ -80,8 +91,8 @@ const Dashboard = ({ user }) => {
 
   const clearFilters = () => {
     setFilters({
-      start_date: '',
-      end_date: '',
+      start_date: monthStart,
+      end_date: monthEnd,
       outlet: user?.outlet || ''
     });
   };
