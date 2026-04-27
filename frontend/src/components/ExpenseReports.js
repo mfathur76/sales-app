@@ -93,6 +93,10 @@ const ExpenseReports = () => {
     }).format(amount);
   };
 
+  const formatNumber = (value) => {
+    return new Intl.NumberFormat('id-ID').format(value);
+  };
+
   const getMonthName = (month) => {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
@@ -128,6 +132,60 @@ const ExpenseReports = () => {
     const categories = [...new Set(tableData.map(item => item.category))].sort();
     const uniqueOutlets = [...new Set(tableData.map(item => item.outlet))].sort();
 
+    const escapeCsvValue = (value) => {
+      const text = value === null || value === undefined ? '' : String(value);
+      if (/[",\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+      return text;
+    };
+
+    const exportToCsv = () => {
+      if (!tableData.length) return;
+
+      const headers = [
+        'No',
+        'Tanggal',
+        'Outlet',
+        'Item',
+        'Kategori',
+        'Qty',
+        'Harga Satuan',
+        'Total'
+      ];
+
+      const rows = tableData.map((item, index) => ([
+        index + 1,
+        formatDate(item.date),
+        item.outlet,
+        item.itemName,
+        item.category,
+        formatNumber(item.quantity),
+        formatNumber(item.unitPrice),
+        formatNumber(item.totalPrice)
+      ]));
+
+      const csvLines = [
+        headers.map(escapeCsvValue).join(','),
+        ...rows.map((row) => row.map(escapeCsvValue).join(','))
+      ];
+
+      const csvContent = `\ufeff${csvLines.join('\n')}`;
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `expense-${reportType}-report-${timestamp}.csv`;
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
     return (
       <div className="table-report">
         <div className="report-summary">
@@ -146,6 +204,16 @@ const ExpenseReports = () => {
           <div className="summary-item">
             <span className="label">Jumlah Outlet:</span>
             <span className="value">{uniqueOutlets.length}</span>
+          </div>
+          <div className="summary-item">
+            <button
+              type="button"
+              className="export-btn"
+              onClick={exportToCsv}
+              disabled={tableData.length === 0}
+            >
+              Export CSV
+            </button>
           </div>
         </div>
 

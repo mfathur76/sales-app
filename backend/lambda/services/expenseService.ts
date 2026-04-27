@@ -321,6 +321,16 @@ type ExpenseReportCategory = {
   items: ExpenseReportItem[];
 };
 
+type ExpenseReportTableRow = {
+  itemName: string;
+  category: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  date: string;
+  outlet: string;
+};
+
 function formatDateOnly(date: Date): string {
   return date.toISOString().split('T')[0];
 }
@@ -337,11 +347,17 @@ async function buildGroupedExpenseReport(expenses: Expense[]) {
   const itemMap = new Map(items.map((i) => [i.id, i]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const grouped = new Map<string, ExpenseReportCategory>();
+  const tableData: ExpenseReportTableRow[] = [];
+  const categoryTotalsMap = new Map<string, number>();
+  const outletTotalsMap = new Map<string, number>();
 
   for (const exp of expenses) {
     const item = itemMap.get(exp.itemId);
     const categoryId = item?.categoryId || 'uncategorized';
     const categoryName = categoryMap.get(categoryId)?.name || 'Uncategorized';
+    const quantity = Number(exp.quantity || 0);
+    const unitPrice = Number(exp.actualPrice || 0);
+    const totalPrice = Number(exp.totalPrice || 0);
 
     if (!grouped.has(categoryId)) {
       grouped.set(categoryId, {
@@ -354,23 +370,47 @@ async function buildGroupedExpenseReport(expenses: Expense[]) {
     }
 
     const bucket = grouped.get(categoryId)!;
-    bucket.totalAmount += Number(exp.totalPrice || 0);
+    bucket.totalAmount += totalPrice;
     bucket.itemCount += 1;
     bucket.items.push({
       description: item?.name || exp.notes || 'Expense Item',
       date: exp.date,
-      quantity: Number(exp.quantity || 0),
-      unitPrice: Number(exp.actualPrice || 0),
-      totalPrice: Number(exp.totalPrice || 0),
+      quantity,
+      unitPrice,
+      totalPrice,
     });
+
+    tableData.push({
+      itemName: item?.name || exp.notes || 'Expense Item',
+      category: categoryName,
+      quantity,
+      unitPrice,
+      totalPrice,
+      date: exp.date,
+      outlet: exp.outlet,
+    });
+
+    categoryTotalsMap.set(categoryName, (categoryTotalsMap.get(categoryName) || 0) + totalPrice);
+    outletTotalsMap.set(exp.outlet, (outletTotalsMap.get(exp.outlet) || 0) + totalPrice);
   }
 
   const expensesByCategory = Array.from(grouped.values()).sort((a, b) => b.totalAmount - a.totalAmount);
   const totalExpense = expensesByCategory.reduce((sum, c) => sum + c.totalAmount, 0);
 
+  tableData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
   return {
     totalExpense,
     expensesByCategory,
+    tableData,
+    categoryTotals: Array.from(categoryTotalsMap.entries()).map(([categoryName, totalAmount]) => ({
+      categoryName,
+      totalAmount,
+    })),
+    outletTotals: Array.from(outletTotalsMap.entries()).map(([outlet, totalAmount]) => ({
+      outlet,
+      totalAmount,
+    })),
   };
 }
 
