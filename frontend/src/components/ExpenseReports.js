@@ -105,12 +105,8 @@ const ExpenseReports = () => {
       return String(numeric);
     }
 
-    if (/^[0-9.,]+$/.test(rawText)) {
-      const normalized = rawText.replace(/\./g, '').replace(/,/g, '');
-      return normalized;
-    }
-
-    return rawText;
+    const normalized = rawText.replace(/[\s,_]/g, '').replace(/\./g, '').replace(/[^0-9-]/g, '');
+    return normalized || rawText;
   };
 
   const getMonthName = (month) => {
