@@ -97,6 +97,12 @@ const ExpenseReports = () => {
     return new Intl.NumberFormat('id-ID').format(value);
   };
 
+  const formatNumberForCsv = (value) => {
+    if (value === null || value === undefined) return '';
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? String(numeric) : String(value);
+  };
+
   const getMonthName = (month) => {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
@@ -160,9 +166,9 @@ const ExpenseReports = () => {
         item.outlet,
         item.itemName,
         item.category,
-        formatNumber(item.quantity),
-        formatNumber(item.unitPrice),
-        formatNumber(item.totalPrice)
+        formatNumberForCsv(item.quantity),
+        formatNumberForCsv(item.unitPrice),
+        formatNumberForCsv(item.totalPrice)
       ]));
 
       const csvLines = [
