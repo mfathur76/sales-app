@@ -93,10 +93,6 @@ const ExpenseReports = () => {
     }).format(amount);
   };
 
-  const formatNumber = (value) => {
-    return new Intl.NumberFormat('id-ID').format(value);
-  };
-
   const formatNumberForCsv = (value) => {
     if (value === null || value === undefined) return '';
     const rawText = String(value).trim();
