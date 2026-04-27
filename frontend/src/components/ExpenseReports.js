@@ -99,8 +99,18 @@ const ExpenseReports = () => {
 
   const formatNumberForCsv = (value) => {
     if (value === null || value === undefined) return '';
+    const rawText = String(value).trim();
     const numeric = Number(value);
-    return Number.isFinite(numeric) ? String(numeric) : String(value);
+    if (Number.isFinite(numeric)) {
+      return String(numeric);
+    }
+
+    if (/^[0-9.,]+$/.test(rawText)) {
+      const normalized = rawText.replace(/\./g, '').replace(/,/g, '');
+      return normalized;
+    }
+
+    return rawText;
   };
 
   const getMonthName = (month) => {
