@@ -50,18 +50,14 @@ custom:
     platform: node
     concurrency: 10
     keepOutputDirectory: true
+  serverless-offline:
+    httpPort: 3001              # frontend expects http://localhost:3001/api
+    noPrependStageInUrl: true
 
 package:
   individually: true
   patterns:
-    - "!src/**"           # exclude original Express source
-    - "!prisma/**"
-    - "!data/**"
     - "!*.md"
-    - "!ecosystem.config.js"
-    - "!nginx.conf"
-    - "!dist/**"
-    - "!dist-lambda/**"
     - "!node_modules/.cache/**"
 
 functions:

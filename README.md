@@ -76,8 +76,6 @@ Catatan:
 sales-app/
 ├── backend/
 │   ├── lambda/              # Lambda handlers, services, scripts
-│   ├── src/                 # Kode backend lama / local dev compatibility
-│   ├── prisma/              # Legacy Prisma assets yang masih tersisa di repo
 │   ├── serverless.yml       # Definisi Lambda, API Gateway, DynamoDB
 │   └── package.json
 ├── frontend/
@@ -104,10 +102,12 @@ sales-app/
 ```bash
 cd backend
 npm install
-npm run dev
+npm run offline
 ```
 
-Default local API berjalan di `http://localhost:3001`.
+API lokal berjalan di `http://localhost:3001/api` lewat `serverless-offline`, memakai stage `dev`.
+
+> Kode Lambda yang jalan lokal tetap terhubung ke **DynamoDB asli di AWS**, yaitu tabel `sales-app-api-*-dev`. Tabel dev itu baru ada setelah `npm run deploy:lambda:dev` dijalankan sekali. Jangan ubah script `offline` ke stage `prod`, supaya testing lokal tidak mengotori data produksi.
 
 ### Frontend local
 
@@ -181,10 +181,7 @@ Panduan detail ada di [Deploy/DEPLOYMENT.md](./Deploy/DEPLOYMENT.md).
 ```bash
 cd backend
 
-# local dev backend
-npm run dev
-
-# build lambda package
+# type-check kode lambda
 npm run build:lambda
 
 # deploy lambda production
@@ -193,7 +190,7 @@ npm run deploy:lambda
 # deploy lambda dev
 npm run deploy:lambda:dev
 
-# serverless offline
+# API lokal (serverless-offline, stage dev)
 npm run offline
 
 # cek info deployment
@@ -295,5 +292,4 @@ Daftar endpoint paling akurat tetap ada di [backend/serverless.yml](./backend/se
 ## Dokumen Terkait
 
 - [Deploy/DEPLOYMENT.md](./Deploy/DEPLOYMENT.md)
-- [backend/README.md](./backend/README.md)
 - [domain-setup.md](./domain-setup.md)

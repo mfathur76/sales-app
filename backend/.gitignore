@@ -2,9 +2,8 @@ node_modules
 # Keep environment variables out of version control
 .env
 
-/src/generated/prisma
-
 # Serverless/esbuild build artifacts
 .esbuild/
 .serverless/
 .sls-package/
+dist-lambda/

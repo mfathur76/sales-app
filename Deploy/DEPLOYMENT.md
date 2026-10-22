@@ -43,15 +43,11 @@ npx serverless deploy --stage prod
 
 ### Environment Variables Backend
 
-Set environment variables di `backend/.env` sebelum deploy:
+Saat deploy, `serverless.yml` hanya membaca `JWT_SECRET` dan `CORS_ALLOWED_ORIGINS` dari environment terminal (lihat di atas). Nama tabel DynamoDB, region, dan `NODE_ENV` sudah diatur di `serverless.yml`.
 
-```env
-NODE_ENV=production
-JWT_SECRET=<random-string-panjang>
-CORS_ALLOWED_ORIGINS=https://sales.risolmejik.com
-DYNAMODB_TABLE_PREFIX=sales-app-api
-AWS_REGION=ap-southeast-3
-```
+`backend/.env` hanya dipakai oleh script admin (`npm run reset:admin`, `npm run promote:admin`) yang dijalankan dari laptop.
+
+> **Jangan commit** folder `.sls-package/`, `.serverless/`, atau `dist-lambda/`, karena isinya memuat nilai `JWT_SECRET` secara plain text.
 
 ---
 
@@ -111,11 +107,11 @@ npx ts-node lambda/scripts/reset-admin-password.ts
 # Cek status deployment Lambda
 npx serverless info --stage prod
 
-# Lihat logs Lambda secara live
-npx serverless logs -f api --stage prod --tail
+# Lihat logs Lambda secara live (nama function sesuai serverless.yml, mis. createExpense)
+npx serverless logs -f createExpense --stage prod --tail
 
 # Deploy ulang hanya satu function
-npx serverless deploy function -f api --stage prod
+npx serverless deploy function -f createExpense --stage prod
 ```
 
 ---
@@ -148,16 +144,16 @@ Pakai ini jika ada perubahan route, handler, infra, atau env.
 
 ```bash
 cd backend
-npx serverless deploy function -f api --stage prod
+npx serverless deploy function -f <namaFunction> --stage prod
 ```
 
-Pakai ini jika hanya ubah logic function tanpa ubah infrastruktur.
+Pakai ini jika hanya ubah logic function tanpa ubah infrastruktur. Catatan: satu file handler (mis. `expenses.ts`) dipakai beberapa function, jadi semua function yang memakainya perlu di-deploy ulang. Kalau ragu, pakai full deploy.
 
 ### D. Cek Logs Saat Error
 
 ```bash
 cd backend
-npx serverless logs -f api --stage prod --tail
+npx serverless logs -f <namaFunction> --stage prod --tail
 ```
 
 ### E. Verifikasi Endpoint Setelah Deploy
@@ -170,8 +166,10 @@ npx serverless info --stage prod
 Copy endpoint dari output, lalu test:
 
 ```bash
-curl https://<api-id>.execute-api.<region>.amazonaws.com/health
+curl https://<api-id>.execute-api.<region>.amazonaws.com/prod/api/health
 ```
+
+Atau jalankan `smoke-test-api.ps1` dari root project.
 
 ### F. Reset Admin (Jika Login 401)
 
