@@ -242,15 +242,25 @@ const ExpenseBatchForm = ({ user, onExpenseAdded }) => {
     return map;
   }, [sortedRecent]);
 
-  const lastShopping = useMemo(() => {
-    const previous = sortedRecent.filter(exp => exp.date < date);
-    if (previous.length === 0) return null;
-    const lastDate = previous[0].date;
-    const lastRows = previous
-      .filter(exp => exp.date === lastDate)
-      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
-    return { date: lastDate, rows: lastRows };
+  // Shopping days before the selected date, newest first, that can be copied from
+  const shoppingDays = useMemo(() => {
+    const byDate = new Map();
+    sortedRecent
+      .filter(exp => exp.date < date)
+      .forEach(exp => {
+        if (!byDate.has(exp.date)) byDate.set(exp.date, []);
+        byDate.get(exp.date).push(exp);
+      });
+    return Array.from(byDate, ([day, dayRows]) => ({
+      date: day,
+      rows: dayRows.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '')),
+      total: dayRows.reduce((sum, exp) => sum + (exp.totalPrice || 0), 0)
+    }));
   }, [sortedRecent, date]);
+
+  const [copyDate, setCopyDate] = useState('');
+  useEffect(() => { setCopyDate(''); }, [date]);
+  const copySource = shoppingDays.find(day => day.date === copyDate) || shoppingDays[0] || null;
 
   const existingOnDate = useMemo(
     () => recentExpenses.filter(exp => exp.date === date),
@@ -289,13 +299,13 @@ const ExpenseBatchForm = ({ user, onExpenseAdded }) => {
     if (moveFocus) focusField(row.key, 'quantity');
   };
 
-  const handleCopyLast = () => {
-    if (!lastShopping) return;
+  const handleCopy = () => {
+    if (!copySource) return;
     const hasData = rows.some(row => !isBlankRow(row));
-    if (hasData && !window.confirm('Isi tabel saat ini akan diganti dengan belanja terakhir. Lanjutkan?')) {
+    if (hasData && !window.confirm(`Isi tabel saat ini akan diganti dengan belanja ${formatDateLabel(copySource.date)}. Lanjutkan?`)) {
       return;
     }
-    const copied = lastShopping.rows.map(exp => ({
+    const copied = copySource.rows.map(exp => ({
       ...emptyRow(exp.isCash !== false),
       itemId: exp.itemId,
       search: itemMap.get(exp.itemId)?.name || '',
@@ -306,7 +316,7 @@ const ExpenseBatchForm = ({ user, onExpenseAdded }) => {
     setShowErrors(false);
     setMessage({
       type: 'info',
-      text: `${copied.length} item disalin dari ${formatDateLabel(lastShopping.date)}. Ubah qty/harga yang berbeda, hapus yang tidak dibeli.`
+      text: `${copied.length} item disalin dari ${formatDateLabel(copySource.date)}. Ubah qty/harga yang berbeda, hapus yang tidak dibeli.`
     });
   };
 
@@ -401,19 +411,28 @@ const ExpenseBatchForm = ({ user, onExpenseAdded }) => {
           </div>
         </div>
 
-        <div className="ebf-toolbar-actions">
-          <button
-            type="button"
-            className="ebf-btn secondary"
-            onClick={handleCopyLast}
-            disabled={!lastShopping}
-            title={lastShopping ? '' : `Tidak ada belanja dalam ${LOOKBACK_DAYS} hari sebelum tanggal ini`}
-          >
-            📋 Salin belanja terakhir
-            {lastShopping && (
-              <small> ({formatDateLabel(lastShopping.date)} · {lastShopping.rows.length} item)</small>
-            )}
-          </button>
+        <div className="ebf-toolbar-actions ebf-field">
+          <span>Salin belanja dari</span>
+          <div className="ebf-copy">
+            <select
+              value={copySource ? copySource.date : ''}
+              onChange={(e) => setCopyDate(e.target.value)}
+              disabled={shoppingDays.length === 0}
+            >
+              {shoppingDays.length === 0 && (
+                <option value="">Tidak ada belanja {LOOKBACK_DAYS} hari terakhir</option>
+              )}
+              {shoppingDays.map((day, idx) => (
+                <option key={day.date} value={day.date}>
+                  {formatDateLabel(day.date)} · {day.rows.length} item · {formatCurrency(day.total)}
+                  {idx === 0 ? ' (terakhir)' : ''}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="ebf-btn secondary" onClick={handleCopy} disabled={!copySource}>
+              📋 Salin
+            </button>
+          </div>
         </div>
       </div>
 
