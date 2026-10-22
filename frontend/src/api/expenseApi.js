@@ -197,6 +197,12 @@ class ExpenseApi {
     }
   }
 
+  // Profit & loss figures for a date range (admin only)
+  async getProfitLoss(startDate, endDate) {
+    const query = new URLSearchParams({ startDate, endDate });
+    return this.request(`/reports/profit-loss?${query}`, { method: 'GET' });
+  }
+
   // Update expense
   async updateExpense(id, updateData) {
     try {

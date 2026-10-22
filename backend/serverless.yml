@@ -366,6 +366,15 @@ functions:
           method: get
           cors: true
 
+  # ---- Reports ----
+  getProfitLoss:
+    handler: lambda/handlers/reports.getProfitLossHandler
+    events:
+      - http:
+          path: api/reports/profit-loss
+          method: get
+          cors: true
+
 # ---- DynamoDB Tables ----
 resources:
   Resources:
