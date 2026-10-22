@@ -4,7 +4,7 @@
 
 | Layer | Lokasi | Akses |
 |-------|--------|-------|
-| Frontend | Cloudflare Pages, proyek `sales-app-3sg.pages.dev` | Akun Cloudflare yang terhubung ke GitHub `mfathur76`. Production branch: lihat Settings proyek di dashboard |
+| Frontend | Cloudflare Pages, proyek `sales-app-3sg.pages.dev` | Akun Cloudflare yang terhubung ke GitHub `mfathur76`. Production branch: **`main`** |
 | Domain/DNS | Hostinger (nameserver `dns-parking.com`) | CNAME `sales` → `sales-app-3sg.pages.dev` |
 | Backend | AWS Lambda + API Gateway, akun `790762402182`, region `ap-southeast-3` (Jakarta) | AWS CLI profile `risolmejik` |
 | Database | AWS DynamoDB, tabel `sales-app-api-*-prod` | sama dengan backend |
@@ -45,7 +45,11 @@ Kalau `JWT_SECRET` diganti, semua user otomatis logout dan harus login ulang.
 
 ## 2. Deploy Frontend (Cloudflare Pages)
 
-Frontend ter-deploy otomatis setiap `git push` ke branch `main`.
+Frontend ter-deploy otomatis setiap ada push atau merge PR ke branch `main` (production branch di Cloudflare → sales-app → Settings → Builds → Branch control).
+
+> Tombol **Retry deployment** di Cloudflare hanya membangun ulang **commit yang sama** dengan deployment itu. Untuk menayangkan perubahan baru, harus ada push baru ke `main`.
+>
+> Aplikasi ini PWA (pakai service worker). Setelah deploy, browser bisa masih menampilkan versi lama sampai semua tab situs ditutup lalu dibuka lagi.
 
 ### Setup Awal (sekali saja)
 1. Buka [Cloudflare Pages](https://pages.cloudflare.com/)
@@ -89,7 +93,8 @@ npx ts-node lambda/scripts/reset-admin-password.ts
 | CORS error di browser | Pastikan `CORS_ALLOWED_ORIGINS` di backend sesuai domain frontend |
 | Login 401 | Jalankan reset-admin-password script |
 | API tidak dikenal | Cek endpoint URL di `salesApi.js` |
-| Cloudflare tidak update | Trigger manual re-deploy di Cloudflare Pages dashboard |
+| Cloudflare tidak update | Cek tab Deployments: commit teratas harus commit terbaru di `main`. Kalau tidak, cek production branch dan push commit baru ke `main` (Retry hanya mengulang commit lama) |
+| Situs masih versi lama setelah deploy sukses | Tutup semua tab/aplikasi situs lalu buka lagi (cache service worker PWA) |
 
 ---
 
