@@ -15,7 +15,7 @@ const ExpenseCategoryManager = () => {
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCategories = async () => {
     try {

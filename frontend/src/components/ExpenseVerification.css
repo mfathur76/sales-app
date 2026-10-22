@@ -7,7 +7,8 @@
 .verification-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 20px;
   margin-bottom: 30px;
   padding-bottom: 15px;
   border-bottom: 2px solid #e1e5e9;
@@ -19,25 +20,36 @@
   font-size: 24px;
 }
 
+.verification-subtitle {
+  margin: 8px 0 0;
+  color: #64748b;
+  max-width: 760px;
+}
+
 .refresh-btn {
-  background: #3498db;
+  background: #2563eb;
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: background-color 0.3s;
+  font-weight: 600;
+  transition: background-color 0.2s;
 }
 
 .refresh-btn:hover {
-  background: #2980b9;
+  background: #1d4ed8;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .message {
   padding: 15px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 20px;
   font-weight: 500;
   text-align: center;
@@ -58,10 +70,10 @@
 .filters-section {
   background: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   margin-bottom: 30px;
-  border: 1px solid #e1e5e9;
+  border: 1px solid #e2e8f0;
 }
 
 .filters-section h3 {
@@ -70,7 +82,8 @@
   font-size: 18px;
 }
 
-.filters-grid {
+.filters-grid,
+.form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
@@ -82,69 +95,60 @@
 }
 
 .filter-item label {
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #2c3e50;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #334155;
   font-size: 14px;
 }
 
 .filter-item input,
-.filter-item select {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+.filter-item select,
+.filter-item textarea {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
   font-size: 14px;
-  transition: border-color 0.3s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .filter-item input:focus,
-.filter-item select:focus {
+.filter-item select:focus,
+.filter-item textarea:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #7f8c8d;
-  font-size: 16px;
-}
-
+.loading,
 .no-expenses {
   text-align: center;
   padding: 40px;
-  color: #7f8c8d;
+  color: #64748b;
   font-size: 16px;
   background: white;
-  border-radius: 8px;
-  border: 1px solid #e1e5e9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .expenses-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 20px;
 }
 
 .expense-card {
   background: white;
-  border: 1px solid #e1e5e9;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.3s, transform 0.2s;
-}
-
-.expense-card:hover {
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
 .expense-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 16px;
   margin-bottom: 15px;
   padding-bottom: 15px;
   border-bottom: 1px solid #ecf0f1;
@@ -152,33 +156,33 @@
 
 .expense-header h3 {
   margin: 0;
-  color: #2c3e50;
+  color: #1e293b;
   font-size: 18px;
-  font-weight: 600;
-  flex: 1;
+  font-weight: 700;
 }
 
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
+.expense-subtitle {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.payment-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
-.status-pending {
-  background: #fff3cd;
-  color: #856404;
+.payment-badge.cash {
+  background: #dcfce7;
+  color: #166534;
 }
 
-.status-approved {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-rejected {
-  background: #f8d7da;
-  color: #721c24;
+.payment-badge.noncash {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .expense-details {
@@ -188,9 +192,10 @@
 .detail-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid #f8f9fa;
+  border-bottom: 1px solid #f8fafc;
 }
 
 .detail-row:last-child {
@@ -199,102 +204,142 @@
 
 .detail-row .label {
   font-weight: 500;
-  color: #7f8c8d;
+  color: #64748b;
   font-size: 14px;
 }
 
 .detail-row .value {
-  color: #2c3e50;
+  color: #1e293b;
   font-weight: 500;
   text-align: right;
 }
 
 .detail-row .value.total {
-  color: #e74c3c;
-  font-weight: 600;
+  color: #b91c1c;
+  font-weight: 700;
   font-size: 16px;
 }
 
 .detail-row .value.notes {
-  color: #666;
-  font-style: italic;
-  max-width: 200px;
-  text-align: right;
-  word-wrap: break-word;
+  max-width: 220px;
+  word-break: break-word;
 }
 
-.detail-row .value.rejection-reason {
-  color: #e74c3c;
-  font-style: italic;
-  max-width: 200px;
-  text-align: right;
-  word-wrap: break-word;
+.expense-actions,
+.modal-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .expense-actions {
-  display: flex;
-  gap: 10px;
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid #ecf0f1;
 }
 
-.approve-btn,
-.reject-btn {
+.edit-btn,
+.delete-btn,
+.primary-btn,
+.secondary-btn {
   flex: 1;
-  padding: 10px;
+  padding: 10px 14px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s;
+  font-weight: 600;
+  transition: transform 0.2s, opacity 0.2s, background-color 0.2s;
 }
 
-.approve-btn {
-  background: #27ae60;
+.edit-btn,
+.primary-btn {
+  background: #1f7a5a;
   color: white;
 }
 
-.approve-btn:hover {
-  background: #229954;
-}
-
-.reject-btn {
-  background: #e74c3c;
+.delete-btn {
+  background: #dc2626;
   color: white;
 }
 
-.reject-btn:hover {
-  background: #c0392b;
+.secondary-btn {
+  background: #e2e8f0;
+  color: #1e293b;
 }
 
-.approval-info,
-.rejection-info {
-  margin-top: 15px;
-  padding: 15px;
-  border-radius: 6px;
-  font-size: 14px;
+.edit-btn:hover,
+.delete-btn:hover,
+.primary-btn:hover,
+.secondary-btn:hover {
+  transform: translateY(-1px);
 }
 
-.approval-info {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
 }
 
-.rejection-info {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+.edit-modal {
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
 }
 
-.approval-info p,
-.rejection-info p {
-  margin: 5px 0;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-/* Responsive Design */
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.close-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.edit-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
 @media (max-width: 768px) {
   .expense-verification {
     padding: 15px;
@@ -302,32 +347,20 @@
 
   .verification-header {
     flex-direction: column;
-    gap: 15px;
     align-items: stretch;
   }
 
-  .filters-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .expenses-grid {
+  .expenses-grid,
+  .filters-grid,
+  .form-grid {
     grid-template-columns: 1fr;
   }
 
-  .expense-header {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .expense-actions {
-    flex-direction: column;
-  }
-
+  .expense-header,
+  .expense-actions,
+  .modal-actions,
   .detail-row {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
   }
 
   .detail-row .value {
@@ -340,11 +373,13 @@
     padding: 10px;
   }
 
-  .expense-card {
+  .expense-card,
+  .filters-section,
+  .edit-modal {
     padding: 15px;
   }
 
-  .filters-section {
-    padding: 15px;
+  .modal-overlay {
+    padding: 12px;
   }
 }

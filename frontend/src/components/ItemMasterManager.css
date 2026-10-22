@@ -35,6 +35,31 @@
   background: #229954;
 }
 
+.manager-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.item-search-input {
+  min-width: 280px;
+  max-width: 420px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.item-search-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
 .item-form {
   background: white;
   padding: 25px;
@@ -297,6 +322,16 @@
     flex-direction: column;
     gap: 15px;
     align-items: stretch;
+  }
+
+  .manager-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .item-search-input {
+    min-width: 0;
+    max-width: none;
   }
 
   .form-row {

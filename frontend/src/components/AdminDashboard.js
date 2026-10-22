@@ -3,14 +3,16 @@ import { adminApi } from '../api/salesApi';
 import AdminSalesReport from './AdminSalesReport';
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ItemMasterManager from './ItemMasterManager';
-import ExpenseVerification from './ExpenseVerification';
+import ExpenseManagement from './ExpenseVerification';
 import ExpenseReports from './ExpenseReports';
 import OutletManager from './OutletManager';
 import UserManager from './UserManager';
 import ChangePassword from './ChangePassword';
 import './AdminDashboard.css';
 
-const AdminDashboard = ({ admin }) => {
+const AdminDashboard = ({ admin, onLogout }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const isSuperAdmin = admin?.role === 'super_admin';
   const [activeTab, setActiveTab] = useState('sales-verification');
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +28,8 @@ const AdminDashboard = ({ admin }) => {
     notes: ''
   });
   const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
+    start_date: today,
+    end_date: today,
     outlet: '',
     status: ''
   });
@@ -39,18 +41,26 @@ const AdminDashboard = ({ admin }) => {
     { id: 'sales-reports', label: 'Laporan Sales', icon: '📈' },
     { id: 'expense-categories', label: 'Kategori Pengeluaran', icon: '🏷️' },
     { id: 'item-master', label: 'Item Master', icon: '📦' },
-    { id: 'expense-verification', label: 'Verifikasi Pengeluaran', icon: '✅' },
+    { id: 'expense-management', label: 'Kelola Pengeluaran', icon: '✏️' },
     { id: 'expense-reports', label: 'Laporan Pengeluaran', icon: '📈' },
     { id: 'outlet-management', label: 'Manajemen Outlet', icon: '🏪' },
     { id: 'user-management', label: 'Manajemen User', icon: '👥' },
     { id: 'change-password', label: 'Ganti Password', icon: '🔐' }
   ];
 
+  const visibleTabs = tabs.filter((tab) => isSuperAdmin || tab.id !== 'user-management');
+
   useEffect(() => {
     if (activeTab === 'sales-verification') {
       fetchSales();
     }
-  }, [filters, activeTab]);
+  }, [filters, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isSuperAdmin && activeTab === 'user-management') {
+      setActiveTab('sales-verification');
+    }
+  }, [activeTab, isSuperAdmin]);
 
   const fetchSales = async () => {
     try {
@@ -141,29 +151,10 @@ const AdminDashboard = ({ admin }) => {
     }).format(amount);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'orange';
-      case 'verified': return 'blue';
-      case 'approved': return 'green';
-      case 'rejected': return 'red';
-      default: return 'gray';
-    }
-  };
-
   const renderSalesVerification = () => (
     <div className="sales-verification-content">
       <div className="verification-header">
-        <h1>Admin Dashboard - Bank Transfer Verification</h1>
-        <button
-          className="logout-btn"
-          onClick={() => {
-            adminApi.logout();
-            window.location.reload();
-          }}
-        >
-          Logout
-        </button>
+        <h1>Bank Transfer Verification</h1>
       </div>
 
       {/* Filters */}
@@ -534,13 +525,16 @@ const AdminDashboard = ({ admin }) => {
         return <ExpenseCategoryManager />;
       case 'item-master':
         return <ItemMasterManager />;
-      case 'expense-verification':
-        return <ExpenseVerification />;
+      case 'expense-management':
+        return <ExpenseManagement />;
       case 'expense-reports':
         return <ExpenseReports />;
       case 'outlet-management':
         return <OutletManager />;
       case 'user-management':
+        if (!isSuperAdmin) {
+          return renderSalesVerification();
+        }
         return <UserManager />;
       case 'change-password':
         return <ChangePassword />;
@@ -552,12 +546,15 @@ const AdminDashboard = ({ admin }) => {
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
-        <h1>Admin Dashboard</h1>
-        <p>Welcome, {admin?.name || 'Administrator'}</p>
+        <div className="admin-header-left">
+          <h1>Admin Dashboard</h1>
+          <p>Welcome, {admin?.name || 'Administrator'}</p>
+        </div>
+        <button className="logout-btn" onClick={onLogout}>Logout</button>
       </div>
 
       <div className="admin-tabs">
-        {tabs.map(tab => (
+        {visibleTabs.map(tab => (
           <button
             key={tab.id}
             className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}

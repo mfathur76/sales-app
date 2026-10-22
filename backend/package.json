@@ -2,41 +2,41 @@
   "name": "sales-app-backend",
   "version": "1.0.0",
   "description": "Sales App Backend API",
-  "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
-    "migrate": "prisma migrate deploy",
-    "generate": "prisma generate",
-    "seed": "ts-node prisma/seed.ts"
+    "build:lambda": "tsc -p lambda/tsconfig.json --noEmit",
+    "deploy:lambda": "npm run build:lambda && node node_modules/serverless/bin/serverless.js deploy",
+    "deploy:lambda:dev": "npm run build:lambda && node node_modules/serverless/bin/serverless.js deploy --stage dev",
+    "package:lambda": "npm run build:lambda && node node_modules/serverless/bin/serverless.js package --package .sls-package",
+    "deploy:lambda:pkg": "node node_modules/serverless/bin/serverless.js deploy --package .sls-package",
+    "offline": "npm run build:lambda && node node_modules/serverless/bin/serverless.js offline --stage dev",
+    "reset:admin": "ts-node -P lambda/tsconfig.json lambda/scripts/reset-admin-password.ts",
+    "promote:admin": "ts-node -P lambda/tsconfig.json lambda/scripts/set-admin-role.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.10.1",
+    "@aws-sdk/client-dynamodb": "^3.1022.0",
+    "@aws-sdk/lib-dynamodb": "^3.1022.0",
     "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "prisma": "^6.10.1"
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.10.2",
+    "@types/uuid": "^10.0.0",
+    "esbuild": "^0.27.7",
+    "serverless": "^3.40.0",
+    "serverless-esbuild": "^1.57.0",
+    "serverless-offline": "^13.9.0",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
   }
 }

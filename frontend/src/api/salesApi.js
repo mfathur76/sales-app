@@ -1,36 +1,24 @@
-// Get the current hostname and use it for API calls
+const DEFAULT_AWS_API_BASE_URL = 'https://c28ub1rja2.execute-api.ap-southeast-3.amazonaws.com/prod/api';
+
+const normalizeApiUrl = (url) => url.replace(/\/$/, '');
+
+// Default to AWS API in production; localhost remains for local development.
 const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
-  
-  // Check if we're in production (deployed on DO)
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    // Use the same hostname for API calls in production
-    const apiUrl = `${protocol}//${hostname}/api`;
-    return apiUrl;
+  const envApiBaseUrl = process.env.REACT_APP_API_BASE_URL;
+
+  if (envApiBaseUrl) {
+    return normalizeApiUrl(envApiBaseUrl);
   }
-  
-  // Use localhost for development
-  const apiUrl = 'http://localhost:3001/api';
-  return apiUrl;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3001/api';
+  }
+
+  return DEFAULT_AWS_API_BASE_URL;
 };
 
-// Force API URL for production with domain support
-const forceApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-  
-  // Check for specific domains
-  if (hostname === 'sales.risolmejik.com') {
-    return 'https://sales.risolmejik.com/api';
-  }
-  if (hostname === '152.42.232.39') {
-    return 'http://152.42.232.39/api';
-  }
-  
-  return getApiBaseUrl();
-};
-
-const API_BASE_URL = forceApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -264,19 +252,23 @@ export const adminApi = {
       }
       
       const data = await response.json();
+      console.log('[adminApi.login] raw response:', JSON.stringify(data));
       
       if (data.success && data.data) {
-        // Store admin data with token (backend already includes type and isAuthenticated)
-        localStorage.setItem('adminData', JSON.stringify(data.data));
+        // Store admin data with token, add isAuthenticated flag required by App.js
+        const adminData = { ...data.data, isAuthenticated: true };
+        localStorage.setItem('adminData', JSON.stringify(adminData));
+        console.log('[adminApi.login] success, adminData keys:', Object.keys(adminData));
         
         // Return the admin data for immediate use
         return {
           success: true,
-          data: data.data
+          data: adminData
         };
       } else {
         // If login failed, clear any existing admin data
         localStorage.removeItem('adminData');
+        console.warn('[adminApi.login] login failed, response:', data);
       }
 
       return data;
@@ -340,13 +332,23 @@ export const adminApi = {
     if (filters.outlet) queryParams.append('outlet', filters.outlet);
     if (filters.status) queryParams.append('status', filters.status);
     
-    const url = `${API_BASE_URL}/admin/sales${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    return makeAuthenticatedRequest(url);
+    const url = `${API_BASE_URL}/sales${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const response = await makeAuthenticatedRequest(url);
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (response && Array.isArray(response.data)) {
+      return response.data;
+    }
+
+    return [];
   },
 
   // Update bank transfer amounts
   updateBankTransfer: async (outlet, date, bankData) => {
-    return makeAuthenticatedRequest(`${API_BASE_URL}/admin/sales/${outlet}/${date}/bank-transfer`, {
+    return makeAuthenticatedRequest(`${API_BASE_URL}/sales/${outlet}/${date}/bank`, {
       method: 'PUT',
       body: JSON.stringify(bankData),
     });

@@ -30,9 +30,27 @@ const AdminLogin = ({ onLogin }) => {
 
     try {
       const response = await adminApi.login(formData.username, formData.password);
-      
-      if (response.success && response.data) {
-        onLogin(response.data);
+
+      const normalizedAdmin = response?.data?.token
+        ? response.data
+        : response?.data?.data?.token
+          ? response.data.data
+          : response?.token
+            ? response
+            : null;
+
+      if (response?.success && normalizedAdmin?.token) {
+        const enrichedAdmin = { ...normalizedAdmin, isAuthenticated: true };
+        localStorage.setItem('adminData', JSON.stringify(enrichedAdmin));
+        onLogin(enrichedAdmin);
+
+        // Fallback for production builds where state update callback is delayed/stale.
+        setTimeout(() => {
+          const savedAdmin = localStorage.getItem('adminData');
+          if (savedAdmin) {
+            window.location.reload();
+          }
+        }, 150);
       } else {
         setError(response.error || response.message || 'Login gagal');
       }

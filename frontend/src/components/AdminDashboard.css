@@ -20,6 +20,12 @@
   font-size: 28px;
 }
 
+.admin-header-left p {
+  margin: 6px 0 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
 .logout-btn {
   background-color: #dc3545;
   color: white;

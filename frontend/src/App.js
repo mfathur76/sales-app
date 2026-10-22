@@ -77,30 +77,13 @@ const QuickInputForm = ({ user }) => {
     setLoading(true);
     
     try {
-      let existingSale = null;
-      
       try {
-        const existingSaleResponse = await salesApi.getSaleByOutletAndDate(sale.outlet, sale.date);
-        
-        // Handle different response formats
-        existingSale = existingSaleResponse.success && existingSaleResponse.data 
-          ? existingSaleResponse.data 
-          : existingSaleResponse;
-      } catch (error) {
-        // If 404 error, it means no existing sale found, which is fine
-        if (error.message.includes('404') || error.message.includes('not found')) {
-          existingSale = null;
-        } else {
-          throw error; // Re-throw other errors
-        }
-      }
-      
-      if (existingSale && Object.keys(existingSale).length > 0) {
-        await salesApi.updateSale(sale.outlet, sale.date, sale);
-        showMessage('success', 'Data berhasil diperbarui!');
-      } else {
         await salesApi.createSale(sale);
         showMessage('success', 'Data berhasil disimpan!');
+      } catch (createError) {
+        // If create fails (usually because record exists), try update as fallback.
+        await salesApi.updateSale(sale.outlet, sale.date, sale);
+        showMessage('success', 'Data berhasil diperbarui!');
       }
 
       // Reset form
@@ -260,6 +243,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [admin, setAdmin] = useState(null);
   const [userType, setUserType] = useState(null); // 'outlet' or 'admin'
+  const buildMarker = 'cf-admin-fix-2026-04-17-v2';
 
 
 
@@ -275,9 +259,10 @@ function App() {
         if (adminData) {
           try {
             const parsedAdmin = JSON.parse(adminData);
+            const normalizedAdmin = parsedAdmin?.data ? parsedAdmin.data : parsedAdmin;
             
-            if (parsedAdmin.isAuthenticated && parsedAdmin.token) {
-              setAdmin(parsedAdmin);
+            if (normalizedAdmin && normalizedAdmin.token) {
+              setAdmin({ ...normalizedAdmin, isAuthenticated: true });
               setUserType('admin');
               return; // Exit early if admin is authenticated
             } else {
@@ -323,9 +308,16 @@ function App() {
   };
 
   const handleAdminLogin = (adminData) => {
-    if (adminData && adminData.isAuthenticated && adminData.token) {
-      setAdmin(adminData);
+    const normalizedAdmin = adminData?.data ? adminData.data : adminData;
+    console.log('[handleAdminLogin] called, data:', JSON.stringify(normalizedAdmin));
+    if (normalizedAdmin && normalizedAdmin.token) {
+      const enriched = { ...normalizedAdmin, isAuthenticated: true };
+      localStorage.setItem('adminData', JSON.stringify(enriched));
+      setAdmin(enriched);
       setUserType('admin');
+      console.log('[handleAdminLogin] state updated, should redirect now');
+    } else {
+      console.warn('[handleAdminLogin] missing token! adminData:', adminData);
     }
   };
 
@@ -364,22 +356,22 @@ function App() {
 
     switch (activePage) {
       case 'input':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <QuickInputForm user={user} />;
       case 'list':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <SalesList user={user} />;
       case 'expense':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <ExpenseManager user={user} />;
       case 'dashboard':
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <Dashboard user={user} />;
       case 'report':
         if (userType === 'admin') return <AdminReport />;
         return <ExpenseReport user={user} />;
       default:
-        if (userType === 'admin') return <AdminDashboard admin={admin} />;
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <QuickInputForm user={user} />;
     }
   };
@@ -390,6 +382,9 @@ function App() {
       <div className="login-selection">
         <div className="login-selection-container">
           <h1>Sales Management System</h1>
+          <p style={{ marginTop: '-8px', fontSize: '12px', color: '#6B7280' }}>
+            Build: {buildMarker}
+          </p>
           <p>Pilih jenis login:</p>
           
           <div className="login-buttons">
@@ -422,12 +417,6 @@ function App() {
           <main className="admin-main">
             {renderPage()}
           </main>
-          <Navigation 
-            activePage={activePage} 
-            onPageChange={handlePageChange} 
-            userType={userType}
-            onLogout={handleLogout}
-          />
         </div>
       );
     } catch (error) {
@@ -470,7 +459,6 @@ function App() {
       <Navigation 
         activePage={activePage} 
         onPageChange={handlePageChange} 
-        userType={userType}
         onLogout={handleLogout}
       />
     </div>

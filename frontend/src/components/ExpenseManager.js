@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import ExpenseForm from './ExpenseForm';
+import ExpenseBatchForm from './ExpenseBatchForm';
 import ExpenseList from './ExpenseList';
 import './ExpenseManager.css';
 
@@ -33,8 +33,8 @@ const ExpenseManager = ({ user }) => {
       {/* Tab Content */}
       <div className="tab-content">
         {activeTab === 'form' ? (
-          <ExpenseForm 
-            user={user} 
+          <ExpenseBatchForm
+            user={user}
             onExpenseAdded={() => {
               // Refresh the list but stay on form tab
               if (listRef.current && listRef.current.loadExpenses) {

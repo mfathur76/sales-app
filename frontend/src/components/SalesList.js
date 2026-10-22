@@ -3,25 +3,44 @@ import { salesApi } from '../api/salesApi';
 import './SalesList.css';
 
 const SalesList = ({ user }) => {
+  const today = new Date().toISOString().split('T')[0];
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
+    start_date: today,
+    end_date: today,
     outlet: user?.outlet || ''
   });
-  const [outletOptions, setOutletOptions] = useState([]);
+  const [, setOutletOptions] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
   
   // Edit state
   const [editingSale, setEditingSale] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const toNumber = (value) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : 0;
+  };
+
+  const getSaleTotal = (sale) => {
+    const cash = toNumber(sale.cash);
+    const qris = toNumber(sale.qris);
+    const gojek = toNumber(sale.gojek);
+    const shopee = toNumber(sale.shopee);
+    const grab = toNumber(sale.grab);
+    const computedTotal = cash + qris + gojek + shopee + grab;
+    const providedTotal = toNumber(sale.total_sales);
+
+    // Prefer stored total when valid, fallback to computed payment total.
+    return providedTotal > 0 ? providedTotal : computedTotal;
+  };
+
   useEffect(() => {
     loadSales();
     loadOutletOptions();
-  }, [filters]);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSales = async () => {
     setLoading(true);
@@ -30,9 +49,29 @@ const SalesList = ({ user }) => {
       
       // Handle different response formats
       if (response.success && response.data) {
-        setSales(response.data);
+        setSales(
+          response.data.map((sale) => ({
+            ...sale,
+            cash: toNumber(sale.cash),
+            qris: toNumber(sale.qris),
+            gojek: toNumber(sale.gojek),
+            shopee: toNumber(sale.shopee),
+            grab: toNumber(sale.grab),
+            total_sales: getSaleTotal(sale),
+          }))
+        );
       } else if (Array.isArray(response)) {
-        setSales(response);
+        setSales(
+          response.map((sale) => ({
+            ...sale,
+            cash: toNumber(sale.cash),
+            qris: toNumber(sale.qris),
+            gojek: toNumber(sale.gojek),
+            shopee: toNumber(sale.shopee),
+            grab: toNumber(sale.grab),
+            total_sales: getSaleTotal(sale),
+          }))
+        );
       } else {
         setSales([]);
       }
@@ -68,7 +107,7 @@ const SalesList = ({ user }) => {
       currency: 'IDR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(toNumber(value));
   };
 
   const formatDate = (dateString) => {
@@ -85,8 +124,8 @@ const SalesList = ({ user }) => {
 
   const clearFilters = () => {
     setFilters({
-      start_date: '',
-      end_date: '',
+      start_date: today,
+      end_date: today,
       outlet: user?.outlet || ''
     });
   };
@@ -105,7 +144,15 @@ const SalesList = ({ user }) => {
   };
 
   const handleEdit = (sale) => {
-    setEditingSale({ ...sale });
+    setEditingSale({
+      ...sale,
+      cash: toNumber(sale.cash),
+      qris: toNumber(sale.qris),
+      gojek: toNumber(sale.gojek),
+      shopee: toNumber(sale.shopee),
+      grab: toNumber(sale.grab),
+      total_sales: getSaleTotal(sale),
+    });
     setShowEditModal(true);
   };
 
@@ -132,7 +179,7 @@ const SalesList = ({ user }) => {
   const handleEditChange = (field, value) => {
     setEditingSale(prev => ({
       ...prev,
-      [field]: parseFloat(value) || 0
+      [field]: toNumber(value)
     }));
   };
 
@@ -268,7 +315,7 @@ const SalesList = ({ user }) => {
 
                 <div className="sale-total">
                   <span className="total-label">Total</span>
-                  <span className="total-amount">{formatCurrency(sale.total_sales)}</span>
+                  <span className="total-amount">{formatCurrency(getSaleTotal(sale))}</span>
                 </div>
               </div>
             ))}
@@ -286,13 +333,13 @@ const SalesList = ({ user }) => {
                 <div className="summary-stat">
                   <span className="stat-label">Total Revenue</span>
                   <span className="stat-value">
-                    {formatCurrency(sales.reduce((sum, sale) => sum + sale.total_sales, 0))}
+                    {formatCurrency(sales.reduce((sum, sale) => sum + getSaleTotal(sale), 0))}
                   </span>
                 </div>
                 <div className="summary-stat">
                   <span className="stat-label">Rata-rata per Record</span>
                   <span className="stat-value">
-                    {formatCurrency(sales.length > 0 ? sales.reduce((sum, sale) => sum + sale.total_sales, 0) / sales.length : 0)}
+                    {formatCurrency(sales.length > 0 ? sales.reduce((sum, sale) => sum + getSaleTotal(sale), 0) / sales.length : 0)}
                   </span>
                 </div>
               </div>
@@ -372,7 +419,7 @@ const SalesList = ({ user }) => {
               <div className="edit-total">
                 <span className="edit-total-label">Total</span>
                 <span className="edit-total-amount">
-                  {formatCurrency(editingSale.cash + editingSale.qris + editingSale.gojek + editingSale.shopee + editingSale.grab)}
+                  {formatCurrency(getSaleTotal(editingSale))}
                 </span>
               </div>
             </div>

@@ -1,127 +1,35 @@
 # Setup Domain: sales.risolmejik.com
 
-## Langkah-langkah Setup Domain
+## Langkah Setup (Cloudflare Pages + AWS API)
 
-### 1. Konfigurasi DNS
+### 1. Tambahkan Custom Domain di Cloudflare Pages
+1. Buka project frontend di Cloudflare Pages.
+2. Masuk ke tab **Custom domains**.
+3. Tambahkan domain `sales.risolmejik.com`.
+4. Ikuti instruksi DNS yang diberikan Cloudflare.
 
-Di provider domain Anda (GoDaddy, Namecheap, dll), tambahkan DNS records:
+### 2. Pastikan Frontend Pakai API URL Production
+Di frontend, pastikan base URL API mengarah ke endpoint AWS API Gateway production.
 
-**A Records:**
-```
-risolmejik.com     → 152.42.232.39
-sales.risolmejik.com → 152.42.232.39
-```
+### 3. Sinkronkan CORS di Backend
+Di backend (Lambda), set environment:
 
-**CNAME Records (opsional):**
-```
-www.risolmejik.com → risolmejik.com
-```
-
-### 2. Setup di Server DO
-
-Jalankan perintah berikut di server DO:
-
-```bash
-# Masuk ke server DO
-ssh root@152.42.232.39
-
-# Masuk ke direktori aplikasi
-cd /opt/sales-app
-
-# Pull latest changes
-git pull origin main
-
-# Update nginx config
-sudo cp backend/nginx.conf /etc/nginx/sites-available/sales-app
-sudo ln -sf /etc/nginx/sites-available/sales-app /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-
-# Test nginx config
-sudo nginx -t
-
-# Restart nginx
-sudo systemctl restart nginx
+```env
+CORS_ALLOWED_ORIGINS=https://sales.risolmejik.com
 ```
 
-### 3. Setup SSL Certificate
+Lalu redeploy backend agar env terbaru aktif.
 
-```bash
-# Install certbot (jika belum)
-sudo apt update
-sudo apt install -y certbot python3-certbot-nginx
+### 4. Validasi Setelah Deploy
+- Frontend: `https://sales.risolmejik.com`
+- API Health: endpoint health API Gateway
+- Login outlet/admin harus sukses tanpa CORS error
 
-# Get SSL certificate
-sudo certbot --nginx -d sales.risolmejik.com --non-interactive --agree-tos --email admin@risolmejik.com
-
-# Setup auto-renewal
-sudo crontab -e
-# Tambahkan: 0 12 * * * /usr/bin/certbot renew --quiet
-```
-
-### 4. Update Frontend
-
-```bash
-# Build frontend dengan konfigurasi baru
-cd /opt/sales-app/frontend
-npm run build
-
-# Deploy ke nginx
-sudo cp -r build/* /var/www/html/
-sudo chown -R www-data:www-data /var/www/html
-
-# Restart services
-sudo systemctl restart nginx
-cd /opt/sales-app/backend
-pm2 restart all
-```
-
-### 5. Test Aplikasi
-
-Setelah setup selesai, test:
-
-- **Frontend**: https://sales.risolmejik.com
-- **API Health**: https://sales.risolmejik.com/api/health
-- **Login**: RM001 / rm0012024
-
-### 6. Troubleshooting
-
-**Jika domain tidak bisa diakses:**
+### 5. Troubleshooting Cepat
 1. Cek DNS propagation: https://www.whatsmydns.net/
-2. Tunggu 24-48 jam untuk DNS propagation
-3. Cek nginx logs: `sudo tail -f /var/log/nginx/sales-app.error.log`
+2. Hard reload browser (Empty Cache and Hard Reload)
+3. Pastikan response API menyertakan header CORS origin yang sesuai
 
-**Jika SSL error:**
-1. Cek certificate: `sudo certbot certificates`
-2. Renew manual: `sudo certbot renew`
-3. Restart nginx: `sudo systemctl restart nginx`
-
-### 7. Monitoring
-
-```bash
-# Check SSL certificate
-sudo certbot certificates
-
-# Check nginx status
-sudo systemctl status nginx
-
-# Check PM2 status
-pm2 status
-
-# Check logs
-sudo tail -f /var/log/nginx/sales-app.error.log
-pm2 logs
-```
-
-## Keuntungan Menggunakan Domain
-
-1. **Tidak ada masalah CORS** - domain yang sama
-2. **SSL/HTTPS** - lebih aman
-3. **Professional** - URL yang lebih baik
-4. **Tidak ada cache issues** - browser akan reload fresh
-5. **SEO friendly** - lebih baik untuk indexing
-
-## URL Setelah Setup
-
-- **Frontend**: https://sales.risolmejik.com
-- **API**: https://sales.risolmejik.com/api
-- **Health Check**: https://sales.risolmejik.com/api/health 
+## Catatan
+- SSL untuk frontend ditangani Cloudflare otomatis.
+- Jika domain API berbeda dengan domain frontend, CORS harus selalu sinkron.

@@ -6,8 +6,7 @@ yarn-error.log*
 
 # Production builds
 /frontend/build/
-/backend/dist/
-/backend/logs/
+/backend/dist-lambda/
 
 # Environment variables
 .env
@@ -20,8 +19,6 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
-/backend/data/
-/prisma/data/
 
 # Logs
 logs/
@@ -111,8 +108,10 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# PM2
-.pm2/
+# SSH keys
+*SSHKEY*
+id_rsa*
+id_ed25519*
 
 # SSL certificates
 *.pem
@@ -122,11 +121,6 @@ Thumbs.db
 # Backup files
 *.backup
 *.bak
-
-# Prisma
-/prisma/migrations/
-/prisma/dev.db
-/prisma/dev.db-journal
 
 # TypeScript
 *.tsbuildinfo
@@ -146,5 +140,6 @@ Thumbs.db
 .env.test.local
 .env.production.local 
 
-/backend/prisma/data/*.db
-/backend/data/*.db
+# Serverless artifacts
+.serverless/
+.sls-package/

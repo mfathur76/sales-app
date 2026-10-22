@@ -71,11 +71,6 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userData');
-    window.location.reload();
-  };
-
   return (
     <div className="mobile-login">
       <div className="login-background">
