@@ -2,32 +2,24 @@
 
 ## Arsitektur
 
-| Layer | Provider | Keterangan |
-|-------|----------|------------|
-| Frontend | Cloudflare Pages | Auto-deploy dari GitHub push ke `main` |
-| Backend | AWS Lambda + API Gateway | Deploy via Serverless Framework |
-| Database | AWS DynamoDB | Serverless, pay-as-you-go |
-| Domain | sales.risolmejik.com | Custom domain di Cloudflare Pages |
+| Layer | Lokasi | Akses |
+|-------|--------|-------|
+| Frontend | Cloudflare Pages, proyek `sales-app-3sg.pages.dev` | Akun Cloudflare yang terhubung ke GitHub `mfathur76`. Production branch: lihat Settings proyek di dashboard |
+| Domain/DNS | Hostinger (nameserver `dns-parking.com`) | CNAME `sales` → `sales-app-3sg.pages.dev` |
+| Backend | AWS Lambda + API Gateway, akun `790762402182`, region `ap-southeast-3` (Jakarta) | AWS CLI profile `risolmejik` |
+| Database | AWS DynamoDB, tabel `sales-app-api-*-prod` | sama dengan backend |
 
 ---
 
 ## 1. Deploy Backend (AWS Lambda)
 
 ### Prasyarat
-- AWS CLI terkonfigurasi (`aws configure`)
 - Node.js 18+
-- Serverless Framework (`npm install -g serverless`)
+- AWS CLI dengan profile `risolmejik`. Cek dengan `aws sts get-caller-identity --profile risolmejik`, hasilnya harus akun `790762402182`.
+  Kalau profile hilang: buat access key baru di IAM → Users → `risolmejik` → Security credentials, lalu jalankan `aws configure --profile risolmejik` (region `ap-southeast-3`).
+- `backend/.env` berisi `JWT_SECRET` dan `CORS_ALLOWED_ORIGINS=https://sales.risolmejik.com`. File ini tidak masuk git, jadi **simpan cadangan JWT_SECRET di password manager**.
 
-### Wajib Set ENV Sebelum Deploy (PowerShell)
-
-`serverless.yml` membaca value dari environment terminal saat deploy. Jalankan ini dulu di terminal yang sama:
-
-```powershell
-$env:JWT_SECRET="<isi-jwt-secret-yang-kuat>"
-$env:CORS_ALLOWED_ORIGINS="https://sales.risolmejik.com"
-```
-
-Lalu deploy tanpa pindah terminal.
+`serverless.yml` memakai `profile: risolmejik` dan `useDotenv: true`, jadi deploy otomatis ke akun yang benar dan membaca `.env` tanpa perlu set env manual di terminal.
 
 ### Langkah
 
@@ -43,9 +35,9 @@ npx serverless deploy --stage prod
 
 ### Environment Variables Backend
 
-Saat deploy, `serverless.yml` hanya membaca `JWT_SECRET` dan `CORS_ALLOWED_ORIGINS` dari environment terminal (lihat di atas). Nama tabel DynamoDB, region, dan `NODE_ENV` sudah diatur di `serverless.yml`.
+Dari `backend/.env`, saat deploy hanya `JWT_SECRET` dan `CORS_ALLOWED_ORIGINS` yang dipakai. Nama tabel DynamoDB, region, dan `NODE_ENV` sudah diatur di `serverless.yml`. Variabel lain di `.env` dipakai oleh script admin (`npm run reset:admin`, `npm run promote:admin`).
 
-`backend/.env` hanya dipakai oleh script admin (`npm run reset:admin`, `npm run promote:admin`) yang dijalankan dari laptop.
+Kalau `JWT_SECRET` diganti, semua user otomatis logout dan harus login ulang.
 
 > **Jangan commit** folder `.sls-package/`, `.serverless/`, atau `dist-lambda/`, karena isinya memuat nilai `JWT_SECRET` secara plain text.
 

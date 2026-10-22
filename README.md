@@ -68,7 +68,7 @@ Catatan:
 ### Deployment
 - Cloudflare Pages build frontend dari folder `frontend`
 - AWS Lambda deploy backend lewat Serverless Framework
-- CORS dibaca dari environment terminal saat deploy
+- JWT secret dan CORS dibaca dari `backend/.env` saat deploy
 
 ## Struktur Repo
 
@@ -141,12 +141,7 @@ JWT_SECRET=<secret-yang-kuat>
 CORS_ALLOWED_ORIGINS=https://sales.risolmejik.com
 ```
 
-`serverless.yml` membaca env ini dari terminal saat deploy, jadi untuk PowerShell jalankan di terminal yang sama:
-
-```powershell
-$env:JWT_SECRET="<isi-jwt-secret-yang-kuat>"
-$env:CORS_ALLOWED_ORIGINS="https://sales.risolmejik.com"
-```
+Simpan nilai-nilai ini di `backend/.env` (tidak masuk git). `serverless.yml` memakai `useDotenv: true`, jadi file itu dibaca otomatis saat deploy. Deploy memakai AWS CLI profile `risolmejik`; lihat [Deploy/DEPLOYMENT.md](./Deploy/DEPLOYMENT.md).
 
 ### Frontend
 

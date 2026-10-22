@@ -2,6 +2,9 @@ service: sales-app-api
 
 frameworkVersion: "3"
 
+# Load JWT_SECRET and CORS_ALLOWED_ORIGINS from backend/.env (gitignored)
+useDotenv: true
+
 provider:
   name: aws
   runtime: nodejs18.x
@@ -14,7 +17,7 @@ provider:
   environment:
     NODE_ENV: production
     JWT_SECRET: ${env:JWT_SECRET}
-    CORS_ALLOWED_ORIGINS: ${env:CORS_ALLOWED_ORIGINS, '*'}
+    CORS_ALLOWED_ORIGINS: ${env:CORS_ALLOWED_ORIGINS}
     OUTLETS_TABLE: ${self:service}-outlets-${self:provider.stage}
     ADMINS_TABLE: ${self:service}-admins-${self:provider.stage}
     SALES_TABLE: ${self:service}-sales-${self:provider.stage}
