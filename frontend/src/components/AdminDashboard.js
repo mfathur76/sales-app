@@ -5,6 +5,7 @@ import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ItemMasterManager from './ItemMasterManager';
 import ExpenseManagement from './ExpenseVerification';
 import ExpenseReports from './ExpenseReports';
+import ProfitLossReport from './ProfitLossReport';
 import OutletManager from './OutletManager';
 import UserManager from './UserManager';
 import ChangePassword from './ChangePassword';
@@ -43,6 +44,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
     { id: 'item-master', label: 'Item Master', icon: '📦' },
     { id: 'expense-management', label: 'Kelola Pengeluaran', icon: '✏️' },
     { id: 'expense-reports', label: 'Laporan Pengeluaran', icon: '📈' },
+    { id: 'profit-loss', label: 'Laba Rugi', icon: '💰' },
     { id: 'outlet-management', label: 'Manajemen Outlet', icon: '🏪' },
     { id: 'user-management', label: 'Manajemen User', icon: '👥' },
     { id: 'change-password', label: 'Ganti Password', icon: '🔐' }
@@ -529,6 +531,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
         return <ExpenseManagement />;
       case 'expense-reports':
         return <ExpenseReports />;
+      case 'profit-loss':
+        return <ProfitLossReport />;
       case 'outlet-management':
         return <OutletManager />;
       case 'user-management':

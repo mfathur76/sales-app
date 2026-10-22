@@ -130,7 +130,7 @@ export async function getAllOutletSales(filters?: OutletSaleFilters): Promise<Ou
   if (filters?.start_date && filters?.end_date) {
     params.KeyConditionExpression += ' AND GSI_SK BETWEEN :start AND :end';
     params.ExpressionAttributeValues[':start'] = `DATE#${filters.start_date}`;
-    params.ExpressionAttributeValues[':end'] = `DATE#${filters.end_date}`;
+    params.ExpressionAttributeValues[':end'] = `DATE#${filters.end_date}~`; // GSI_SK continues with #OUTLET#…
   }
 
   const items = await dbQuery(params);
