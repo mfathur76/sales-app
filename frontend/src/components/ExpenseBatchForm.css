@@ -57,6 +57,20 @@
   margin-left: auto;
 }
 
+.ebf-copy {
+  display: flex;
+  gap: 8px;
+}
+
+.ebf-copy select {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
 /* ---- Buttons ---- */
 .ebf-btn {
   border: none;
@@ -372,8 +386,8 @@
     width: 100%;
   }
 
-  .ebf-toolbar-actions .ebf-btn {
-    width: 100%;
+  .ebf-copy select {
+    flex: 1;
   }
 
   .ebf-head {
