@@ -8,6 +8,7 @@ import {
   QueryCommand,
   ScanCommand,
   QueryCommandInput,
+  TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 
 // ---- Client singleton ----
@@ -81,9 +82,17 @@ export async function dbDelete(table: string, key: Record<string, unknown>) {
   await dynamo.send(new DeleteCommand({ TableName: table, Key: key }));
 }
 
+// Query and Scan return at most 1 MB per call, so follow LastEvaluatedKey until done.
+
 export async function dbQuery(params: QueryCommandInput) {
-  const res = await dynamo.send(new QueryCommand(params));
-  return res.Items ?? [];
+  const items: Record<string, any>[] = [];
+  let startKey: Record<string, any> | undefined;
+  do {
+    const res = await dynamo.send(new QueryCommand({ ...params, ExclusiveStartKey: startKey }));
+    items.push(...(res.Items ?? []));
+    startKey = res.LastEvaluatedKey;
+  } while (startKey);
+  return items;
 }
 
 export async function dbScan(
@@ -92,13 +101,31 @@ export async function dbScan(
   expressionValues?: Record<string, unknown>,
   expressionNames?: Record<string, string>,
 ) {
-  const res = await dynamo.send(
-    new ScanCommand({
-      TableName: table,
-      FilterExpression: filterExpression,
-      ExpressionAttributeValues: expressionValues as any,
-      ExpressionAttributeNames: expressionNames,
+  const items: Record<string, any>[] = [];
+  let startKey: Record<string, any> | undefined;
+  do {
+    const res = await dynamo.send(
+      new ScanCommand({
+        TableName: table,
+        FilterExpression: filterExpression,
+        ExpressionAttributeValues: expressionValues as any,
+        ExpressionAttributeNames: expressionNames,
+        ExclusiveStartKey: startKey,
+      }),
+    );
+    items.push(...(res.Items ?? []));
+    startKey = res.LastEvaluatedKey;
+  } while (startKey);
+  return items;
+}
+
+/** All-or-nothing put of up to 100 items (DynamoDB transaction limit). */
+export async function dbTransactPut(table: string, items: Record<string, unknown>[]) {
+  if (items.length === 0) return;
+  if (items.length > 100) throw new Error('dbTransactPut supports at most 100 items');
+  await dynamo.send(
+    new TransactWriteCommand({
+      TransactItems: items.map((Item) => ({ Put: { TableName: table, Item } })),
     }),
   );
-  return res.Items ?? [];
 }

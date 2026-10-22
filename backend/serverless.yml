@@ -275,6 +275,14 @@ functions:
           method: post
           cors: true
 
+  createExpensesBatch:
+    handler: lambda/handlers/expenses.createExpensesBatchHandler
+    events:
+      - http:
+          path: api/expenses/batch
+          method: post
+          cors: true
+
   getExpense:
     handler: lambda/handlers/expenses.getExpense
     events:

@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { dbPut, dbUpdate, dbDelete, dbQuery, dbScan, TABLES } from './dynamodb';
+import { dbPut, dbUpdate, dbDelete, dbQuery, dbScan, dbTransactPut, TABLES } from './dynamodb';
 import { Expense, ExpenseCategory, ItemMaster } from '../types';
 
 // ---- Expense Categories ----
@@ -180,7 +180,7 @@ export async function getExpenseById(id: string): Promise<Expense | null> {
   return items.length > 0 ? toExpense(items[0]) : null;
 }
 
-export async function createExpense(data: {
+type NewExpenseInput = {
   outlet: string;
   itemId: string;
   date: Date;
@@ -190,16 +190,14 @@ export async function createExpense(data: {
   notes?: string;
   isCash?: boolean;
   createdBy?: string;
-}): Promise<Expense> {
-  const id  = uuid();
-  const now = new Date().toISOString();
-  const dateStr = data.date.toISOString().split('T')[0];
+};
 
-  const item = buildExpenseItem({
-    id,
+function newExpenseItem(data: NewExpenseInput, now: string) {
+  return buildExpenseItem({
+    id: uuid(),
     outlet: data.outlet,
     itemId: data.itemId,
-    date: dateStr,
+    date: data.date.toISOString().split('T')[0],
     quantity: data.quantity,
     actualPrice: data.actualPrice,
     totalPrice: data.totalPrice,
@@ -212,9 +210,20 @@ export async function createExpense(data: {
     createdAt: now,
     updatedAt: now,
   });
+}
 
+export async function createExpense(data: NewExpenseInput): Promise<Expense> {
+  const item = newExpenseItem(data, new Date().toISOString());
   await dbPut(EXP_TABLE, item);
   return toExpense(item);
+}
+
+/** Creates all expenses in one transaction: either every row is saved or none is. */
+export async function createExpensesBatch(rows: NewExpenseInput[]): Promise<Expense[]> {
+  const now = new Date().toISOString();
+  const items = rows.map((row) => newExpenseItem(row, now));
+  await dbTransactPut(EXP_TABLE, items);
+  return items.map(toExpense);
 }
 
 export async function updateExpense(

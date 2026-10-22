@@ -9,8 +9,8 @@
     "package:lambda": "npm run build:lambda && node node_modules/serverless/bin/serverless.js package --package .sls-package",
     "deploy:lambda:pkg": "node node_modules/serverless/bin/serverless.js deploy --package .sls-package",
     "offline": "npm run build:lambda && node node_modules/serverless/bin/serverless.js offline --stage dev",
-    "reset:admin": "ts-node lambda/scripts/reset-admin-password.ts",
-    "promote:admin": "ts-node lambda/scripts/set-admin-role.ts"
+    "reset:admin": "ts-node -P lambda/tsconfig.json lambda/scripts/reset-admin-password.ts",
+    "promote:admin": "ts-node -P lambda/tsconfig.json lambda/scripts/set-admin-role.ts"
   },
   "keywords": [],
   "author": "",

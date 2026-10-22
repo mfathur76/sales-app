@@ -258,6 +258,7 @@ npm run build
 ### Expense
 - `GET /api/expenses`
 - `POST /api/expenses`
+- `POST /api/expenses/batch` (banyak baris sekaligus, satu transaksi, maks 100 baris)
 - `GET /api/expenses/{id}`
 - `PUT /api/expenses/{id}`
 - `DELETE /api/expenses/{id}`

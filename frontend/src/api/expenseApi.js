@@ -184,6 +184,19 @@ class ExpenseApi {
     }
   }
 
+  // Create many expenses for one outlet and date in a single all-or-nothing request
+  async createExpensesBatch(batchData) {
+    try {
+      return await this.request('/expenses/batch', {
+        method: 'POST',
+        body: JSON.stringify(batchData)
+      });
+    } catch (error) {
+      console.error('Error creating expenses batch:', error);
+      throw error;
+    }
+  }
+
   // Update expense
   async updateExpense(id, updateData) {
     try {

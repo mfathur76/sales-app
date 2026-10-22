@@ -3,6 +3,7 @@ import {
   getAllExpenses,
   getExpenseById,
   createExpense,
+  createExpensesBatch,
   updateExpense,
   deleteExpense,
   getAllCategories,
@@ -112,6 +113,68 @@ export async function createExpenseHandler(event: APIGatewayProxyEvent): Promise
     });
 
     return created(expense);
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+const MAX_BATCH_ROWS = 100; // DynamoDB transaction limit
+
+/**
+ * POST /api/expenses/batch
+ * Body: { outlet, date, items: [{ itemId, quantity, actualPrice, isCash?, notes? }] }
+ */
+export async function createExpensesBatchHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  try {
+    const body = JSON.parse(event.body || '{}');
+    const { outlet, date, items } = body;
+
+    if (!outlet || !date || !Array.isArray(items)) {
+      return badRequest('Missing required fields: outlet, date, items');
+    }
+    if (Number.isNaN(new Date(date).getTime())) return badRequest('Invalid date format');
+    if (items.length === 0) return badRequest('items must contain at least one row');
+    if (items.length > MAX_BATCH_ROWS) {
+      return badRequest(`A batch can contain at most ${MAX_BATCH_ROWS} rows`);
+    }
+
+    if (user.type === 'outlet' && user.outlet !== outlet) {
+      return forbidden('Access denied: You can only create expenses for your own outlet');
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      const row = items[i] || {};
+      const quantity = parseFloat(row.quantity);
+      const actualPrice = parseFloat(row.actualPrice);
+      if (!row.itemId) return badRequest(`Row ${i + 1}: itemId is required`);
+      if (!(quantity > 0) || !(actualPrice > 0)) {
+        return badRequest(`Row ${i + 1}: quantity and actualPrice must be greater than 0`);
+      }
+    }
+
+    const createdBy = user.type === 'admin' ? user.username : undefined;
+    const expenses = await createExpensesBatch(items.map((row: any) => {
+      const quantity = parseFloat(row.quantity);
+      const actualPrice = parseFloat(row.actualPrice);
+      return {
+        outlet,
+        itemId: row.itemId,
+        date: new Date(date),
+        quantity,
+        actualPrice,
+        totalPrice: quantity * actualPrice,
+        notes: row.notes || undefined,
+        isCash: typeof row.isCash === 'boolean' ? row.isCash : true,
+        createdBy,
+      };
+    }));
+
+    return created(expenses, `${expenses.length} expenses created`);
   } catch (err) {
     return serverError(err);
   }
