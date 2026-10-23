@@ -339,7 +339,7 @@ const ProfitLossReport = () => {
           )}
 
           <p className="pl-footnote">
-            HPP = Belanja Dapur, Belanja Pasar Johar, Kemasan, Konsinyasi. Kategori lain dihitung sebagai
+            HPP = Belanja Dapur, Belanja Pasar Johar, Belanja Ruko, Kemasan, Konsinyasi. Kategori lain dihitung sebagai
             biaya operasional. Potongan admin = penjualan − uang yang masuk rekening (dari Verifikasi Sales).
             Sejak transfer QRIS digabung dengan GoFood, potongan QRIS dihitung 0,7% + Rp 2.000 per outlet per
             hari dan sisanya adalah potongan GoFood. Transfer BCA/Mandiri dari pelanggan (diisi admin saat verifikasi) ditambahkan ke pendapatan dan tidak kena potongan.

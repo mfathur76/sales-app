@@ -8,7 +8,9 @@ import { OutletSale } from '../types';
  * Expense categories counted as cost of goods sold (HPP). Every other category,
  * including ones created later, is an operating expense.
  */
-const COGS_CATEGORIES = new Set(['belanja dapur', 'belanja pasar johar', 'kemasan', 'konsinyasi']);
+const COGS_CATEGORIES = new Set([
+  'belanja dapur', 'belanja pasar johar', 'belanja ruko', 'kemasan', 'konsinyasi',
+]);
 
 /** GoPay QRIS: MDR plus a fixed device fee per outlet per day with QRIS sales. */
 const QRIS_MDR = 0.007;
