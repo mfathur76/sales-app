@@ -315,3 +315,8 @@
     border: 1px solid #ddd;
   }
 }
+
+.pl-table td.estimated {
+  font-style: italic;
+  color: #7a5b00;
+}

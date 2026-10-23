@@ -9,6 +9,7 @@ const CHANNELS = [
   { key: 'shopee', label: 'ShopeeFood' },
   { key: 'grab', label: 'GrabFood' },
 ];
+const FEE_CHANNELS = CHANNELS.filter((c) => c.key !== 'cash');
 
 const todayLocal = () => {
   const d = new Date();
@@ -68,6 +69,11 @@ function buildStatement(data, months) {
 
   const channels = CHANNELS.map((c) => ({ label: c.label, values: perMonth(data.revenue, (r) => r[c.key]) }));
   const revenue = perMonth(data.revenue, (r) => r.total);
+  const feeLines = FEE_CHANNELS.map((c) => ({
+    label: `Admin ${c.label}`, values: perMonth(data.revenue, (r) => r.fees[c.key]),
+  }));
+  const estimatedFees = perMonth(data.revenue, (r) => r.estimatedFees);
+  const unverifiedSales = perMonth(data.revenue, (r) => r.unverifiedSales);
 
   const categoryLines = (group) => {
     const byCategory = new Map();
@@ -85,7 +91,9 @@ function buildStatement(data, months) {
   const addUp = (lines) => months.map((_, i) => sumBy(lines, (l) => l.values[i]));
   const cogs = addUp(cogsLines);
   const opex = addUp(opexLines);
-  const grossProfit = months.map((_, i) => revenue[i] - cogs[i]);
+  const fees = addUp(feeLines);
+  const netRevenue = months.map((_, i) => revenue[i] - fees[i]);
+  const grossProfit = months.map((_, i) => netRevenue[i] - cogs[i]);
   const netProfit = months.map((_, i) => grossProfit[i] - opex[i]);
 
   const salesDays = months.map((m) => Math.max(0, ...data.revenue.filter((r) => r.month === m).map((r) => r.days)));
@@ -96,7 +104,7 @@ function buildStatement(data, months) {
     }))
     .filter((o) => o.values.some(Boolean));
 
-  return { channels, revenue, cogsLines, cogs, grossProfit, opexLines, opex, netProfit, salesDays, outlets };
+  return { channels, revenue, feeLines, fees, estimatedFees, unverifiedSales, netRevenue, cogsLines, cogs, grossProfit, opexLines, opex, netProfit, salesDays, outlets };
 }
 
 const total = (values) => sumBy(values, (v) => v);
@@ -138,14 +146,19 @@ const ProfitLossReport = () => {
   const showTotal = months.length > 1;
   const revenueTotal = st ? total(st.revenue) : 0;
 
-  const renderLine = (label, values, kind = 'item') => {
+  const renderLine = (label, values, kind = 'item', estimated = []) => {
     const sum = total(values);
+    const cellClass = (v, i) => [
+      v < 0 ? 'neg' : '',
+      months[i] === currentMonth ? 'running' : '',
+      estimated[i] ? 'estimated' : '',
+    ].join(' ');
     return (
       <tr key={`${kind}-${label}`} className={`pl-${kind}`}>
         <th scope="row">{label}</th>
         {values.map((v, i) => (
-          <td key={months[i]} className={`${v < 0 ? 'neg' : ''} ${months[i] === currentMonth ? 'running' : ''}`}>
-            {formatCurrency(v)}
+          <td key={months[i]} className={cellClass(v, i)}>
+            {estimated[i] ? '≈ ' : ''}{formatCurrency(v)}
           </td>
         ))}
         {showTotal && <td className={sum < 0 ? 'neg' : ''}>{formatCurrency(sum)}</td>}
@@ -163,6 +176,8 @@ const ProfitLossReport = () => {
   const includesRunningMonth = months.includes(currentMonth);
   const netTotal = st ? total(st.netProfit) : 0;
   const grossTotal = st ? total(st.grossProfit) : 0;
+  const estimatedTotal = st ? total(st.estimatedFees) : 0;
+  const ratePct = (key) => `${((data?.feeRates?.[key] || 0) * 100).toFixed(1).replace('.', ',')}%`;
 
   return (
     <div className="profit-loss-report">
@@ -220,10 +235,25 @@ const ProfitLossReport = () => {
             </div>
           )}
 
+          {estimatedTotal > 0 && (
+            <div className="pl-message warning">
+              <strong>Sebagian potongan admin masih perkiraan (≈).</strong> Transfer untuk penjualan{' '}
+              {formatCurrency(total(st.unverifiedSales))} belum diinput di Verifikasi Sales, jadi potongannya{' '}
+              ({formatCurrency(estimatedTotal)}) dihitung dari rata-rata 90 hari terakhir: GoFood {ratePct('gojek')},
+              ShopeeFood {ratePct('shopee')}, GrabFood {ratePct('grab')}; QRIS 0,7% + Rp 2.000/hari. Angka asli
+              otomatis dipakai begitu transfernya diinput.
+            </div>
+          )}
+
           <div className="pl-cards">
             <div className="pl-card">
               <span>Pendapatan</span>
               <strong>{formatCurrency(revenueTotal)}</strong>
+            </div>
+            <div className="pl-card">
+              <span>Potongan Admin</span>
+              <strong>{estimatedTotal > 0 ? '≈ ' : ''}{formatCurrency(total(st.fees))}</strong>
+              <small>{formatPercent(total(st.fees), revenueTotal)} dari pendapatan</small>
             </div>
             <div className="pl-card">
               <span>HPP</span>
@@ -265,7 +295,12 @@ const ProfitLossReport = () => {
               <tbody>
                 {section('Pendapatan')}
                 {st.channels.map((c) => renderLine(c.label, c.values))}
-                {renderLine('Total Pendapatan', st.revenue, 'subtotal')}
+                {renderLine('Total Pendapatan Kotor', st.revenue, 'subtotal')}
+
+                {section('Potongan Admin (QRIS & Ojol)')}
+                {st.feeLines.map((c) => renderLine(c.label, c.values, 'item', st.estimatedFees))}
+                {renderLine('Total Potongan Admin', st.fees, 'subtotal', st.estimatedFees)}
+                {renderLine('Pendapatan Bersih', st.netRevenue, 'result', st.estimatedFees)}
 
                 {section('Harga Pokok Penjualan (HPP)')}
                 {st.cogsLines.map((c) => renderLine(c.label, c.values))}
@@ -303,7 +338,9 @@ const ProfitLossReport = () => {
 
           <p className="pl-footnote">
             HPP = Belanja Dapur, Belanja Pasar Johar, Kemasan, Konsinyasi. Kategori lain dihitung sebagai
-            biaya operasional. Pendapatan memakai total penjualan kotor (sebelum potongan komisi ojol).
+            biaya operasional. Potongan admin = penjualan − uang yang masuk rekening (dari Verifikasi Sales).
+            Sejak transfer QRIS digabung dengan GoFood, potongan QRIS dihitung 0,7% + Rp 2.000 per outlet per
+            hari dan sisanya adalah potongan GoFood. Transfer BCA/Mandiri dari pelanggan tidak kena potongan.
             Biaya Dapur tidak dibagi ke outlet, jadi laba dihitung gabungan semua outlet.
           </p>
         </>
