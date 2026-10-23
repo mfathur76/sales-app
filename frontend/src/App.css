@@ -36,29 +36,29 @@ body {
   position: relative;
 }
 
+/* Soft corner glows. Drawn with gradients instead of filter: blur() on fixed
+   layers, which some Android GPUs render as a blank white screen. */
 body::before,
 body::after {
   content: '';
   position: fixed;
-  width: 280px;
-  height: 280px;
+  width: 560px;
+  height: 560px;
   border-radius: 999px;
-  filter: blur(70px);
-  opacity: 0.24;
   pointer-events: none;
   z-index: -1;
 }
 
 body::before {
-  background: #0ea5a1;
-  top: -110px;
-  left: -90px;
+  background: radial-gradient(circle, rgba(14, 165, 161, 0.2) 0%, rgba(14, 165, 161, 0) 60%);
+  top: -250px;
+  left: -230px;
 }
 
 body::after {
-  background: #fb923c;
-  bottom: -130px;
-  right: -90px;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.2) 0%, rgba(251, 146, 60, 0) 60%);
+  bottom: -270px;
+  right: -230px;
 }
 
 /* Mobile App Container */
@@ -111,7 +111,6 @@ body::after {
   font-size: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
 }
 
 .header-logout-btn:hover {
@@ -486,12 +485,11 @@ body::after {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.97);
   border-top: 1px solid var(--line);
   padding: 8px 16px 20px;
   z-index: 100;
   box-shadow: 0 -8px 24px rgba(33, 41, 58, 0.16);
-  backdrop-filter: blur(10px);
 }
 
 .nav-tabs {
@@ -813,7 +811,6 @@ body::after {
   font-size: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
 }
 
 .admin-logout-btn:hover {
