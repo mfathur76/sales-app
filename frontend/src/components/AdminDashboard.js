@@ -3,6 +3,7 @@ import { adminApi } from '../api/salesApi';
 import AdminSalesReport from './AdminSalesReport';
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ItemMasterManager from './ItemMasterManager';
+import ExpensePivotReport from './ExpensePivotReport';
 import ExpenseManagement from './ExpenseVerification';
 import ExpenseReports from './ExpenseReports';
 import OutletManager from './OutletManager';
@@ -42,6 +43,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
     { id: 'expense-categories', label: 'Kategori Pengeluaran', icon: '🏷️' },
     { id: 'item-master', label: 'Item Master', icon: '📦' },
     { id: 'expense-management', label: 'Kelola Pengeluaran', icon: '✏️' },
+    { id: 'expense-pivot', label: 'Pivot Pengeluaran', icon: '🧮' },
     { id: 'expense-reports', label: 'Laporan Pengeluaran', icon: '📈' },
     { id: 'outlet-management', label: 'Manajemen Outlet', icon: '🏪' },
     { id: 'user-management', label: 'Manajemen User', icon: '👥' },
@@ -527,6 +529,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
         return <ItemMasterManager />;
       case 'expense-management':
         return <ExpenseManagement />;
+      case 'expense-pivot':
+        return <ExpensePivotReport />;
       case 'expense-reports':
         return <ExpenseReports />;
       case 'outlet-management':
