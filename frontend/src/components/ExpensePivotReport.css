@@ -1,0 +1,263 @@
+.expense-pivot-report {
+  max-width: 100%;
+}
+
+.ep-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.ep-header p {
+  margin: 4px 0 16px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* ---- Controls ---- */
+.ep-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.ep-field input,
+.ep-field select {
+  padding: 8px 10px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.ep-search input {
+  min-width: 180px;
+}
+
+.ep-toggle {
+  display: flex;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.ep-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.ep-toggle button.active {
+  background: #3498db;
+  color: #fff;
+}
+
+.ep-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ep-actions button {
+  border: 1px solid #e1e8ed;
+  background: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ep-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Messages & summary ---- */
+.ep-message {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  background: #eaf4fc;
+  border: 1px solid #b6d9f2;
+  color: #1f5f8b;
+}
+
+.ep-message.error {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.ep-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.ep-summary strong {
+  color: #2c3e50;
+}
+
+/* ---- Pivot table ---- */
+.ep-table-wrap {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: auto;
+  max-height: 75vh;
+}
+
+.ep-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-table th,
+.ep-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f4f4f4;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.ep-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 700;
+  text-align: center;
+  min-width: 64px;
+}
+
+.ep-table thead th small {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  color: #7f8c8d;
+}
+
+.ep-table .ep-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  text-align: left;
+  min-width: 190px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 2px solid #e1e8ed;
+}
+
+.ep-table thead .ep-name {
+  z-index: 3;
+  background: #f8f9fa;
+}
+
+.ep-table .weekend {
+  background: #fbfbfd;
+}
+
+.ep-table thead th.weekend {
+  background: #eef1f5;
+}
+
+.ep-item th {
+  padding-left: 24px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.ep-item td[title] {
+  cursor: help;
+}
+
+.ep-item:hover td,
+.ep-item:hover th {
+  background: #eaf4fc;
+}
+
+.ep-group th,
+.ep-group td {
+  background: #f4f6f8 !important;
+  font-weight: 700;
+  color: #34495e;
+  cursor: pointer;
+}
+
+.ep-group small {
+  font-weight: 500;
+  color: #7f8c8d;
+}
+
+.ep-caret {
+  display: inline-block;
+  width: 16px;
+  color: #7f8c8d;
+}
+
+.ep-table .ep-total {
+  font-weight: 700;
+  background: #f8f9fa;
+  border-left: 2px solid #e1e8ed;
+}
+
+.ep-table tfoot th,
+.ep-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #eafaf1;
+  font-weight: 700;
+  border-top: 2px solid #2c3e50;
+}
+
+.ep-table tfoot .ep-name {
+  z-index: 3;
+  background: #eafaf1;
+}
+
+@media (max-width: 760px) {
+  .ep-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .ep-actions button {
+    flex: 1;
+  }
+
+  .ep-search,
+  .ep-search input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ep-table .ep-name {
+    min-width: 130px;
+    max-width: 150px;
+  }
+}
