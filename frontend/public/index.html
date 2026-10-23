@@ -22,6 +22,59 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Risol Mejik Sales Tracker</title>
+    <script>
+      // Blank-screen guard (plain ES5 so it runs on any browser): if the app has not
+      // rendered after a while, show the errors collected so far instead of a white page.
+      (function () {
+        var errors = [];
+        window.__appErrors = errors;
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && t !== window && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+            errors.push('Gagal memuat file: ' + (t.src || t.href));
+          } else {
+            errors.push((e.message || 'Error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          errors.push('Promise: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+        });
+        window.__resetApp = function () {
+          try { localStorage.clear(); sessionStorage.clear(); } catch (err) {}
+          var done = function () { location.reload(); };
+          try {
+            var jobs = [];
+            if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+              jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister(); }));
+              }));
+            }
+            if (window.caches && caches.keys) {
+              jobs.push(caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+              }));
+            }
+            Promise.all(jobs).then(done, done);
+          } catch (err) { done(); }
+        };
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (!root || root.children.length > 0) return;
+          var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+          root.innerHTML =
+            '<div style="font-family:sans-serif;padding:24px;max-width:560px;margin:0 auto;color:#2c3e50">' +
+            '<h2>Aplikasi gagal dimuat</h2>' +
+            '<p>Coba muat ulang. Kalau tetap gagal, tekan "Reset data aplikasi" (Anda perlu login lagi), ' +
+            'atau kirim foto layar ini ke admin.</p>' +
+            '<p><button onclick="location.reload()" style="padding:10px 16px;margin-right:8px">Muat ulang</button>' +
+            '<button onclick="__resetApp()" style="padding:10px 16px">Reset data aplikasi</button></p>' +
+            '<pre style="white-space:pre-wrap;font-size:12px;background:#f8f9fa;padding:12px;border-radius:8px">' +
+            esc((errors.length ? errors.join('\n') : 'Tidak ada pesan error (kemungkinan file aplikasi tidak terunduh).') +
+              '\n\nBrowser: ' + navigator.userAgent) +
+            '</pre></div>';
+        }, 12000);
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
