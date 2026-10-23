@@ -8,8 +8,9 @@ const CHANNELS = [
   { key: 'gojek', label: 'GoFood' },
   { key: 'shopee', label: 'ShopeeFood' },
   { key: 'grab', label: 'GrabFood' },
+  { key: 'transfer', label: 'Transfer BCA/Mandiri' },
 ];
-const FEE_CHANNELS = CHANNELS.filter((c) => c.key !== 'cash');
+const FEE_CHANNELS = CHANNELS.filter((c) => ['qris', 'gojek', 'shopee', 'grab'].includes(c.key));
 
 const todayLocal = () => {
   const d = new Date();
@@ -241,7 +242,8 @@ const ProfitLossReport = () => {
               {formatCurrency(total(st.unverifiedSales))} belum diinput di Verifikasi Sales, jadi potongannya{' '}
               ({formatCurrency(estimatedTotal)}) dihitung dari rata-rata 90 hari terakhir: GoFood {ratePct('gojek')},
               ShopeeFood {ratePct('shopee')}, GrabFood {ratePct('grab')}; QRIS 0,7% + Rp 2.000/hari. Angka asli
-              otomatis dipakai begitu transfernya diinput.
+              otomatis dipakai begitu transfernya diinput. Transfer BCA/Mandiri dari pelanggan pada hari-hari itu
+              juga belum masuk pendapatan.
             </div>
           )}
 
@@ -340,7 +342,7 @@ const ProfitLossReport = () => {
             HPP = Belanja Dapur, Belanja Pasar Johar, Kemasan, Konsinyasi. Kategori lain dihitung sebagai
             biaya operasional. Potongan admin = penjualan − uang yang masuk rekening (dari Verifikasi Sales).
             Sejak transfer QRIS digabung dengan GoFood, potongan QRIS dihitung 0,7% + Rp 2.000 per outlet per
-            hari dan sisanya adalah potongan GoFood. Transfer BCA/Mandiri dari pelanggan tidak kena potongan.
+            hari dan sisanya adalah potongan GoFood. Transfer BCA/Mandiri dari pelanggan (diisi admin saat verifikasi) ditambahkan ke pendapatan dan tidak kena potongan.
             Biaya Dapur tidak dibagi ke outlet, jadi laba dihitung gabungan semua outlet.
           </p>
         </>

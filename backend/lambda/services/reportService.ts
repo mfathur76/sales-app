@@ -28,6 +28,7 @@ type RevenueRow = {
   gojek: number;
   shopee: number;
   grab: number;
+  transfer: number; // direct customer transfers to BCA/Mandiri, entered by admin at verification
   total: number;
   days: number;
   fees: Fees;            // actual where the transfer is verified, estimated otherwise
@@ -124,7 +125,7 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     const month = s.date.slice(0, 7);
     const key = `${month}|${s.outlet}`;
     const row = revenue.get(key) ?? {
-      month, outlet: s.outlet, cash: 0, qris: 0, gojek: 0, shopee: 0, grab: 0, total: 0, days: 0,
+      month, outlet: s.outlet, cash: 0, qris: 0, gojek: 0, shopee: 0, grab: 0, transfer: 0, total: 0, days: 0,
       fees: { qris: 0, gojek: 0, shopee: 0, grab: 0 }, estimatedFees: 0, unverifiedSales: 0,
     };
     row.cash += s.cash;
@@ -132,7 +133,10 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     row.gojek += s.gojek;
     row.shopee += s.shopee;
     row.grab += s.grab;
-    row.total += s.totalSales;
+    // Customer transfers are not part of the cashier's totalSales
+    const transfer = (s.bcaBank || 0) + (s.mandiriBank || 0);
+    row.transfer += transfer;
+    row.total += s.totalSales + transfer;
     row.days += 1;
     const fees = actualFees(s);
     for (const ch of FEE_CHANNELS) {
