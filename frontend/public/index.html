@@ -23,6 +23,33 @@
     -->
     <title>Risol Mejik Sales Tracker</title>
     <script>
+      // Troubleshooting switches for phones that show a white screen:
+      //   ?safe=bg  plain background (no decorative layers)
+      //   ?safe=fx  also no shadows, transforms, animations, filters
+      //   ?safe=all no app stylesheets at all
+      (function () {
+        var m = location.search.match(/[?&]safe=([a-z]+)/);
+        var mode = m && m[1];
+        if (!mode) return;
+        var bg = 'body{background:#f6f7f2!important}body:before,body:after{display:none!important}';
+        var fx = bg + '*,*:before,*:after{box-shadow:none!important;text-shadow:none!important;filter:none!important;' +
+          '-webkit-backdrop-filter:none!important;backdrop-filter:none!important;transform:none!important;' +
+          'transition:none!important;animation:none!important}';
+        if (mode === 'bg' || mode === 'fx') document.write('<style>' + (mode === 'bg' ? bg : fx) + '</style>');
+        document.addEventListener('DOMContentLoaded', function () {
+          if (mode === 'all') {
+            var links = document.querySelectorAll('link[rel="stylesheet"], style');
+            for (var i = 0; i < links.length; i++) links[i].disabled = true;
+          }
+          var badge = document.createElement('div');
+          badge.style.cssText = 'background:#fff3cd;color:#000;font:12px sans-serif;padding:6px 10px';
+          badge.textContent = 'Mode aman: ' + mode + ' · layar ' + innerWidth + '×' + innerHeight +
+            ' · dpr ' + (window.devicePixelRatio || 1) + ' · ' + navigator.userAgent;
+          document.body.insertBefore(badge, document.body.firstChild);
+        });
+      })();
+    </script>
+    <script>
       // Blank-screen guard (plain ES5 so it runs on any browser): if the app has not
       // rendered after a while, show the errors collected so far instead of a white page.
       (function () {
