@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { signToken } from '../utils/jwt';
 import { dbGet, dbPut, dbScan, TABLES } from './dynamodb';
-import { Outlet } from '../types';
+import { Outlet, OutletRole } from '../types';
 
 const TABLE = TABLES.OUTLETS;
 
@@ -10,6 +10,7 @@ function toOutlet(item: Record<string, any>): Outlet {
     code: item.code,
     name: item.name,
     password: item.password,
+    role: item.role === 'dapur' ? 'dapur' : 'outlet',
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -27,11 +28,12 @@ export async function loginOutlet(code: string, password: string) {
     return { success: false, message: 'Password salah' };
   }
 
-  const token = signToken({ outlet: item.code, name: item.name, type: 'outlet' });
+  const role = item.role === 'dapur' ? 'dapur' : 'outlet';
+  const token = signToken({ outlet: item.code, name: item.name, type: 'outlet', ...(role === 'dapur' && { role }) });
   return {
     success: true,
     message: 'Login berhasil',
-    data: { token, outlet: item.code, name: item.name },
+    data: { token, outlet: item.code, name: item.name, role },
   };
 }
 
@@ -48,7 +50,7 @@ export async function getOutletByCode(code: string): Promise<Outlet | null> {
   return item ? toOutlet(item) : null;
 }
 
-export async function createOutlet(data: { code: string; name: string; password: string }): Promise<Outlet> {
+export async function createOutlet(data: { code: string; name: string; password: string; role?: OutletRole }): Promise<Outlet> {
   const existing = await dbGet(TABLE, { PK: `OUTLET#${data.code}`, SK: 'PROFILE' });
   if (existing) throw new Error(`Outlet with code ${data.code} already exists`);
 
@@ -61,6 +63,7 @@ export async function createOutlet(data: { code: string; name: string; password:
     code: data.code,
     name: data.name,
     password: hashed,
+    role: data.role === 'dapur' ? 'dapur' : 'outlet',
     createdAt: now,
     updatedAt: now,
   };
@@ -71,13 +74,14 @@ export async function createOutlet(data: { code: string; name: string; password:
 
 export async function updateOutlet(
   code: string,
-  updates: { name?: string; password?: string },
+  updates: { name?: string; password?: string; role?: OutletRole },
 ): Promise<Outlet | null> {
   const existing = await dbGet(TABLE, { PK: `OUTLET#${code}`, SK: 'PROFILE' });
   if (!existing) return null;
 
   const payload: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   if (updates.name) payload.name = updates.name;
+  if (updates.role === 'outlet' || updates.role === 'dapur') payload.role = updates.role;
   if (updates.password) payload.password = await bcrypt.hash(updates.password, 10);
 
   const { dbUpdate } = await import('./dynamodb');

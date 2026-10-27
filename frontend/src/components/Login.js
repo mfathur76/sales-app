@@ -51,6 +51,7 @@ const Login = ({ onLogin }) => {
         const userData = {
           outlet: result.data.outlet,
           name: result.data.name,
+          role: result.data.role,
           token: result.data.token,
           isAuthenticated: true
         };

@@ -119,6 +119,7 @@ export const authApi = {
         const userData = {
           outlet: data.data.outlet,
           name: data.data.name,
+          role: data.data.role,
           token: data.data.token,
           isAuthenticated: true
         };

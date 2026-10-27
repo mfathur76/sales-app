@@ -1,6 +1,6 @@
 import { authApi, API_BASE_URL } from './salesApi';
 
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -21,7 +21,7 @@ async function request(path, options = {}) {
   return payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
 }
 
-const query = (params) => {
+export const query = (params) => {
   const qs = new URLSearchParams();
   Object.entries(params || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') qs.append(k, v);

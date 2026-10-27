@@ -26,6 +26,8 @@ provider:
     ITEM_MASTERS_TABLE: ${self:service}-item-masters-${self:provider.stage}
     CUSTOMERS_TABLE: ${self:service}-customers-${self:provider.stage}
     ORDERS_TABLE: ${self:service}-orders-${self:provider.stage}
+    PRODUCTS_TABLE: ${self:service}-products-${self:provider.stage}
+    STOCK_TABLE: ${self:service}-stock-${self:provider.stage}
 
   iam:
     role:
@@ -475,6 +477,112 @@ functions:
           method: delete
           cors: true
 
+  # ---- Products (finished goods) ----
+  getProducts:
+    handler: lambda/handlers/products.getProducts
+    events:
+      - http:
+          path: api/products
+          method: get
+          cors: true
+
+  createProduct:
+    handler: lambda/handlers/products.createProductHandler
+    events:
+      - http:
+          path: api/products
+          method: post
+          cors: true
+
+  createProductsBatch:
+    handler: lambda/handlers/products.createProductsBatchHandler
+    events:
+      - http:
+          path: api/products/batch
+          method: post
+          cors: true
+
+  updateProduct:
+    handler: lambda/handlers/products.updateProductHandler
+    events:
+      - http:
+          path: api/products/{id}
+          method: put
+          cors: true
+
+  # ---- Stock ----
+  getShipments:
+    handler: lambda/handlers/stock.getShipments
+    events:
+      - http:
+          path: api/stock/shipments
+          method: get
+          cors: true
+
+  createShipment:
+    handler: lambda/handlers/stock.createShipmentHandler
+    events:
+      - http:
+          path: api/stock/shipments
+          method: post
+          cors: true
+
+  updateShipment:
+    handler: lambda/handlers/stock.updateShipmentHandler
+    events:
+      - http:
+          path: api/stock/shipments/{outlet}/{id}
+          method: put
+          cors: true
+
+  deleteShipment:
+    handler: lambda/handlers/stock.deleteShipmentHandler
+    events:
+      - http:
+          path: api/stock/shipments/{outlet}/{id}
+          method: delete
+          cors: true
+
+  receiveShipment:
+    handler: lambda/handlers/stock.receiveShipmentHandler
+    events:
+      - http:
+          path: api/stock/shipments/{outlet}/{id}/receive
+          method: post
+          cors: true
+
+  getStockClosing:
+    handler: lambda/handlers/stock.getClosingHandler
+    events:
+      - http:
+          path: api/stock/closing
+          method: get
+          cors: true
+
+  saveStockClosing:
+    handler: lambda/handlers/stock.saveClosingHandler
+    events:
+      - http:
+          path: api/stock/closing
+          method: put
+          cors: true
+
+  deleteStockClosing:
+    handler: lambda/handlers/stock.deleteClosingHandler
+    events:
+      - http:
+          path: api/stock/closing/{outlet}/{date}
+          method: delete
+          cors: true
+
+  getStockReport:
+    handler: lambda/handlers/stock.getStockReportHandler
+    events:
+      - http:
+          path: api/stock/report
+          method: get
+          cors: true
+
 # ---- DynamoDB Tables ----
 resources:
   Resources:
@@ -607,6 +715,38 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:service}-orders-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-products-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    StockTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-stock-${self:provider.stage}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: PK

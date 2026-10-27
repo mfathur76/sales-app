@@ -71,13 +71,13 @@ export async function createOutletHandler(event: APIGatewayProxyEvent): Promise<
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { code, name, password } = body;
+    const { code, name, password, role } = body;
 
     if (!code || !name || !password) {
       return badRequest('Code, name, and password are required');
     }
 
-    const outlet = await createOutlet({ code, name, password });
+    const outlet = await createOutlet({ code, name, password, role });
     const { password: _pw, ...safe } = outlet;
     return created(safe, 'Outlet created successfully');
   } catch (err) {

@@ -10,6 +10,8 @@ import AdminReport from './components/AdminReport';
 import ExpenseManager from './components/ExpenseManager';
 import ExpenseReport from './components/ExpenseReport';
 import OrderManager from './components/OrderManager';
+import StockManager from './components/StockManager';
+import KitchenApp from './components/KitchenApp';
 import './App.css';
 
 // Loading Skeleton Component
@@ -365,6 +367,9 @@ function App() {
       case 'order':
         if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <OrderManager user={user} />;
+      case 'stok':
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
+        return <StockManager user={user} />;
       case 'expense':
         if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <ExpenseManager user={user} />;
@@ -440,6 +445,11 @@ function App() {
         </div>
       );
     }
+  }
+
+  // Central kitchen account: shipments and its own purchases, nothing else
+  if (user?.role === 'dapur') {
+    return <KitchenApp user={user} onLogout={handleLogout} />;
   }
 
   return (
