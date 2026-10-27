@@ -10,6 +10,7 @@ import ProfitLossReport from './ProfitLossReport';
 import OutletManager from './OutletManager';
 import UserManager from './UserManager';
 import ChangePassword from './ChangePassword';
+import OrderManager from './OrderManager';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ admin, onLogout }) => {
@@ -41,6 +42,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
   const tabs = [
     { id: 'sales-verification', label: 'Verifikasi Sales', icon: '🔍' },
     { id: 'sales-reports', label: 'Laporan Sales', icon: '📈' },
+    { id: 'orders', label: 'Order & Customer', icon: '🧾' },
     { id: 'expense-categories', label: 'Kategori Pengeluaran', icon: '🏷️' },
     { id: 'item-master', label: 'Item Master', icon: '📦' },
     { id: 'expense-management', label: 'Kelola Pengeluaran', icon: '✏️' },
@@ -525,6 +527,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
         return renderSalesVerification();
       case 'sales-reports':
         return <AdminSalesReport />;
+      case 'orders':
+        return <OrderManager isAdmin />;
       case 'expense-categories':
         return <ExpenseCategoryManager />;
       case 'item-master':

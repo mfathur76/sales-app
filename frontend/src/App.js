@@ -9,6 +9,7 @@ import AdminDashboard from './components/AdminDashboard';
 import AdminReport from './components/AdminReport';
 import ExpenseManager from './components/ExpenseManager';
 import ExpenseReport from './components/ExpenseReport';
+import OrderManager from './components/OrderManager';
 import './App.css';
 
 // Loading Skeleton Component
@@ -361,6 +362,9 @@ function App() {
       case 'list':
         if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <SalesList user={user} />;
+      case 'order':
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
+        return <OrderManager user={user} />;
       case 'expense':
         if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <ExpenseManager user={user} />;

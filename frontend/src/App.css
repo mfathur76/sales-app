@@ -538,6 +538,30 @@ body::after {
   font-size: 1.25rem;
 }
 
+/* Seven tabs have to fit on a 360px phone */
+@media (max-width: 480px) {
+  .navigation {
+    padding: 6px 6px 16px;
+  }
+
+  .nav-tabs {
+    gap: 2px;
+  }
+
+  .nav-tab {
+    min-width: 0;
+    padding: 8px 2px;
+    font-size: 0.65rem;
+  }
+
+  .nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 /* Loading Skeleton */
 .loading-skeleton {
   padding: 20px;

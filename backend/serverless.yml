@@ -24,6 +24,8 @@ provider:
     EXPENSES_TABLE: ${self:service}-expenses-${self:provider.stage}
     EXPENSE_CATEGORIES_TABLE: ${self:service}-expense-categories-${self:provider.stage}
     ITEM_MASTERS_TABLE: ${self:service}-item-masters-${self:provider.stage}
+    CUSTOMERS_TABLE: ${self:service}-customers-${self:provider.stage}
+    ORDERS_TABLE: ${self:service}-orders-${self:provider.stage}
 
   iam:
     role:
@@ -375,6 +377,104 @@ functions:
           method: get
           cors: true
 
+  # ---- Customers ----
+  getCustomers:
+    handler: lambda/handlers/customers.getCustomers
+    events:
+      - http:
+          path: api/customers
+          method: get
+          cors: true
+
+  createCustomer:
+    handler: lambda/handlers/customers.createCustomerHandler
+    events:
+      - http:
+          path: api/customers
+          method: post
+          cors: true
+
+  getCustomer:
+    handler: lambda/handlers/customers.getCustomer
+    events:
+      - http:
+          path: api/customers/{id}
+          method: get
+          cors: true
+
+  updateCustomer:
+    handler: lambda/handlers/customers.updateCustomerHandler
+    events:
+      - http:
+          path: api/customers/{id}
+          method: put
+          cors: true
+
+  deleteCustomer:
+    handler: lambda/handlers/customers.deleteCustomerHandler
+    events:
+      - http:
+          path: api/customers/{id}
+          method: delete
+          cors: true
+
+  # ---- Orders ----
+  getOrders:
+    handler: lambda/handlers/orders.getOrders
+    events:
+      - http:
+          path: api/orders
+          method: get
+          cors: true
+
+  createOrder:
+    handler: lambda/handlers/orders.createOrderHandler
+    events:
+      - http:
+          path: api/orders
+          method: post
+          cors: true
+
+  getOrder:
+    handler: lambda/handlers/orders.getOrder
+    events:
+      - http:
+          path: api/orders/{id}
+          method: get
+          cors: true
+
+  updateOrder:
+    handler: lambda/handlers/orders.updateOrderHandler
+    events:
+      - http:
+          path: api/orders/{id}
+          method: put
+          cors: true
+
+  deleteOrder:
+    handler: lambda/handlers/orders.deleteOrderHandler
+    events:
+      - http:
+          path: api/orders/{id}
+          method: delete
+          cors: true
+
+  addOrderPayment:
+    handler: lambda/handlers/orders.addPaymentHandler
+    events:
+      - http:
+          path: api/orders/{id}/payments
+          method: post
+          cors: true
+
+  deleteOrderPayment:
+    handler: lambda/handlers/orders.deletePaymentHandler
+    events:
+      - http:
+          path: api/orders/{id}/payments/{paymentId}
+          method: delete
+          cors: true
+
 # ---- DynamoDB Tables ----
 resources:
   Resources:
@@ -475,6 +575,38 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:service}-item-masters-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    CustomersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-customers-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    OrdersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-orders-${self:provider.stage}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: PK

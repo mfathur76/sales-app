@@ -125,3 +125,58 @@ export interface Expense {
   updatedAt: string;
   createdBy?: string;
 }
+
+// ---- Customer / Order types ----
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;      // normalized to 62xxxxxxxxx
+  address?: string;
+  notes?: string;
+  outlet: string;     // outlet that first registered this customer
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PaymentMethod = 'cash' | 'transfer' | 'qris';
+
+export interface OrderPayment {
+  id: string;
+  date: string;       // YYYY-MM-DD
+  amount: number;
+  method: PaymentMethod;
+  note?: string;
+  createdBy?: string;
+  createdAt: string;
+}
+
+export type OrderStatus = 'baru' | 'diproses' | 'siap' | 'selesai' | 'batal';
+export type PaymentStatus = 'belum_bayar' | 'dp' | 'lunas';
+export type Fulfillment = 'ambil' | 'antar';
+
+export interface Order {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  outlet: string;
+  orderDate: string;  // YYYY-MM-DD
+  pickupDate: string; // YYYY-MM-DD, when it is picked up / delivered
+  pickupTime?: string; // HH:MM
+  fulfillment: Fulfillment;
+  deliveryAddress?: string;
+  deliveryFee: number;
+  items: string;
+  total: number;      // goods only, excluding deliveryFee
+  grandTotal: number; // total + deliveryFee
+  payments: OrderPayment[];
+  paid: number;
+  remaining: number;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
