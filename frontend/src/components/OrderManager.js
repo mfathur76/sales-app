@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/salesApi';
+import { shopOutlets } from '../api/stockApi';
 import {
   orderApi, ORDER_STATUS, PAYMENT_STATUS, formatRupiah, formatDay, localDate
 } from '../api/orderApi';
@@ -91,7 +92,7 @@ const OrderManager = ({ user, isAdmin = false }) => {
 
   useEffect(() => {
     authApi.getOutlets()
-      .then((res) => setOutlets(res?.data || []))
+      .then((res) => setOutlets(shopOutlets(res?.data)))
       .catch(() => setOutlets([]));
   }, []);
 

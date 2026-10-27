@@ -40,6 +40,7 @@ export function verifyToken(token: string): JwtUser | null {
     return {
       outlet: decoded.outlet,
       name: decoded.name,
+      role: decoded.role === 'dapur' ? 'dapur' : undefined,
       type: 'outlet',
     };
   } catch {

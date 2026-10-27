@@ -10,6 +10,8 @@ import AdminReport from './components/AdminReport';
 import ExpenseManager from './components/ExpenseManager';
 import ExpenseReport from './components/ExpenseReport';
 import OrderManager from './components/OrderManager';
+import StockManager from './components/StockManager';
+import ShipmentManager from './components/ShipmentManager';
 import './App.css';
 
 // Loading Skeleton Component
@@ -365,6 +367,9 @@ function App() {
       case 'order':
         if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <OrderManager user={user} />;
+      case 'stok':
+        if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
+        return <StockManager user={user} />;
       case 'expense':
         if (userType === 'admin') return <AdminDashboard admin={admin} onLogout={handleLogout} />;
         return <ExpenseManager user={user} />;
@@ -440,6 +445,28 @@ function App() {
         </div>
       );
     }
+  }
+
+  // Central kitchen account: it only sends shipments, so it gets that page and nothing else
+  if (user?.role === 'dapur') {
+    return (
+      <div className="kitchen-app">
+        <header className="mobile-app-header">
+          <div className="header-content">
+            <div className="header-info">
+              <span className="header-outlet">🍳 {user.name || user.outlet}</span>
+              <span className="header-user">Dapur Pusat</span>
+            </div>
+            <button onClick={handleLogout} className="header-logout-btn" title="Logout">
+              🚪
+            </button>
+          </div>
+        </header>
+        <main>
+          <ShipmentManager />
+        </main>
+      </div>
+    );
   }
 
   return (

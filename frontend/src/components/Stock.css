@@ -1,0 +1,258 @@
+/* Stock pages; builds on the ord-* classes in Orders.css. No backdrop-filter/blur (blanks some Android phones). */
+
+.ord-alert.success {
+  background: #e7f6ec;
+  color: #166534;
+  border: 1px solid #b7e2c4;
+}
+
+.neg {
+  color: var(--danger, #dc2626);
+}
+
+.pos {
+  color: var(--success, #15803d);
+}
+
+.small {
+  font-size: 12px;
+}
+
+/* ---- Tables ---- */
+
+.stk-table-wrap {
+  overflow-x: auto;
+  margin: 8px 0;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+
+.stk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.stk-table th,
+.stk-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line, #dbe3ef);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.stk-table th {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted, #5a6479);
+  background: var(--surface-soft, #f5f7fb);
+  white-space: nowrap;
+}
+
+.stk-table tr:last-child td {
+  border-bottom: none;
+}
+
+.stk-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.stk-table tr.dim td {
+  opacity: 0.55;
+}
+
+.stk-closing input {
+  width: 64px;
+  padding: 8px 6px;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 8px;
+  font-size: 16px; /* stops iOS zoom */
+  text-align: right;
+  background: var(--surface, #fff);
+}
+
+.stk-closing input.empty {
+  border-color: var(--accent, #f97316);
+  background: #fff7ed;
+}
+
+.stk-row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.stk-row-actions .ord-btn + .ord-btn {
+  margin-left: 4px;
+}
+
+/* ---- Product form ---- */
+
+.stk-product-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 70px;
+  gap: 8px;
+  align-items: center;
+}
+
+.stk-product-form input,
+.stk-product-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 8px;
+  font-size: 15px;
+  background: var(--surface, #fff);
+}
+
+.stk-product-form .ord-actions {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.stk-import {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 8px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 14px;
+}
+
+.stk-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* ---- Shipment lines ---- */
+
+.stk-lines {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  overflow: hidden;
+}
+
+.stk-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line, #dbe3ef);
+}
+
+.stk-line:last-child {
+  border-bottom: none;
+}
+
+.stk-line.filled {
+  background: rgba(15, 118, 110, 0.06);
+}
+
+.stk-line.changed {
+  background: #fff7ed;
+}
+
+.stk-line-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.stk-qty {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.stk-qty input {
+  width: 56px;
+  padding: 8px 4px;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 8px;
+  font-size: 16px;
+  text-align: center;
+  background: var(--surface, #fff);
+}
+
+.stk-qty button {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 8px;
+  background: var(--surface-soft, #f5f7fb);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Save bar stays above the bottom navigation while scrolling a long list */
+.stk-sticky-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #dbe3ef);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  box-shadow: 0 4px 16px rgba(33, 41, 58, 0.12);
+  font-size: 14px;
+}
+
+.mobile-app .stk-sticky-bar {
+  bottom: 96px;
+}
+
+.stk-card {
+  cursor: default;
+}
+
+.stk-card:hover {
+  border-color: var(--line, #dbe3ef);
+}
+
+.stk-stats {
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+@media (max-width: 640px) {
+  .stk-product-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stk-product-form input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .stk-table th,
+  .stk-table td {
+    padding: 8px 6px;
+  }
+}
+
+@media (max-width: 400px) {
+  .stk-qty button {
+    min-width: 32px;
+    padding: 0 4px;
+  }
+
+  .stk-qty input {
+    width: 48px;
+  }
+}

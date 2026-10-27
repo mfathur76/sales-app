@@ -30,6 +30,8 @@ export const TABLES = {
   ITEM_MASTERS: process.env.ITEM_MASTERS_TABLE || 'sales-app-item-masters',
   CUSTOMERS: process.env.CUSTOMERS_TABLE || 'sales-app-customers',
   ORDERS: process.env.ORDERS_TABLE || 'sales-app-orders',
+  PRODUCTS: process.env.PRODUCTS_TABLE || 'sales-app-products',
+  STOCK: process.env.STOCK_TABLE || 'sales-app-stock',
 };
 
 // ---- Generic helpers ----

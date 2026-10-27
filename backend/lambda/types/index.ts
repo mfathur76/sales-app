@@ -18,10 +18,13 @@ export interface AuthenticatedEvent extends APIGatewayProxyEvent {
 }
 
 // ---- Outlet / Auth types ----
+export type OutletRole = 'outlet' | 'dapur';
+
 export interface Outlet {
   code: string;
   name: string;
   password: string;
+  role: OutletRole;   // 'dapur' = central kitchen account, only sends shipments
   createdAt: string;
   updatedAt: string;
 }
@@ -177,6 +180,59 @@ export interface Order {
   status: OrderStatus;
   notes?: string;
   createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---- Stock (finished goods at outlets) ----
+export type ProductKind = 'produksi' | 'beli_jadi';
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;      // selling price, the same at every outlet
+  cost?: number;      // purchase/production cost per piece
+  kind: ProductKind;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShipmentLine {
+  productId: string;
+  name: string;
+  qty: number;          // sent by the kitchen
+  receivedQty?: number; // confirmed by the outlet
+}
+
+export interface Shipment {
+  id: string;
+  outlet: string;       // destination
+  date: string;         // YYYY-MM-DD
+  lines: ShipmentLine[];
+  status: 'dikirim' | 'diterima';
+  notes?: string;
+  createdBy?: string;
+  receivedBy?: string;
+  receivedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClosingLine {
+  productId: string;
+  name: string;
+  price: number;        // price at the time of counting
+  remaining: number;
+  waste: number;
+}
+
+export interface StockClosing {
+  outlet: string;
+  date: string;
+  lines: ClosingLine[];
+  submittedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

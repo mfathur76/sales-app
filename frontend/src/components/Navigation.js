@@ -5,6 +5,7 @@ const Navigation = ({ activePage, onPageChange, onLogout }) => {
     { id: 'input', label: 'Input', icon: '📝' },
     { id: 'order', label: 'Order', icon: '🧾' },
     { id: 'list', label: 'Data', icon: '📊' },
+    { id: 'stok', label: 'Stok', icon: '📦' },
     { id: 'expense', label: 'Pengeluaran', icon: '💰' },
     { id: 'dashboard', label: 'Dashboard', icon: '📈' },
     { id: 'report', label: 'Laporan', icon: '📑' }
@@ -28,16 +29,6 @@ const Navigation = ({ activePage, onPageChange, onLogout }) => {
             <div className="nav-label">{page.label}</div>
           </button>
         ))}
-        
-        {/* Logout button */}
-        <button
-          className="nav-tab logout-tab"
-          onClick={onLogout}
-          type="button"
-        >
-          <div className="nav-icon">🚪</div>
-          <div className="nav-label">Logout</div>
-        </button>
       </div>
     </nav>
   );

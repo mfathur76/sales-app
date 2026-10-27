@@ -11,7 +11,8 @@ const OutletManager = () => {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
-    password: ''
+    password: '',
+    role: 'outlet'
   });
 
   useEffect(() => {
@@ -46,7 +47,8 @@ const OutletManager = () => {
     setFormData({
       code: '',
       name: '',
-      password: ''
+      password: '',
+      role: 'outlet'
     });
     setEditingOutlet(null);
     setShowForm(false);
@@ -60,7 +62,7 @@ const OutletManager = () => {
     try {
       if (editingOutlet) {
         // Update outlet
-        const updateData = { name: formData.name };
+        const updateData = { name: formData.name, role: formData.role };
         if (formData.password) {
           updateData.password = formData.password;
         }
@@ -97,7 +99,8 @@ const OutletManager = () => {
     setFormData({
       code: outlet.code,
       name: outlet.name,
-      password: ''
+      password: '',
+      role: outlet.role || 'outlet'
     });
     setShowForm(true);
   };
@@ -205,6 +208,19 @@ const OutletManager = () => {
               />
             </div>
 
+            <div className="form-group">
+              <label htmlFor="role">Jenis Akun</label>
+              <select
+                id="role"
+                value={formData.role}
+                onChange={(e) => handleInputChange('role', e.target.value)}
+                className="form-input"
+              >
+                <option value="outlet">Outlet (jualan, tutup toko)</option>
+                <option value="dapur">Dapur Pusat (hanya kirim barang)</option>
+              </select>
+            </div>
+
             <div className="form-actions">
               <button type="submit" disabled={loading} className="submit-btn">
                 {loading ? 'Saving...' : (editingOutlet ? 'Update Outlet' : 'Create Outlet')}
@@ -235,6 +251,7 @@ const OutletManager = () => {
                 <tr>
                   <th>Code</th>
                   <th>Name</th>
+                  <th>Jenis</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
@@ -244,6 +261,7 @@ const OutletManager = () => {
                   <tr key={outlet.code}>
                     <td>{outlet.code}</td>
                     <td>{outlet.name}</td>
+                    <td>{outlet.role === 'dapur' ? '🍳 Dapur' : 'Outlet'}</td>
                     <td>{formatDate(outlet.createdAt)}</td>
                     <td>
                       <div className="action-buttons">
