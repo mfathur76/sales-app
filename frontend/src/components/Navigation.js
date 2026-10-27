@@ -3,6 +3,7 @@ import React from 'react';
 const Navigation = ({ activePage, onPageChange, onLogout }) => {
   const pages = [
     { id: 'input', label: 'Input', icon: '📝' },
+    { id: 'order', label: 'Order', icon: '🧾' },
     { id: 'list', label: 'Data', icon: '📊' },
     { id: 'expense', label: 'Pengeluaran', icon: '💰' },
     { id: 'dashboard', label: 'Dashboard', icon: '📈' },

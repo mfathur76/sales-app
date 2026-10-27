@@ -28,6 +28,8 @@ export const TABLES = {
   EXPENSES: process.env.EXPENSES_TABLE || 'sales-app-expenses',
   EXPENSE_CATEGORIES: process.env.EXPENSE_CATEGORIES_TABLE || 'sales-app-expense-categories',
   ITEM_MASTERS: process.env.ITEM_MASTERS_TABLE || 'sales-app-item-masters',
+  CUSTOMERS: process.env.CUSTOMERS_TABLE || 'sales-app-customers',
+  ORDERS: process.env.ORDERS_TABLE || 'sales-app-orders',
 };
 
 // ---- Generic helpers ----
