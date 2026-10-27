@@ -9,6 +9,7 @@ export interface ProductInput {
   price: number;
   cost?: number;
   kind?: ProductKind;
+  category?: string;
   sortOrder?: number;
   isActive?: boolean;
 }
@@ -20,6 +21,7 @@ function toProduct(item: Record<string, any>): Product {
     price: item.price ?? 0,
     cost: item.cost,
     kind: item.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi',
+    category: item.category,
     sortOrder: item.sortOrder ?? 0,
     isActive: item.isActive !== false,
     createdAt: item.createdAt,
@@ -54,6 +56,7 @@ function newProduct(data: ProductInput, sortOrder: number): Product {
     price: data.price,
     cost: data.cost,
     kind: data.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi',
+    category: data.category?.trim() || undefined,
     sortOrder: data.sortOrder ?? sortOrder,
     isActive: true,
     createdAt: now,
@@ -89,6 +92,7 @@ export async function updateProduct(id: string, updates: Partial<ProductInput>):
   if (updates.price !== undefined) next.price = updates.price;
   if (updates.cost !== undefined) next.cost = updates.cost;
   if (updates.kind !== undefined) next.kind = updates.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi';
+  if (updates.category !== undefined) next.category = updates.category.trim() || undefined;
   if (updates.sortOrder !== undefined) next.sortOrder = updates.sortOrder;
   if (updates.isActive !== undefined) next.isActive = updates.isActive;
 

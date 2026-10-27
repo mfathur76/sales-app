@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/salesApi';
-import { productApi, shipmentApi, shopOutlets } from '../api/stockApi';
+import { productApi, shipmentApi, shopOutlets, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay } from '../api/orderApi';
 import './Orders.css';
 import './Stock.css';
@@ -75,11 +75,16 @@ const ShipmentForm = ({ shipment, outlets, products, onSaved, onCancel }) => {
       </div>
 
       <div className="stk-lines">
-        {products.map((p) => (
-          <div key={p.id} className={`stk-line ${qty[p.id] ? 'filled' : ''}`}>
-            <span className="stk-line-name">{p.name}</span>
-            <QtyInput value={qty[p.id] || 0} onChange={(n) => setQty((prev) => ({ ...prev, [p.id]: n }))} />
-          </div>
+        {groupByCategory(products).map((g) => (
+          <React.Fragment key={g.category}>
+            <div className="stk-line-group">{g.category}</div>
+            {g.items.map((p) => (
+              <div key={p.id} className={`stk-line ${qty[p.id] ? 'filled' : ''}`}>
+                <span className="stk-line-name">{p.name}</span>
+                <QtyInput value={qty[p.id] || 0} onChange={(n) => setQty((prev) => ({ ...prev, [p.id]: n }))} />
+              </div>
+            ))}
+          </React.Fragment>
         ))}
       </div>
 

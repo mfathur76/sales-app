@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/salesApi';
-import { shipmentApi, stockApi, shopOutlets } from '../api/stockApi';
+import { shipmentApi, stockApi, shopOutlets, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay, formatRupiah } from '../api/orderApi';
 import { QtyInput } from './ShipmentManager';
 import './Orders.css';
@@ -118,8 +118,12 @@ const ClosingForm = ({ outlet, isAdmin }) => {
                     {!draft.isFirstCount && <th className="num">Terjual</th>}
                   </tr>
                 </thead>
-                <tbody>
-                  {rows.map((r) => (
+                {groupByCategory(rows).map((g) => (
+                <tbody key={g.category}>
+                  <tr className="stk-group">
+                    <td colSpan={draft.isFirstCount ? 4 : 5}>{g.category}</td>
+                  </tr>
+                  {g.items.map((r) => (
                     <tr key={r.productId} className={r.stock === 0 && !r.filled ? 'dim' : ''}>
                       <td>
                         {r.name}
@@ -154,6 +158,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
                     </tr>
                   ))}
                 </tbody>
+                ))}
               </table>
             </div>
           )}
@@ -346,16 +351,24 @@ const OutletReport = ({ report, outletName }) => {
                   <thead>
                     <tr><th>Produk</th><th className="num">Terjual</th><th className="num">Rusak</th><th className="num">Nilai</th></tr>
                   </thead>
-                  <tbody>
-                    {report.products.map((p) => (
-                      <tr key={p.productId}>
-                        <td>{p.name}</td>
-                        <td className={`num ${p.sold < 0 ? 'neg' : ''}`}>{p.sold}</td>
-                        <td className="num">{p.waste}</td>
-                        <td className="num">{formatRupiah(p.value)}</td>
+                  {groupByCategory(report.products).map((g) => (
+                    <tbody key={g.category}>
+                      <tr className="stk-group">
+                        <td>{g.category}</td>
+                        <td className="num">{g.items.reduce((s, p) => s + p.sold, 0)}</td>
+                        <td className="num">{g.items.reduce((s, p) => s + p.waste, 0)}</td>
+                        <td className="num">{formatRupiah(g.items.reduce((s, p) => s + p.value, 0))}</td>
                       </tr>
-                    ))}
-                  </tbody>
+                      {g.items.map((p) => (
+                        <tr key={p.productId}>
+                          <td>{p.name}</td>
+                          <td className={`num ${p.sold < 0 ? 'neg' : ''}`}>{p.sold}</td>
+                          <td className="num">{p.waste}</td>
+                          <td className="num">{formatRupiah(p.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             </>

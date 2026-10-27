@@ -195,6 +195,7 @@ export async function deleteClosing(outlet: string, date: string): Promise<void>
 interface ProductFlow {
   productId: string;
   name: string;
+  category?: string;
   price: number;
   opening: number;
   received: number;
@@ -216,7 +217,7 @@ function flows(
     let f = map.get(productId);
     if (!f) {
       const p = productById.get(productId);
-      f = { productId, name: p?.name ?? name, price: p?.price ?? 0, opening: 0, received: 0, pending: 0 };
+      f = { productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0, opening: 0, received: 0, pending: 0 };
       map.set(productId, f);
     }
     return f;
@@ -254,8 +255,10 @@ export async function getClosingDraft(outlet: string, date: string) {
   const order = new Map(products.map((p, i) => [p.id, p.isActive ? i : products.length + i]));
   const activeIds = new Set(products.filter((p) => p.isActive).map((p) => p.id));
   products.filter((p) => p.isActive && !map.has(p.id)).forEach((p) => {
-    map.set(p.id, { productId: p.id, name: p.name, price: p.price, opening: 0, received: 0, pending: 0 });
+    map.set(p.id, { productId: p.id, name: p.name, category: p.category, price: p.price, opening: 0, received: 0, pending: 0 });
   });
+  const categoryById = new Map(products.map((p) => [p.id, p.category]));
+  map.forEach((f) => { f.category = categoryById.get(f.productId); });
   const lines = [...map.values()]
     .filter((f) => activeIds.has(f.productId) || f.opening || f.received || f.remaining)
     .sort((a, b) => (order.get(a.productId) ?? 1e9) - (order.get(b.productId) ?? 1e9));
@@ -284,7 +287,8 @@ export async function getStockReport(outlet: string, from: string, to: string) {
   const sales = await getAllOutletSales({ outlet, start_date: firstPrev ? addDays(firstPrev.date, 1) : from, end_date: to });
 
   const days = [];
-  const totals = new Map<string, { productId: string; name: string; sold: number; waste: number; value: number }>();
+  const categoryById = new Map(products.map((p) => [p.id, p.category]));
+  const totals = new Map<string, { productId: string; name: string; category?: string; sold: number; waste: number; value: number }>();
 
   for (let i = 0; i < closings.length; i++) {
     const c = closings[i];
@@ -313,7 +317,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
       waste += l?.waste ?? 0;
       value += lineSold * price;
 
-      const t = totals.get(id) ?? { productId: id, name, sold: 0, waste: 0, value: 0 };
+      const t = totals.get(id) ?? { productId: id, name, category: categoryById.get(id), sold: 0, waste: 0, value: 0 };
       t.sold += lineSold;
       t.waste += l?.waste ?? 0;
       t.value += lineSold * price;
