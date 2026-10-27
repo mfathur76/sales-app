@@ -583,6 +583,63 @@ functions:
           method: get
           cors: true
 
+  # ---- Kitchen stock ----
+  getKitchenEntries:
+    handler: lambda/handlers/kitchen.getEntriesHandler
+    events:
+      - http:
+          path: api/stock/kitchen/entries
+          method: get
+          cors: true
+
+  createKitchenEntry:
+    handler: lambda/handlers/kitchen.createEntryHandler
+    events:
+      - http:
+          path: api/stock/kitchen/entries
+          method: post
+          cors: true
+
+  updateKitchenEntry:
+    handler: lambda/handlers/kitchen.updateEntryHandler
+    events:
+      - http:
+          path: api/stock/kitchen/entries/{id}
+          method: put
+          cors: true
+
+  deleteKitchenEntry:
+    handler: lambda/handlers/kitchen.deleteEntryHandler
+    events:
+      - http:
+          path: api/stock/kitchen/entries/{id}
+          method: delete
+          cors: true
+
+  getKitchenCount:
+    handler: lambda/handlers/kitchen.getKitchenCountHandler
+    events:
+      - http:
+          path: api/stock/kitchen/count
+          method: get
+          cors: true
+
+  saveKitchenCount:
+    handler: lambda/handlers/kitchen.saveKitchenCountHandler
+    events:
+      - http:
+          path: api/stock/kitchen/count
+          method: put
+          cors: true
+
+  getKitchenReport:
+    handler: lambda/handlers/kitchen.getKitchenReportHandler
+    events:
+      - http:
+          path: api/stock/kitchen/report
+          method: get
+          cors: true
+
 # ---- DynamoDB Tables ----
 resources:
   Resources:

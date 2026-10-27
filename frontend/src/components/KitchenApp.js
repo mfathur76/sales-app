@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import ShipmentManager from './ShipmentManager';
 import ExpenseManager from './ExpenseManager';
+import KitchenStock from './KitchenStock';
 import './Orders.css';
 
 const VIEWS = [
   { id: 'kiriman', label: '🚚 Kiriman' },
+  { id: 'stok', label: '🧊 Stok Dapur' },
   { id: 'pengeluaran', label: '💰 Pengeluaran' }
 ];
 
-/** Central kitchen account: sends shipments and records its production purchases. */
+/** Central kitchen account: shipments out, production and bought-in goods in, freezer count, purchases. */
 const KitchenApp = ({ user, onLogout }) => {
   const [view, setView] = useState('kiriman');
 
@@ -37,7 +39,9 @@ const KitchenApp = ({ user, onLogout }) => {
       </div>
 
       <main>
-        {view === 'kiriman' ? <ShipmentManager /> : <ExpenseManager user={user} />}
+        {view === 'kiriman' && <ShipmentManager />}
+        {view === 'stok' && <KitchenStock />}
+        {view === 'pengeluaran' && <ExpenseManager user={user} />}
       </main>
     </div>
   );

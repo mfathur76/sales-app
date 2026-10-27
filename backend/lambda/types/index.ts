@@ -237,3 +237,23 @@ export interface StockClosing {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---- Kitchen stock ----
+export interface KitchenEntryLine {
+  productId: string;
+  name: string;
+  qty: number;
+}
+
+/** Goods coming into the kitchen: its own production, or bought-in goods delivered by a supplier. */
+export interface KitchenEntry {
+  id: string;
+  kitchen: string;    // code of the kitchen account
+  date: string;
+  kind: 'produksi' | 'masuk';
+  lines: KitchenEntryLine[];
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
