@@ -11,7 +11,7 @@ import ExpenseManager from './components/ExpenseManager';
 import ExpenseReport from './components/ExpenseReport';
 import OrderManager from './components/OrderManager';
 import StockManager from './components/StockManager';
-import ShipmentManager from './components/ShipmentManager';
+import KitchenApp from './components/KitchenApp';
 import './App.css';
 
 // Loading Skeleton Component
@@ -447,26 +447,9 @@ function App() {
     }
   }
 
-  // Central kitchen account: it only sends shipments, so it gets that page and nothing else
+  // Central kitchen account: shipments and its own purchases, nothing else
   if (user?.role === 'dapur') {
-    return (
-      <div className="kitchen-app">
-        <header className="mobile-app-header">
-          <div className="header-content">
-            <div className="header-info">
-              <span className="header-outlet">🍳 {user.name || user.outlet}</span>
-              <span className="header-user">Dapur Pusat</span>
-            </div>
-            <button onClick={handleLogout} className="header-logout-btn" title="Logout">
-              🚪
-            </button>
-          </div>
-        </header>
-        <main>
-          <ShipmentManager />
-        </main>
-      </div>
-    );
+    return <KitchenApp user={user} onLogout={handleLogout} />;
   }
 
   return (
