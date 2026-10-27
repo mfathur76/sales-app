@@ -139,7 +139,7 @@ function toClosing(item: Record<string, any>): StockClosing {
 }
 
 /** All counts for an outlet up to and including `upTo`, oldest first. */
-async function listClosings(outlet: string, upTo: string): Promise<StockClosing[]> {
+export async function listClosings(outlet: string, upTo: string): Promise<StockClosing[]> {
   const items = await dbQuery({
     TableName: TABLE,
     KeyConditionExpression: 'PK = :pk AND SK <= :to',

@@ -9,10 +9,11 @@ const EMPTY = { name: '', category: '', price: '', cost: '', kind: 'produksi', s
 const toNumber = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
 
 const KIND_WORD = /beli|konsin/i;
+const AMOUNT = /\d[\d.,]*/;
 const isMoney = (s) => /^(rp\.?\s*)?\d[\d.,]*(\s|$)/i.test(s);
-// Only the leading amount: "Rp 19.000 konsinyasi" -> 19000
+// First amount in the text: "Rp 19.000 konsinyasi" -> 19000
 const money = (s) => {
-  const m = String(s || '').match(/\d[\d.,]*/);
+  const m = String(s || '').match(AMOUNT);
   const digits = m ? m[0].replace(/[^\d]/g, '') : '';
   return digits ? Number(digits) : undefined;
 };
@@ -31,7 +32,7 @@ function parseImport(text) {
     if (!line) return;
     const parts = line.split(/[;\t|]/).map((p) => p.trim()).filter(Boolean);
     const [name, ...rest] = parts;
-    if (/^nama$/i.test(name)) return;
+    if (/^nama\b/i.test(name)) return;
 
     const category = rest.length && !isMoney(rest[0]) && !KIND_WORD.test(rest[0]) ? rest.shift() : '';
     const priceIdx = rest.findIndex(isMoney);
@@ -40,13 +41,15 @@ function parseImport(text) {
       errors.push(`Baris ${i + 1}: "${line}" — butuh minimal nama dan harga`);
       return;
     }
-    const costCell = rest.slice(priceIdx + 1).find(isMoney);
+    // The cost is the next amount after the price, even when it shares a cell with it or with
+    // the kind, e.g. "Rp 19.000 konsinyasi Rp 16.500" or "konsinyasi  Rp 2.300"
+    const afterPrice = [rest[priceIdx].replace(AMOUNT, ''), ...rest.slice(priceIdx + 1)].join(' ');
     rows.push({
       name,
       category: category || undefined,
       price,
       kind: rest.some((x) => KIND_WORD.test(x)) ? 'beli_jadi' : 'produksi',
-      cost: costCell ? money(costCell) : undefined
+      cost: money(afterPrice)
     });
   });
   return { rows, errors };

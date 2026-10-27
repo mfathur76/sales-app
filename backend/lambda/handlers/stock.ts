@@ -13,6 +13,7 @@ import {
   getStockReport,
 } from '../services/stockService';
 import { listProducts } from '../services/productService';
+import { kitchenCodes, lastCountDate } from '../services/kitchenService';
 import { getAllOutlets } from '../services/outletService';
 import { verifyToken, extractBearerToken } from '../utils/jwt';
 import {
@@ -32,6 +33,15 @@ const isAdmin = (u: JwtUser) => u.type === 'admin';
 const isKitchen = (u: JwtUser) => u.type === 'outlet' && u.role === 'dapur';
 const isOutletStaff = (u: JwtUser) => u.type === 'outlet' && u.role !== 'dapur';
 const actor = (u: JwtUser) => (u.type === 'admin' ? u.username : u.outlet);
+
+const KITCHEN_COUNTED_MSG = 'Dapur sudah opname di tanggal ini atau sesudahnya, jadi kiriman ini akan mengacaukan hitungan stok dapur. Pakai tanggal sesudah opname, atau minta admin.';
+
+/** True when a kitchen count already covers `date`, so a shipment on it would shift the count's gap. */
+async function kitchenCounted(user: JwtUser, ...dates: string[]): Promise<boolean> {
+  if (isAdmin(user)) return false;
+  const lasts = await Promise.all((await kitchenCodes()).map(lastCountDate));
+  return lasts.some((last) => last && dates.some((d) => d <= last));
+}
 
 function isQty(v: unknown): boolean {
   return typeof v === 'number' && Number.isInteger(v) && v >= 0;
@@ -93,6 +103,7 @@ export async function createShipmentHandler(event: APIGatewayProxyEvent): Promis
     if (!body.outlet || !(await isShopOutlet(body.outlet))) return badRequest('Outlet tujuan tidak valid');
     if (!DATE_RE.test(body.date || '')) return badRequest('Tanggal kirim tidak valid');
     if (await hasClosing(body.outlet, body.date)) return badRequest(CLOSED_MSG);
+    if (await kitchenCounted(user, body.date)) return badRequest(KITCHEN_COUNTED_MSG);
 
     const lines = await parseShipmentLines(body.lines);
     if (typeof lines === 'string') return badRequest(lines);
@@ -120,6 +131,9 @@ export async function updateShipmentHandler(event: APIGatewayProxyEvent): Promis
     if (!existing) return notFound('Kiriman tidak ditemukan');
     if (isKitchen(user) && existing.status === 'diterima') {
       return forbidden('Kiriman sudah diterima outlet. Minta admin untuk mengubahnya.');
+    }
+    if (await kitchenCounted(user, existing.date, JSON.parse(event.body || '{}').date ?? existing.date)) {
+      return badRequest(KITCHEN_COUNTED_MSG);
     }
 
     const body = JSON.parse(event.body || '{}');
@@ -158,6 +172,7 @@ export async function deleteShipmentHandler(event: APIGatewayProxyEvent): Promis
     if (isKitchen(user) && existing.status === 'diterima') {
       return forbidden('Kiriman sudah diterima outlet. Minta admin untuk menghapusnya.');
     }
+    if (await kitchenCounted(user, existing.date)) return badRequest(KITCHEN_COUNTED_MSG);
     await deleteShipment(outlet, id);
     return ok(null, 'Kiriman berhasil dihapus');
   } catch (err) {
