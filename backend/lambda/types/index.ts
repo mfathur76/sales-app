@@ -193,6 +193,7 @@ export interface Product {
   price: number;      // selling price, the same at every outlet
   cost?: number;      // purchase/production cost per piece
   kind: ProductKind;
+  category?: string;  // e.g. "RISOLES GORENG"; groups the product in forms and reports
   sortOrder: number;
   isActive: boolean;
   createdAt: string;

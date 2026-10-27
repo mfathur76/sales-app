@@ -1,40 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { productApi, PRODUCT_KIND } from '../api/stockApi';
+import { productApi, PRODUCT_KIND, groupByCategory } from '../api/stockApi';
 import { formatRupiah } from '../api/orderApi';
 import './Orders.css';
 import './Stock.css';
 
-const EMPTY = { name: '', price: '', cost: '', kind: 'produksi', sortOrder: '' };
+const EMPTY = { name: '', category: '', price: '', cost: '', kind: 'produksi', sortOrder: '' };
 
 const toNumber = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
 
+const KIND_WORD = /beli|konsin/i;
+const isMoney = (s) => /^(rp\.?\s*)?\d[\d.,]*(\s|$)/i.test(s);
+// Only the leading amount: "Rp 19.000 konsinyasi" -> 19000
+const money = (s) => {
+  const m = String(s || '').match(/\d[\d.,]*/);
+  const digits = m ? m[0].replace(/[^\d]/g, '') : '';
+  return digits ? Number(digits) : undefined;
+};
+
 /**
- * One product per line: "Nama; Harga; Jenis; Modal". Jenis and Modal are optional.
- * Jenis is "beli" / "beli jadi" / "konsinyasi" for bought-in goods, anything else is produksi.
- * Prices may be written as 5000, 5.000 or Rp 5.000.
+ * One product per line, columns separated by ";", "|" or tabs (so an Excel table can be pasted as is):
+ *   Nama; Kategori; Harga; Jenis; Modal   — Kategori, Jenis and Modal are optional.
+ * Jenis "beli jadi" / "konsinyasi" marks bought-in goods, anything else is produksi.
+ * Prices may be written as 5000, 5.000 or Rp 5.000. A header row starting with "Nama" is skipped.
  */
 function parseImport(text) {
-  const money = (s) => {
-    const digits = String(s || '').replace(/[^\d]/g, '');
-    return digits ? Number(digits) : undefined;
-  };
   const rows = [];
   const errors = [];
   text.split(/\r?\n/).forEach((raw, i) => {
     const line = raw.trim();
     if (!line) return;
-    const parts = line.split(/[;\t|]/).map((p) => p.trim());
-    const [name, price, kind, cost] = parts;
-    const priceNum = money(price);
-    if (!name || priceNum === undefined) {
+    const parts = line.split(/[;\t|]/).map((p) => p.trim()).filter(Boolean);
+    const [name, ...rest] = parts;
+    if (/^nama$/i.test(name)) return;
+
+    const category = rest.length && !isMoney(rest[0]) && !KIND_WORD.test(rest[0]) ? rest.shift() : '';
+    const priceIdx = rest.findIndex(isMoney);
+    const price = priceIdx >= 0 ? money(rest[priceIdx]) : undefined;
+    if (!name || price === undefined) {
       errors.push(`Baris ${i + 1}: "${line}" — butuh minimal nama dan harga`);
       return;
     }
+    const costCell = rest.slice(priceIdx + 1).find(isMoney);
     rows.push({
       name,
-      price: priceNum,
-      kind: /beli|konsin/i.test(kind || '') ? 'beli_jadi' : 'produksi',
-      cost: money(cost)
+      category: category || undefined,
+      price,
+      kind: rest.some((x) => KIND_WORD.test(x)) ? 'beli_jadi' : 'produksi',
+      cost: costCell ? money(costCell) : undefined
     });
   });
   return { rows, errors };
@@ -69,7 +81,14 @@ const ProductManager = () => {
   const startEdit = (p) => {
     setEditingId(p ? p.id : 'new');
     setForm(p
-      ? { name: p.name, price: String(p.price), cost: p.cost !== undefined ? String(p.cost) : '', kind: p.kind, sortOrder: String(p.sortOrder) }
+      ? {
+        name: p.name,
+        category: p.category || '',
+        price: String(p.price),
+        cost: p.cost !== undefined ? String(p.cost) : '',
+        kind: p.kind,
+        sortOrder: String(p.sortOrder)
+      }
       : EMPTY);
   };
 
@@ -77,6 +96,7 @@ const ProductManager = () => {
     e.preventDefault();
     const payload = {
       name: form.name,
+      category: form.category,
       price: toNumber(form.price) ?? 0,
       cost: toNumber(form.cost),
       kind: form.kind,
@@ -125,10 +145,15 @@ const ProductManager = () => {
   };
 
   const visible = products.filter((p) => showInactive || p.isActive);
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
 
   const renderForm = () => (
     <form className="stk-product-form" onSubmit={save}>
       <input placeholder="Nama produk" value={form.name} onChange={(e) => set('name', e.target.value)} required autoFocus />
+      <input list="product-categories" placeholder="Kategori" value={form.category} onChange={(e) => set('category', e.target.value)} />
+      <datalist id="product-categories">
+        {categories.map((c) => <option key={c} value={c} />)}
+      </datalist>
       <input type="number" inputMode="numeric" min="0" placeholder="Harga jual" value={form.price} onChange={(e) => set('price', e.target.value)} required />
       <select value={form.kind} onChange={(e) => set('kind', e.target.value)}>
         {Object.entries(PRODUCT_KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -159,21 +184,26 @@ const ProductManager = () => {
         <div className="ord-panel inset">
           <h4>Tempel daftar produk</h4>
           <p className="ord-line muted small">
-            Satu produk per baris: <code>Nama; Harga; Jenis; Modal</code>. Jenis dan modal boleh dikosongkan.
-            Tulis "beli jadi" untuk barang yang dibeli dari supplier. Bisa juga copy langsung dari Excel.
+            Satu produk per baris: <code>Nama; Kategori; Harga; Jenis; Modal</code>. Kategori, jenis dan modal boleh dikosongkan.
+            Tulis "beli jadi" atau "konsinyasi" untuk barang yang dibeli dari supplier. Tabel Excel bisa langsung di-copy.
           </p>
           <textarea
             className="stk-import"
             rows="8"
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
-            placeholder={'Risol Mayo; 5000\nRisol Ragout; 6000\nBolu Pandan; 10000; beli jadi; 7000'}
+            placeholder={'Risoles Kampung; RISOLES GORENG; 2500\nDonat Kentang; DONAT GORENG; 3500; beli jadi; 2800'}
           />
-          {preview.errors.map((err) => <div key={err} className="ord-line small" style={{ color: 'var(--danger)' }}>{err}</div>)}
+          {preview.errors.map((err) => <div key={err} className="ord-line small neg">{err}</div>)}
           {preview.rows.length > 0 && preview.errors.length === 0 && (
             <div className="ord-line small">
-              {preview.rows.length} produk siap diimport:{' '}
-              {preview.rows.map((r) => `${r.name} (${formatRupiah(r.price)}${r.kind === 'beli_jadi' ? ', beli jadi' : ''})`).join(', ')}
+              {preview.rows.length} produk siap diimport:
+              {groupByCategory(preview.rows).map((g) => (
+                <div key={g.category} className="stk-preview-group">
+                  <strong>{g.category}</strong> ({g.items.length}):{' '}
+                  {g.items.map((r) => `${r.name} ${formatRupiah(r.price)}${r.kind === 'beli_jadi' ? ' (beli jadi)' : ''}`).join(', ')}
+                </div>
+              ))}
             </div>
           )}
           <div className="ord-actions">
@@ -208,27 +238,32 @@ const ProductManager = () => {
                 <th></th>
               </tr>
             </thead>
-            <tbody>
-              {visible.map((p) => (
-                editingId === p.id ? (
-                  <tr key={p.id}><td colSpan="6">{renderForm()}</td></tr>
-                ) : (
-                  <tr key={p.id} className={p.isActive ? '' : 'dim'}>
-                    <td className="muted">{p.sortOrder}</td>
-                    <td>{p.name}{!p.isActive && <span className="muted"> (nonaktif)</span>}</td>
-                    <td>{PRODUCT_KIND[p.kind]}</td>
-                    <td className="num">{formatRupiah(p.price)}</td>
-                    <td className="num muted">{p.cost !== undefined ? formatRupiah(p.cost) : '-'}</td>
-                    <td className="stk-row-actions">
-                      <button className="ord-btn ghost small" onClick={() => startEdit(p)}>✏️</button>
-                      <button className="ord-btn ghost small" onClick={() => toggleActive(p)}>
-                        {p.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                      </button>
-                    </td>
-                  </tr>
-                )
-              ))}
-            </tbody>
+            {groupByCategory(visible).map((g) => (
+              <tbody key={g.category}>
+                <tr className="stk-group">
+                  <td colSpan="6">{g.category} <span className="muted">({g.items.length})</span></td>
+                </tr>
+                {g.items.map((p) => (
+                  editingId === p.id ? (
+                    <tr key={p.id}><td colSpan="6">{renderForm()}</td></tr>
+                  ) : (
+                    <tr key={p.id} className={p.isActive ? '' : 'dim'}>
+                      <td className="muted">{p.sortOrder}</td>
+                      <td>{p.name}{!p.isActive && <span className="muted"> (nonaktif)</span>}</td>
+                      <td>{PRODUCT_KIND[p.kind]}</td>
+                      <td className="num">{formatRupiah(p.price)}</td>
+                      <td className="num muted">{p.cost !== undefined ? formatRupiah(p.cost) : '-'}</td>
+                      <td className="stk-row-actions">
+                        <button className="ord-btn ghost small" onClick={() => startEdit(p)}>✏️</button>
+                        <button className="ord-btn ghost small" onClick={() => toggleActive(p)}>
+                          {p.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       )}

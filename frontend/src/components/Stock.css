@@ -89,9 +89,32 @@
 
 /* ---- Product form ---- */
 
+.stk-table tr.stk-group td {
+  padding-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--primary, #0f766e);
+  background: var(--surface-soft, #f5f7fb);
+}
+
+.stk-line-group {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--primary, #0f766e);
+  background: var(--surface-soft, #f5f7fb);
+  border-bottom: 1px solid var(--line, #dbe3ef);
+}
+
+.stk-preview-group {
+  margin-top: 4px;
+}
+
 .stk-product-form {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 70px;
+  grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr 70px;
   gap: 8px;
   align-items: center;
 }

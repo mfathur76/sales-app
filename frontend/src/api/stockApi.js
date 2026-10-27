@@ -32,3 +32,22 @@ export const PRODUCT_KIND = {
 
 /** Shops only: the kitchen account is not a stock location for shipments or counts. */
 export const shopOutlets = (outlets) => (outlets || []).filter((o) => o.role !== 'dapur');
+
+export const NO_CATEGORY = 'Lainnya';
+
+/** Groups items under their category, keeping the order in which categories first appear. */
+export function groupByCategory(items, getCategory = (x) => x.category) {
+  const groups = [];
+  const byName = new Map();
+  items.forEach((item) => {
+    const category = (getCategory(item) || '').trim() || NO_CATEGORY;
+    let g = byName.get(category);
+    if (!g) {
+      g = { category, items: [] };
+      byName.set(category, g);
+      groups.push(g);
+    }
+    g.items.push(item);
+  });
+  return groups;
+}
