@@ -11,11 +11,12 @@ import {
   PaymentInput,
 } from '../services/orderService';
 import { getCustomerById } from '../services/customerService';
+import { listProducts } from '../services/productService';
 import { verifyToken, extractBearerToken } from '../utils/jwt';
 import {
   ok, created, badRequest, unauthorized, forbidden, notFound, serverError, preflight,
 } from '../utils/response';
-import { JwtUser, Order, OrderStatus, PaymentStatus } from '../types';
+import { JwtUser, Order, OrderLine, OrderStatus, PaymentStatus } from '../types';
 
 const ORDER_STATUSES: OrderStatus[] = ['baru', 'diproses', 'siap', 'selesai', 'batal'];
 const PAYMENT_STATUSES: PaymentStatus[] = ['belum_bayar', 'dp', 'lunas'];
@@ -39,6 +40,36 @@ function canModify(user: JwtUser, order: Order): boolean {
 
 function isAmount(v: unknown): boolean {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0;
+}
+
+/**
+ * Order lines picked from the product list (or typed in). When there are lines, the total is their
+ * sum and, unless the client sent its own text, `items` becomes a readable summary of them.
+ * Writes the results onto `body` so parseOrderInput sees them; returns the clean lines or an error.
+ */
+async function applyLines(body: any): Promise<string | OrderLine[] | undefined> {
+  if (body.lines === undefined) return undefined;
+  if (!Array.isArray(body.lines)) return 'Daftar produk tidak valid';
+  if (body.lines.length === 0) return [];
+
+  // Include inactive products so older orders can still be edited
+  const products = new Map((await listProducts(true)).map((p) => [p.id, p]));
+  const lines: OrderLine[] = [];
+  for (const l of body.lines) {
+    if (!Number.isInteger(l?.qty) || l.qty <= 0) return 'Jumlah produk harus bilangan bulat lebih dari 0';
+    if (!isAmount(l.price)) return 'Harga produk tidak valid';
+    if (l.productId) {
+      const p = products.get(l.productId);
+      if (!p) return 'Produk tidak ditemukan';
+      lines.push({ productId: p.id, name: p.name, qty: l.qty, price: l.price });
+    } else {
+      if (!l.name || !String(l.name).trim()) return 'Nama barang wajib diisi';
+      lines.push({ name: String(l.name).trim(), qty: l.qty, price: l.price });
+    }
+  }
+  body.total = lines.reduce((sum, l) => sum + l.qty * l.price, 0);
+  if (!body.items || !String(body.items).trim()) body.items = lines.map((l) => `${l.name} ×${l.qty}`).join(', ');
+  return lines;
 }
 
 /**
@@ -152,7 +183,8 @@ export async function getOrder(event: APIGatewayProxyEvent): Promise<APIGatewayP
 /**
  * POST /api/orders
  * Body: { customerId, outlet?, orderDate, pickupDate, pickupTime?, fulfillment, deliveryAddress?,
- *         deliveryFee?, items, total, status?, notes?, payment?: { amount, method, date, note? } }
+ *         deliveryFee?, items, total, lines?: [{ productId?, name?, qty, price }], status?, notes?,
+ *         payment?: { amount, method, date, note? } } — with lines, items and total are derived from them
  */
 export async function createOrderHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -167,8 +199,11 @@ export async function createOrderHandler(event: APIGatewayProxyEvent): Promise<A
     if (!outlet) return badRequest('Outlet wajib diisi');
     if (!body.customerId) return badRequest('Customer wajib dipilih');
 
+    const lines = await applyLines(body);
+    if (typeof lines === 'string') return badRequest(lines);
     const input = parseOrderInput(body, false);
     if (typeof input === 'string') return badRequest(input);
+    if (lines) input.lines = lines;
 
     let payment: PaymentInput | undefined;
     if (body.payment && body.payment.amount) {
@@ -203,8 +238,11 @@ export async function updateOrderHandler(event: APIGatewayProxyEvent): Promise<A
     if (!canModify(user, existing)) return forbidden('Order ini milik outlet lain');
 
     const body = JSON.parse(event.body || '{}');
+    const lines = await applyLines(body);
+    if (typeof lines === 'string') return badRequest(lines);
     const input = parseOrderInput(body, true);
     if (typeof input === 'string') return badRequest(input);
+    if (lines) input.lines = lines;
 
     // Only admins can move an order to another outlet
     if (user.type === 'admin' && body.outlet) input.outlet = body.outlet;

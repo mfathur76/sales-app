@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   customerApi, orderApi, ORDER_STATUS, PAYMENT_METHODS, formatRupiah, localDate, displayPhone
 } from '../api/orderApi';
+import { productApi } from '../api/stockApi';
 import { CustomerForm } from './CustomerManager';
+import OrderLinesEditor, { linesTotal, toEditorLines } from './OrderLinesEditor';
 import './Orders.css';
 
 const CustomerPicker = ({ value, onChange, outlets, isAdmin, defaultOutlet }) => {
@@ -113,6 +115,14 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [products, setProducts] = useState([]);
+  const [lines, setLines] = useState(() => toEditorLines(order?.lines));
+  // Orders saved before the product list existed are plain text with a typed total
+  const [textMode, setTextMode] = useState(Boolean(order && !order.lines?.length));
+
+  useEffect(() => {
+    productApi.list().then(setProducts).catch(() => setProducts([]));
+  }, []);
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -123,7 +133,7 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
     }
   }, [form.fulfillment, customer]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const total = parseFloat(form.total) || 0;
+  const total = textMode ? parseFloat(form.total) || 0 : linesTotal(lines);
   const deliveryFee = form.fulfillment === 'antar' ? parseFloat(form.deliveryFee) || 0 : 0;
   const dp = parseFloat(form.dpAmount) || 0;
 
@@ -131,6 +141,14 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
     e.preventDefault();
     if (!customer) {
       setError('Pilih atau tambahkan customer dulu');
+      return;
+    }
+    if (!textMode && lines.length === 0) {
+      setError('Pilih minimal satu produk');
+      return;
+    }
+    if (!textMode && lines.some((l) => !String(l.name).trim() || l.price === '')) {
+      setError('Lengkapi nama dan harga setiap barang');
       return;
     }
     if (!isEdit && dp > total + deliveryFee) {
@@ -146,8 +164,10 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
       fulfillment: form.fulfillment,
       deliveryAddress: form.fulfillment === 'antar' ? form.deliveryAddress : '',
       deliveryFee,
-      items: form.items,
-      total,
+      ...(textMode
+        ? { items: form.items, total, lines: [] }
+        // The server sums the lines and writes the item summary
+        : { items: '', lines: lines.map(({ productId, name, qty, price }) => ({ productId, name, qty, price: Number(price) })) }),
       status: form.status,
       notes: form.notes
     };
@@ -232,21 +252,29 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
             </>
           )}
 
-          <label className="ord-field">
-            <span>Yang diorder *</span>
-            <textarea
-              rows="3"
-              value={form.items}
-              onChange={(e) => set('items', e.target.value)}
-              placeholder="Misal: 50 risol mayo, 30 risol ragout"
-              required
-            />
-          </label>
-
-          <label className="ord-field">
-            <span>Total harga (Rp) *</span>
-            <input type="number" inputMode="numeric" min="0" value={form.total} onChange={(e) => set('total', e.target.value)} required />
-          </label>
+          {textMode ? (
+            <>
+              <label className="ord-field">
+                <span>Yang diorder *</span>
+                <textarea
+                  rows="3"
+                  value={form.items}
+                  onChange={(e) => set('items', e.target.value)}
+                  placeholder="Misal: 50 risol mayo, 30 risol ragout"
+                  required
+                />
+              </label>
+              <label className="ord-field">
+                <span>Total harga (Rp) *</span>
+                <input type="number" inputMode="numeric" min="0" value={form.total} onChange={(e) => set('total', e.target.value)} required />
+              </label>
+              <button type="button" className="ord-btn ghost small" onClick={() => setTextMode(false)}>
+                Ganti ke daftar produk (total dihitung otomatis)
+              </button>
+            </>
+          ) : (
+            <OrderLinesEditor products={products} lines={lines} onChange={setLines} />
+          )}
 
           {!isEdit && (
             <div className="ord-grid">

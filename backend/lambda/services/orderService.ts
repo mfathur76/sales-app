@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { dbGet, dbPut, dbDelete, dbScan, TABLES } from './dynamodb';
-import { Customer, Fulfillment, Order, OrderPayment, OrderStatus, PaymentMethod, PaymentStatus } from '../types';
+import { Customer, Fulfillment, Order, OrderLine, OrderPayment, OrderStatus, PaymentMethod, PaymentStatus } from '../types';
 
 const TABLE = TABLES.ORDERS;
 
@@ -23,6 +23,7 @@ export interface OrderInput {
   deliveryAddress?: string;
   deliveryFee?: number;
   items: string;
+  lines?: OrderLine[];
   total: number;
   status?: OrderStatus;
   notes?: string;
@@ -63,6 +64,7 @@ function toOrder(item: Record<string, any>): Order {
     deliveryAddress: item.deliveryAddress,
     deliveryFee: item.deliveryFee ?? 0,
     items: item.items,
+    lines: item.lines,
     total: item.total ?? 0,
     grandTotal: 0,
     payments: item.payments ?? [],
@@ -136,6 +138,7 @@ export async function createOrder(
     deliveryAddress: data.fulfillment === 'antar' ? data.deliveryAddress?.trim() || undefined : undefined,
     deliveryFee: data.deliveryFee || 0,
     items: data.items.trim(),
+    lines: data.lines?.length ? data.lines : undefined,
     total: data.total,
     grandTotal: 0,
     payments: initialPayment ? [newPayment(initialPayment, createdBy)] : [],
@@ -172,6 +175,7 @@ export async function updateOrder(
   if (updates.deliveryAddress !== undefined) next.deliveryAddress = updates.deliveryAddress.trim() || undefined;
   if (updates.deliveryFee !== undefined) next.deliveryFee = updates.deliveryFee;
   if (updates.items !== undefined) next.items = updates.items.trim();
+  if (updates.lines !== undefined) next.lines = updates.lines.length ? updates.lines : undefined;
   if (updates.total !== undefined) next.total = updates.total;
   if (updates.status !== undefined) next.status = updates.status;
   if (updates.notes !== undefined) next.notes = updates.notes.trim() || undefined;
