@@ -2,34 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/salesApi';
 import { productApi, shipmentApi, shopOutlets, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay } from '../api/orderApi';
+import QtyInput from './QtyInput';
+import IncomingShipments from './IncomingShipments';
 import './Orders.css';
 import './Stock.css';
 
-const STEPS = [5, 10];
-
-/** Quantity cell with − / + buttons so the kitchen can fill a shipment with thumbs only. */
-export const QtyInput = ({ value, onChange, steps = STEPS }) => {
-  const n = Number(value) || 0;
-  return (
-    <div className="stk-qty">
-      <button type="button" onClick={() => onChange(Math.max(n - 1, 0))} aria-label="Kurangi">−</button>
-      <input
-        type="number"
-        inputMode="numeric"
-        min="0"
-        value={value === 0 ? '' : value}
-        placeholder="0"
-        onFocus={(e) => e.target.select()}
-        onChange={(e) => onChange(e.target.value === '' ? 0 : Math.max(parseInt(e.target.value, 10) || 0, 0))}
-      />
-      {steps.map((s) => (
-        <button type="button" key={s} onClick={() => onChange(n + s)}>+{s}</button>
-      ))}
-    </div>
-  );
-};
-
-const ShipmentForm = ({ shipment, outlets, products, onSaved, onCancel }) => {
+/**
+ * New or edited shipment. Admins also pick where it comes from: the kitchen by default, or an outlet
+ * (then it can go to another outlet or back to the kitchen).
+ */
+const ShipmentForm = ({ shipment, allOutlets, kitchenCode, isAdmin, products, onSaved, onCancel }) => {
+  const [source, setSource] = useState(shipment?.source || kitchenCode || '');
   const [outlet, setOutlet] = useState(shipment?.outlet || '');
   const [date, setDate] = useState(shipment?.date || localDate());
   const [notes, setNotes] = useState(shipment?.notes || '');
@@ -37,19 +20,25 @@ const ShipmentForm = ({ shipment, outlets, products, onSaved, onCancel }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!shipment && !source && kitchenCode) setSource(kitchenCode);
+  }, [kitchenCode, shipment, source]);
+
+  const sourceIsKitchen = allOutlets.find((o) => o.code === source)?.role === 'dapur';
+  const destinations = allOutlets.filter((o) => o.code !== source && (o.role !== 'dapur' || !sourceIsKitchen));
   const total = Object.values(qty).reduce((s, n) => s + (n || 0), 0);
 
   const submit = async (e) => {
     e.preventDefault();
     const lines = Object.entries(qty).filter(([, n]) => n > 0).map(([productId, n]) => ({ productId, qty: n }));
-    if (!outlet) { setError('Pilih outlet tujuan'); return; }
+    if (!outlet) { setError('Pilih tujuan'); return; }
     if (lines.length === 0) { setError('Isi jumlah minimal satu barang'); return; }
 
     setSaving(true);
     setError('');
     try {
       if (shipment) await shipmentApi.update(shipment, { date, lines, notes });
-      else await shipmentApi.create({ outlet, date, lines, notes });
+      else await shipmentApi.create({ outlet, source: isAdmin ? source : undefined, date, lines, notes });
       onSaved();
     } catch (err) {
       setError(err.message);
@@ -58,14 +47,28 @@ const ShipmentForm = ({ shipment, outlets, products, onSaved, onCancel }) => {
     }
   };
 
+  const label = (o) => (o.role === 'dapur' ? `🍳 ${o.code} - Dapur Pusat` : `${o.code} - ${o.name}`);
+
   return (
     <form className="ord-form" onSubmit={submit}>
+      {isAdmin && (
+        <label className="ord-field">
+          <span>Dari</span>
+          <select
+            value={source}
+            onChange={(e) => { setSource(e.target.value); setOutlet(''); }}
+            disabled={Boolean(shipment)}
+          >
+            {allOutlets.map((o) => <option key={o.code} value={o.code}>{label(o)}</option>)}
+          </select>
+        </label>
+      )}
       <div className="ord-grid">
         <label className="ord-field">
           <span>Kirim ke *</span>
           <select value={outlet} onChange={(e) => setOutlet(e.target.value)} disabled={Boolean(shipment)} required>
-            <option value="">Pilih outlet</option>
-            {outlets.map((o) => <option key={o.code} value={o.code}>{o.code} - {o.name}</option>)}
+            <option value="">Pilih tujuan</option>
+            {destinations.map((o) => <option key={o.code} value={o.code}>{label(o)}</option>)}
           </select>
         </label>
         <label className="ord-field">
@@ -108,13 +111,13 @@ const ShipmentForm = ({ shipment, outlets, products, onSaved, onCancel }) => {
   );
 };
 
-const ShipmentCard = ({ shipment, outletName, canChange, onEdit, onDelete }) => {
+const ShipmentCard = ({ shipment, route, canChange, onEdit, onDelete }) => {
   const total = shipment.lines.reduce((s, l) => s + l.qty, 0);
   const short = shipment.lines.filter((l) => l.receivedQty !== undefined && l.receivedQty !== l.qty);
   return (
     <div className="ord-card stk-card">
       <div className="ord-row-between">
-        <strong>{outletName}</strong>
+        <strong>{route}</strong>
         <span className="ord-chip" style={{ background: shipment.status === 'diterima' ? '#15803d' : '#d97706' }}>
           {shipment.status === 'diterima' ? 'Diterima' : 'Dikirim'}
         </span>
@@ -141,9 +144,13 @@ const ShipmentCard = ({ shipment, outletName, canChange, onEdit, onDelete }) => 
   );
 };
 
-/** Kitchen account and admins: send finished goods to outlets and see recent shipments. */
-const ShipmentManager = ({ isAdmin = false }) => {
-  const [outlets, setOutlets] = useState([]);
+/**
+ * Kitchen account and admins: send finished goods to outlets, receive returns from outlets, and see
+ * every shipment of the last 14 days (including transfers between outlets). `kitchen` is the kitchen
+ * account's own code; admins use the kitchen account found in the outlet list.
+ */
+const ShipmentManager = ({ isAdmin = false, kitchen }) => {
+  const [allOutlets, setAllOutlets] = useState([]);
   const [products, setProducts] = useState([]);
   const [shipments, setShipments] = useState([]);
   const [view, setView] = useState('kirim');
@@ -153,9 +160,12 @@ const ShipmentManager = ({ isAdmin = false }) => {
   const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
-    authApi.getOutlets().then((res) => setOutlets(shopOutlets(res?.data))).catch(() => setOutlets([]));
+    authApi.getOutlets().then((res) => setAllOutlets(res?.data || [])).catch(() => setAllOutlets([]));
     productApi.list().then(setProducts).catch((err) => setMessage({ type: 'error', text: err.message }));
   }, []);
+
+  const shops = shopOutlets(allOutlets);
+  const kitchenCode = kitchen || allOutlets.find((o) => o.role === 'dapur')?.code;
 
   const loadShipments = useCallback(async () => {
     try {
@@ -168,12 +178,21 @@ const ShipmentManager = ({ isAdmin = false }) => {
   useEffect(() => { loadShipments(); }, [loadShipments]);
 
   const outletName = (code) => {
-    const o = outlets.find((x) => x.code === code);
-    return o ? `${o.code} - ${o.name}` : code;
+    const o = allOutlets.find((x) => x.code === code);
+    if (!o) return code || 'Dapur Pusat';
+    return o.role === 'dapur' ? 'Dapur Pusat' : `${o.code} - ${o.name}`;
   };
+  // Shipments made before transfers existed have no source: they came from the kitchen
+  const sourceOf = (s) => s.source || kitchenCode;
+  const route = (s) => {
+    const to = allOutlets.find((o) => o.code === s.outlet)?.role === 'dapur' ? 'Dapur Pusat (retur)' : outletName(s.outlet);
+    return `${outletName(sourceOf(s))} → ${to}`;
+  };
+  // The kitchen may only change what it sent itself, until it is received
+  const canChange = (s) => isAdmin || (s.status === 'dikirim' && sourceOf(s) === kitchenCode);
 
   const handleDelete = async (s) => {
-    if (!window.confirm(`Hapus kiriman ke ${outletName(s.outlet)} tanggal ${formatDay(s.date)}?`)) return;
+    if (!window.confirm(`Hapus kiriman ${route(s)} tanggal ${formatDay(s.date)}?`)) return;
     try {
       await shipmentApi.remove(s);
       loadShipments();
@@ -190,6 +209,7 @@ const ShipmentManager = ({ isAdmin = false }) => {
 
       <div className="ord-tabs">
         <button className={view === 'kirim' ? 'active' : ''} onClick={() => { setView('kirim'); setEditing(null); }}>➕ Kirim Baru</button>
+        <button className={view === 'retur' ? 'active' : ''} onClick={() => setView('retur')}>↩️ Retur Masuk</button>
         <button className={view === 'riwayat' ? 'active' : ''} onClick={() => setView('riwayat')}>📋 Riwayat 14 Hari</button>
       </div>
 
@@ -200,11 +220,13 @@ const ShipmentManager = ({ isAdmin = false }) => {
           <div className="ord-empty">Belum ada produk. Admin perlu mengisi Master Produk dulu.</div>
         ) : (
           <ShipmentForm
-            key={formKey}
-            outlets={outlets}
+            key={`${formKey}-${kitchenCode}`}
+            allOutlets={isAdmin ? allOutlets : shops}
+            kitchenCode={kitchenCode}
+            isAdmin={isAdmin}
             products={products}
             onSaved={() => {
-              setMessage({ type: 'success', text: 'Kiriman tercatat. Outlet tinggal menekan Terima.' });
+              setMessage({ type: 'success', text: 'Kiriman tercatat. Penerima tinggal menekan Terima.' });
               setFormKey((k) => k + 1);
               loadShipments();
             }}
@@ -212,13 +234,28 @@ const ShipmentManager = ({ isAdmin = false }) => {
         )
       )}
 
+      {view === 'retur' && (
+        kitchenCode ? (
+          <IncomingShipments
+            outlet={kitchenCode}
+            outletName={outletName}
+            onReceived={loadShipments}
+            emptyText="Tidak ada retur dari outlet yang menunggu diterima."
+          />
+        ) : (
+          <div className="ord-empty">Belum ada akun Dapur Pusat. Atur di Manajemen Outlet.</div>
+        )
+      )}
+
       {view === 'riwayat' && (
         editing ? (
           <div className="ord-panel">
-            <h3>Edit Kiriman ke {outletName(editing.outlet)}</h3>
+            <h3>Edit Kiriman {route(editing)}</h3>
             <ShipmentForm
               shipment={editing}
-              outlets={outlets}
+              allOutlets={allOutlets}
+              kitchenCode={kitchenCode}
+              isAdmin={isAdmin}
               products={products}
               onCancel={() => setEditing(null)}
               onSaved={() => { setEditing(null); loadShipments(); }}
@@ -228,8 +265,8 @@ const ShipmentManager = ({ isAdmin = false }) => {
           <>
             <div className="ord-toolbar">
               <select value={filterOutlet} onChange={(e) => setFilterOutlet(e.target.value)}>
-                <option value="">Semua outlet</option>
-                {outlets.map((o) => <option key={o.code} value={o.code}>{o.code} - {o.name}</option>)}
+                <option value="">Semua tujuan</option>
+                {allOutlets.map((o) => <option key={o.code} value={o.code}>{outletName(o.code)}</option>)}
               </select>
             </div>
             {shipments.length === 0 ? (
@@ -240,8 +277,8 @@ const ShipmentManager = ({ isAdmin = false }) => {
                   <ShipmentCard
                     key={s.id}
                     shipment={s}
-                    outletName={outletName(s.outlet)}
-                    canChange={isAdmin || s.status === 'dikirim'}
+                    route={route(s)}
+                    canChange={canChange(s)}
                     onEdit={() => setEditing(s)}
                     onDelete={() => handleDelete(s)}
                   />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { productApi, kitchenApi, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay, formatRupiah } from '../api/orderApi';
-import { QtyInput } from './ShipmentManager';
+import QtyInput from './QtyInput';
 import './Orders.css';
 import './Stock.css';
 
@@ -236,7 +236,7 @@ const KitchenCount = () => {
         </div>
       ) : (
         <p className="ord-line muted small">
-          Stok seharusnya = opname {formatDay(draft.prevDate)} + produksi + beli jadi datang − semua kiriman sesudahnya.
+          Stok seharusnya = opname {formatDay(draft.prevDate)} + produksi + beli jadi datang + retur dari outlet − kiriman ke outlet sesudahnya.
         </p>
       )}
 
@@ -267,9 +267,10 @@ const KitchenCount = () => {
                 <tr key={r.productId} className={!counting && r.expected === 0 ? 'dim' : ''}>
                   <td>
                     {r.name}
-                    {!draft.isFirstCount && (r.produced > 0 || r.bought > 0 || r.shipped > 0) && (
+                    {!draft.isFirstCount && (r.produced > 0 || r.bought > 0 || r.returned > 0 || r.shipped > 0) && (
                       <div className="muted small">
-                        {r.opening} {r.produced > 0 && `+${r.produced} produksi `}{r.bought > 0 && `+${r.bought} masuk `}{r.shipped > 0 && `−${r.shipped} kirim`}
+                        {r.opening} {r.produced > 0 && `+${r.produced} produksi `}{r.bought > 0 && `+${r.bought} masuk `}
+                        {r.returned > 0 && `+${r.returned} retur `}{r.shipped > 0 && `−${r.shipped} kirim`}
                       </div>
                     )}
                   </td>
@@ -402,7 +403,10 @@ const KitchenReport = () => {
             <div className="stk-table-wrap">
               <table className="stk-table">
                 <thead>
-                  <tr><th>Produk</th><th className="num">Produksi</th><th className="num">Masuk</th><th className="num">Dikirim</th></tr>
+                  <tr>
+                    <th>Produk</th><th className="num">Produksi</th><th className="num">Masuk</th>
+                    <th className="num">Retur</th><th className="num">Dikirim</th>
+                  </tr>
                 </thead>
                 {groupByCategory(report.movement).map((g) => (
                   <tbody key={g.category}>
@@ -410,6 +414,7 @@ const KitchenReport = () => {
                       <td>{g.category}</td>
                       <td className="num">{g.items.reduce((s, m) => s + m.produced, 0) || ''}</td>
                       <td className="num">{g.items.reduce((s, m) => s + m.bought, 0) || ''}</td>
+                      <td className="num">{g.items.reduce((s, m) => s + (m.returned || 0), 0) || ''}</td>
                       <td className="num">{g.items.reduce((s, m) => s + m.shipped, 0)}</td>
                     </tr>
                     {g.items.map((m) => (
@@ -417,6 +422,7 @@ const KitchenReport = () => {
                         <td>{m.name}</td>
                         <td className="num">{m.produced || ''}</td>
                         <td className="num">{m.bought || ''}</td>
+                        <td className="num">{m.returned || ''}</td>
                         <td className="num">{m.shipped}</td>
                       </tr>
                     ))}

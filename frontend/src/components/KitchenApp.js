@@ -39,7 +39,7 @@ const KitchenApp = ({ user, onLogout }) => {
       </div>
 
       <main>
-        {view === 'kiriman' && <ShipmentManager />}
+        {view === 'kiriman' && <ShipmentManager kitchen={user.outlet} />}
         {view === 'stok' && <KitchenStock />}
         {view === 'pengeluaran' && <ExpenseManager user={user} />}
       </main>

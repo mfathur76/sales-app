@@ -12,7 +12,7 @@ const TABLE = TABLES.STOCK;
  *   Entry: PK = KITCHEN_ENTRY#{kitchen}  SK = ID#{id}       (production or bought-in goods arriving)
  *   Count: PK = CLOSING#{kitchen}        SK = DATE#{date}   (weekly freezer count, same shape as an outlet count)
  *
- * Expected stock on a count day = previous count + entries − every shipment sent since then.
+ * Expected stock on a count day = previous count + entries + returns from outlets − shipments it sent.
  * The count then shows the gap: counted + waste − expected (negative = missing).
  */
 
@@ -104,6 +104,9 @@ export async function lastCountDate(kitchen: string): Promise<string | null> {
 
 // ---- Expected stock and counts ----
 
+/** Shipments made before transfers existed have no source; they all came from the kitchen. */
+const fromKitchen = (s: Shipment, kitchen: string) => !s.source || s.source === kitchen;
+
 interface KitchenFlow {
   productId: string;
   name: string;
@@ -113,13 +116,18 @@ interface KitchenFlow {
   produced: number;
   bought: number;
   shipped: number;
+  returned: number;  // sent back by outlets
   expected: number;
   remaining?: number;
   waste?: number;
 }
 
-/** Movements in (prev.date, date]; with no previous count everything up to `date` counts from zero. */
+/**
+ * Movements in (prev.date, date]; with no previous count everything up to `date` counts from zero.
+ * Shipments the kitchen sent go out, returns from outlets come in, outlet-to-outlet transfers are ignored.
+ */
 function kitchenFlows(
+  kitchen: string,
   date: string,
   prev: StockClosing | undefined,
   entries: KitchenEntry[],
@@ -134,7 +142,7 @@ function kitchenFlows(
       const p = productById.get(productId);
       f = {
         productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0,
-        opening: 0, produced: 0, bought: 0, shipped: 0, expected: 0,
+        opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, expected: 0,
       };
       map.set(productId, f);
     }
@@ -149,9 +157,10 @@ function kitchenFlows(
     else f.produced += l.qty;
   }));
   shipments.filter((s) => inPeriod(s.date)).forEach((s) => s.lines.forEach((l) => {
-    get(l.productId, l.name).shipped += l.qty;
+    if (s.outlet === kitchen) get(l.productId, l.name).returned += l.receivedQty ?? l.qty;
+    else if (fromKitchen(s, kitchen)) get(l.productId, l.name).shipped += l.qty;
   }));
-  map.forEach((f) => { f.expected = f.opening + f.produced + f.bought - f.shipped; });
+  map.forEach((f) => { f.expected = f.opening + f.produced + f.bought + f.returned - f.shipped; });
   return map;
 }
 
@@ -169,14 +178,14 @@ export async function getKitchenCountDraft(kitchen: string, date: string) {
   const [counts, entries, shipments, products] = await load(kitchen, date);
   const existing = counts.find((c) => c.date === date);
   const prev = counts.filter((c) => c.date < date).pop();
-  const map = kitchenFlows(date, prev, entries, shipments, products);
+  const map = kitchenFlows(kitchen, date, prev, entries, shipments, products);
 
   existing?.lines.forEach((l) => {
     const f = map.get(l.productId);
     if (f) Object.assign(f, { remaining: l.remaining, waste: l.waste });
     else {
       map.set(l.productId, {
-        productId: l.productId, name: l.name, price: l.price, opening: 0, produced: 0, bought: 0, shipped: 0,
+        productId: l.productId, name: l.name, price: l.price, opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0,
         expected: 0, remaining: l.remaining, waste: l.waste,
       });
     }
@@ -186,7 +195,7 @@ export async function getKitchenCountDraft(kitchen: string, date: string) {
   products.filter((p) => p.isActive && !map.has(p.id)).forEach((p) => {
     map.set(p.id, {
       productId: p.id, name: p.name, category: p.category, price: p.price,
-      opening: 0, produced: 0, bought: 0, shipped: 0, expected: 0,
+      opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, expected: 0,
     });
   });
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
@@ -231,7 +240,7 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
       countRows.push({ date: c.date, prevDate: null, isFirstCount: true, lines: [], diff: 0, diffValue: 0, waste: 0 });
       continue;
     }
-    const map = kitchenFlows(c.date, prev, entries, shipments, products);
+    const map = kitchenFlows(kitchen, c.date, prev, entries, shipments, products);
     const counted = new Map(c.lines.map((l) => [l.productId, l]));
     const ids = new Set([...map.keys(), ...counted.keys()]);
     const lines = [...ids].map((id) => {
@@ -266,11 +275,11 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
 
   // Movements inside the range, whatever the count dates
   const inRange = (d: string) => d >= from && d <= to;
-  const movement = new Map<string, { productId: string; name: string; category?: string; produced: number; bought: number; shipped: number }>();
+  const movement = new Map<string, { productId: string; name: string; category?: string; produced: number; bought: number; shipped: number; returned: number }>();
   const move = (productId: string, name: string) => {
     let m = movement.get(productId);
     if (!m) {
-      m = { productId, name, category: categoryById.get(productId), produced: 0, bought: 0, shipped: 0 };
+      m = { productId, name, category: categoryById.get(productId), produced: 0, bought: 0, shipped: 0, returned: 0 };
       movement.set(productId, m);
     }
     return m;
@@ -280,7 +289,10 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
     if (e.kind === 'masuk') m.bought += l.qty;
     else m.produced += l.qty;
   }));
-  shipments.filter((s) => inRange(s.date)).forEach((s) => s.lines.forEach((l) => { move(l.productId, l.name).shipped += l.qty; }));
+  shipments.filter((s) => inRange(s.date)).forEach((s) => s.lines.forEach((l) => {
+    if (s.outlet === kitchen) move(l.productId, l.name).returned += l.receivedQty ?? l.qty;
+    else if (fromKitchen(s, kitchen)) move(l.productId, l.name).shipped += l.qty;
+  }));
 
   const order = new Map(products.map((p, i) => [p.id, i]));
   return {

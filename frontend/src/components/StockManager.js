@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/salesApi';
 import { shipmentApi, stockApi, shopOutlets, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay, formatRupiah } from '../api/orderApi';
-import { QtyInput } from './ShipmentManager';
+import QtyInput from './QtyInput';
+import IncomingShipments from './IncomingShipments';
 import './Orders.css';
 import './Stock.css';
 
@@ -43,7 +44,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
 
   const rows = (draft?.lines || []).map((l) => {
     const c = counts[l.productId] || {};
-    const stock = l.opening + l.received;
+    const stock = l.opening + l.received - l.sent;
     const filled = c.remaining !== '' && c.remaining !== undefined;
     const sold = filled ? stock - Number(c.remaining) - Number(c.waste || 0) : null;
     return { ...l, stock, filled, sold, remaining: c.remaining, waste: c.waste || 0 };
@@ -95,7 +96,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
             </div>
           ) : (
             <p className="ord-line muted small">
-              Stok = sisa hitungan {formatDay(draft.prevDate)} + kiriman sesudahnya. Isi sisa barang yang ada sekarang.
+              Stok = sisa hitungan {formatDay(draft.prevDate)} + kiriman masuk − transfer keluar sesudahnya. Isi sisa barang yang ada sekarang.
             </p>
           )}
           {pending > 0 && (
@@ -127,7 +128,11 @@ const ClosingForm = ({ outlet, isAdmin }) => {
                     <tr key={r.productId} className={r.stock === 0 && !r.filled ? 'dim' : ''}>
                       <td>
                         {r.name}
-                        {!draft.isFirstCount && r.received > 0 && <div className="muted small">+{r.received} kiriman</div>}
+                        {!draft.isFirstCount && (r.received > 0 || r.sent > 0) && (
+                          <div className="muted small">
+                            {r.received > 0 && `+${r.received} masuk `}{r.sent > 0 && `−${r.sent} keluar`}
+                          </div>
+                        )}
                       </td>
                       <td className="num">{draft.isFirstCount ? '-' : r.stock}</td>
                       <td className="num">
@@ -182,112 +187,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
   );
 };
 
-const IncomingShipments = ({ outlet, isAdmin, onReceived }) => {
-  const [shipments, setShipments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [received, setReceived] = useState({}); // shipmentId -> { productId: qty }
-  const [busy, setBusy] = useState(null);
-  const [error, setError] = useState('');
-
-  const load = useCallback(async () => {
-    if (!outlet) return;
-    try {
-      setLoading(true);
-      setShipments(await shipmentApi.list({ outlet: isAdmin ? outlet : undefined, from: localDate(-14) }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [outlet, isAdmin]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const qtyFor = (s, l) => received[s.id]?.[l.productId] ?? l.qty;
-
-  const receive = async (s) => {
-    const lines = s.lines.map((l) => ({ productId: l.productId, receivedQty: qtyFor(s, l) }));
-    const diff = lines.filter((x, i) => x.receivedQty !== s.lines[i].qty);
-    if (diff.length && !window.confirm(`Jumlah diterima beda dengan yang dikirim untuk ${diff.length} produk. Simpan?`)) return;
-    setBusy(s.id);
-    setError('');
-    try {
-      await shipmentApi.receive(s, lines);
-      await load();
-      onReceived?.();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  if (loading) return <div className="ord-empty">Memuat kiriman...</div>;
-
-  const waiting = shipments.filter((s) => s.status === 'dikirim');
-  const done = shipments.filter((s) => s.status === 'diterima');
-
-  return (
-    <div>
-      {error && <div className="ord-alert error">{error}</div>}
-      {waiting.length === 0 && <div className="ord-empty">Tidak ada kiriman yang menunggu diterima.</div>}
-
-      {waiting.map((s) => (
-        <div key={s.id} className="ord-panel">
-          <div className="ord-row-between">
-            <strong>Kiriman {formatDay(s.date)}</strong>
-            <span className="ord-chip" style={{ background: '#d97706' }}>Belum diterima</span>
-          </div>
-          <p className="ord-line muted small">Cek barangnya. Kalau jumlah yang datang beda, ubah angkanya dulu.</p>
-          <div className="stk-lines">
-            {s.lines.map((l) => (
-              <div key={l.productId} className={`stk-line ${qtyFor(s, l) !== l.qty ? 'changed' : ''}`}>
-                <span className="stk-line-name">
-                  {l.name}
-                  <span className="muted small"> dikirim {l.qty}</span>
-                </span>
-                <QtyInput
-                  value={qtyFor(s, l)}
-                  steps={[]}
-                  onChange={(n) => setReceived((prev) => ({ ...prev, [s.id]: { ...prev[s.id], [l.productId]: n } }))}
-                />
-              </div>
-            ))}
-          </div>
-          {s.notes && <p className="ord-line muted small">📝 {s.notes}</p>}
-          <div className="ord-actions">
-            <button className="ord-btn primary" onClick={() => receive(s)} disabled={busy === s.id}>
-              {busy === s.id ? 'Menyimpan...' : '✅ Terima'}
-            </button>
-          </div>
-        </div>
-      ))}
-
-      {done.length > 0 && (
-        <>
-          <h4 className="ord-section-title">Sudah diterima (14 hari)</h4>
-          <div className="ord-list">
-            {done.map((s) => (
-              <div key={s.id} className="ord-card stk-card">
-                <div className="ord-row-between">
-                  <strong>{formatDay(s.date)}</strong>
-                  <span className="muted small">{s.receivedBy ? `diterima ${s.receivedBy}` : ''}</span>
-                </div>
-                <div className="ord-items full">
-                  {s.lines.map((l) => (l.receivedQty !== undefined && l.receivedQty !== l.qty
-                    ? `${l.name} ${l.receivedQty} (dikirim ${l.qty})`
-                    : `${l.name} ${l.qty}`)).join(', ')}
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-const OutletReport = ({ report, outletName }) => {
+const OutletReport = ({ report, outletName, nameOf }) => {
   const s = report.summary;
   return (
     <div className="ord-panel">
@@ -381,7 +281,19 @@ const OutletReport = ({ report, outletName }) => {
           <h4 className="ord-section-title">Selisih kiriman</h4>
           {report.shipmentDiffs.map((x) => (
             <div key={`${x.shipmentId}-${x.name}`} className="ord-line small">
-              {formatDay(x.date)} · {x.name}: dikirim {x.sent}, diterima {x.received} ({x.received - x.sent})
+              {formatDay(x.date)} · {x.direction === 'keluar' ? `ke ${nameOf(x.counterpart)}` : `dari ${x.counterpart ? nameOf(x.counterpart) : 'Dapur Pusat'}`}
+              {' · '}{x.name}: dikirim {x.sent}, diterima {x.received} ({x.received - x.sent})
+            </div>
+          ))}
+        </>
+      )}
+
+      {report.transfersOut?.length > 0 && (
+        <>
+          <h4 className="ord-section-title">Transfer & retur keluar</h4>
+          {report.transfersOut.map((t) => (
+            <div key={t.shipmentId} className="ord-line small">
+              {formatDay(t.date)} · ke {nameOf(t.to)}: {t.qty} pcs
             </div>
           ))}
         </>
@@ -397,7 +309,7 @@ function localDateBefore(ymd) {
   return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 }
 
-const StockReport = ({ outlet, isAdmin, outlets }) => {
+const StockReport = ({ outlet, isAdmin, outletName }) => {
   const [from, setFrom] = useState(localDate(-6));
   const [to, setTo] = useState(localDate());
   const [reports, setReports] = useState([]);
@@ -418,11 +330,6 @@ const StockReport = ({ outlet, isAdmin, outlets }) => {
 
   useEffect(() => { load(); }, [load]);
 
-  const name = (code) => {
-    const o = outlets.find((x) => x.code === code);
-    return o ? `${o.code} - ${o.name}` : code;
-  };
-
   return (
     <div>
       <div className="ord-toolbar">
@@ -433,7 +340,176 @@ const StockReport = ({ outlet, isAdmin, outlets }) => {
       {loading ? (
         <div className="ord-empty">Memuat laporan...</div>
       ) : (
-        reports.map((r) => <OutletReport key={r.outlet} report={r} outletName={name(r.outlet)} />)
+        reports.map((r) => <OutletReport key={r.outlet} report={r} outletName={outletName(r.outlet)} nameOf={outletName} />)
+      )}
+    </div>
+  );
+};
+
+/** Send stock to another outlet, or back to the kitchen. The receiver confirms with Terima. */
+const TransferOut = ({ outlet, isAdmin, outlets, outletName, onChanged }) => {
+  const [dest, setDest] = useState('');
+  const [date, setDate] = useState(localDate());
+  const [notes, setNotes] = useState('');
+  const [qty, setQty] = useState({});
+  const [draft, setDraft] = useState(null);
+  const [sent, setSent] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  const loadStock = useCallback(async () => {
+    try {
+      setDraft(await stockApi.getClosing(date, isAdmin ? outlet : undefined));
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  }, [date, outlet, isAdmin]);
+
+  const loadSent = useCallback(async () => {
+    try {
+      const all = await shipmentApi.list({ from: localDate(-14) });
+      setSent(all.filter((s) => s.source === outlet));
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  }, [outlet]);
+
+  useEffect(() => { loadStock(); }, [loadStock]);
+  useEffect(() => { loadSent(); }, [loadSent]);
+
+  const destinations = outlets.filter((o) => o.code !== outlet);
+  const isReturn = outlets.find((o) => o.code === dest)?.role === 'dapur';
+  const rows = (draft?.lines || []).map((l) => ({ ...l, stock: l.opening + l.received - l.sent }));
+  const over = rows.filter((r) => (qty[r.productId] || 0) > Math.max(r.stock, 0));
+  const total = Object.values(qty).reduce((s, n) => s + (n || 0), 0);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const lines = Object.entries(qty).filter(([, n]) => n > 0).map(([productId, n]) => ({ productId, qty: n }));
+    if (!dest) { setMessage({ type: 'error', text: 'Pilih tujuan' }); return; }
+    if (lines.length === 0) { setMessage({ type: 'error', text: 'Isi jumlah minimal satu barang' }); return; }
+    if (over.length && !window.confirm(`Jumlah ${over.map((r) => r.name).join(', ')} lebih dari stok tercatat. Tetap kirim?`)) return;
+
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    try {
+      await shipmentApi.create({ outlet: dest, source: isAdmin ? outlet : undefined, date, lines, notes });
+      setQty({});
+      setNotes('');
+      setMessage({ type: 'success', text: `${isReturn ? 'Retur' : 'Transfer'} ${total} pcs ke ${outletName(dest)} tercatat. Tinggal ditekan Terima oleh penerima.` });
+      loadStock();
+      loadSent();
+      onChanged?.();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (s) => {
+    if (!window.confirm(`Batalkan kiriman ke ${outletName(s.outlet)} tanggal ${formatDay(s.date)}?`)) return;
+    try {
+      await shipmentApi.remove(s);
+      loadStock();
+      loadSent();
+      onChanged?.();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  return (
+    <div>
+      <form className="ord-form" onSubmit={submit}>
+        <div className="ord-grid">
+          <label className="ord-field">
+            <span>Kirim ke *</span>
+            <select value={dest} onChange={(e) => setDest(e.target.value)} required>
+              <option value="">Pilih tujuan</option>
+              {destinations.map((o) => (
+                <option key={o.code} value={o.code}>
+                  {o.role === 'dapur' ? `🍳 ${o.code} - Dapur Pusat (retur)` : `${o.code} - ${o.name}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="ord-field">
+            <span>Tanggal</span>
+            <input type="date" value={date} max={localDate()} onChange={(e) => setDate(e.target.value)} required />
+          </label>
+        </div>
+
+        {draft?.saved && (
+          <div className="ord-alert warn">Outlet ini sudah tutup toko tanggal {formatDay(date)}. Pakai tanggal besok.</div>
+        )}
+
+        <div className="stk-lines">
+          {groupByCategory(rows).map((g) => (
+            <React.Fragment key={g.category}>
+              <div className="stk-line-group">{g.category}</div>
+              {g.items.map((r) => (
+                <div
+                  key={r.productId}
+                  className={`stk-line ${qty[r.productId] ? 'filled' : ''} ${(qty[r.productId] || 0) > Math.max(r.stock, 0) ? 'changed' : ''}`}
+                >
+                  <span className="stk-line-name">
+                    {r.name}
+                    <span className="muted small"> stok {r.stock}</span>
+                  </span>
+                  <QtyInput value={qty[r.productId] || 0} onChange={(n) => setQty((prev) => ({ ...prev, [r.productId]: n }))} />
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+
+        <label className="ord-field">
+          <span>Alasan / catatan</span>
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={isReturn ? 'Misal: kelebihan stok, mendekati kedaluwarsa' : 'Misal: stok outlet tujuan habis'}
+          />
+        </label>
+
+        {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
+
+        <div className="stk-sticky-bar">
+          <span><strong>{total}</strong> pcs</span>
+          <button type="submit" className="ord-btn primary" disabled={saving}>
+            {saving ? 'Menyimpan...' : isReturn ? '↩️ Retur ke Dapur' : '🔁 Transfer'}
+          </button>
+        </div>
+      </form>
+
+      <h4 className="ord-section-title">Dikirim dari outlet ini (14 hari)</h4>
+      {sent.length === 0 ? (
+        <div className="ord-line muted">Belum ada transfer atau retur.</div>
+      ) : (
+        <div className="ord-list">
+          {sent.map((s) => (
+            <div key={s.id} className="ord-card stk-card">
+              <div className="ord-row-between">
+                <strong>Ke {outletName(s.outlet)}</strong>
+                <span className="ord-chip" style={{ background: s.status === 'diterima' ? '#15803d' : '#d97706' }}>
+                  {s.status === 'diterima' ? 'Diterima' : 'Belum diterima'}
+                </span>
+              </div>
+              <div className="ord-line muted small">{formatDay(s.date)}{s.notes ? ` · ${s.notes}` : ''}</div>
+              <div className="ord-items full">
+                {s.lines.map((l) => (l.receivedQty !== undefined && l.receivedQty !== l.qty
+                  ? `${l.name} ${l.qty} (diterima ${l.receivedQty})`
+                  : `${l.name} ${l.qty}`)).join(', ')}
+              </div>
+              {(isAdmin || s.status === 'dikirim') && (
+                <div className="ord-actions">
+                  <button className="ord-btn danger small" onClick={() => remove(s)}>Batalkan</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -442,19 +518,27 @@ const StockReport = ({ outlet, isAdmin, outlets }) => {
 const VIEWS = [
   { id: 'tutup', label: '🌙 Tutup Toko' },
   { id: 'kiriman', label: '🚚 Kiriman Masuk' },
+  { id: 'transfer', label: '🔁 Transfer Keluar' },
   { id: 'laporan', label: '📊 Laporan' }
 ];
 
-/** Outlet staff: end-of-day count, incoming shipments, own report. Admins pick the outlet. */
+/** Outlet staff: end-of-day count, incoming shipments, transfers out, own report. Admins pick the outlet. */
 const StockManager = ({ user, isAdmin = false }) => {
   const [view, setView] = useState('tutup');
-  const [outlets, setOutlets] = useState([]);
+  const [allOutlets, setAllOutlets] = useState([]);
   const [outlet, setOutlet] = useState(isAdmin ? '' : user?.outlet || '');
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    authApi.getOutlets().then((res) => setOutlets(shopOutlets(res?.data))).catch(() => setOutlets([]));
+    authApi.getOutlets().then((res) => setAllOutlets(res?.data || [])).catch(() => setAllOutlets([]));
   }, []);
+
+  const outlets = shopOutlets(allOutlets);
+  const outletName = (code) => {
+    const o = allOutlets.find((x) => x.code === code);
+    if (!o) return code;
+    return o.role === 'dapur' ? 'Dapur Pusat' : `${o.code} - ${o.name}`;
+  };
 
   // Admin report may cover all outlets; the count and shipments need one outlet
   const needsOutlet = isAdmin && !outlet && view !== 'laporan';
@@ -486,9 +570,19 @@ const StockManager = ({ user, isAdmin = false }) => {
         <>
           {view === 'tutup' && <ClosingForm key={`${outlet}-${refreshKey}`} outlet={outlet} isAdmin={isAdmin} />}
           {view === 'kiriman' && (
-            <IncomingShipments outlet={outlet} isAdmin={isAdmin} onReceived={() => setRefreshKey((k) => k + 1)} />
+            <IncomingShipments outlet={outlet} outletName={outletName} onReceived={() => setRefreshKey((k) => k + 1)} />
           )}
-          {view === 'laporan' && <StockReport outlet={outlet} isAdmin={isAdmin} outlets={outlets} />}
+          {view === 'transfer' && (
+            <TransferOut
+              key={outlet}
+              outlet={outlet}
+              isAdmin={isAdmin}
+              outlets={allOutlets}
+              outletName={outletName}
+              onChanged={() => setRefreshKey((k) => k + 1)}
+            />
+          )}
+          {view === 'laporan' && <StockReport outlet={outlet} isAdmin={isAdmin} outletName={outletName} />}
         </>
       )}
     </div>
