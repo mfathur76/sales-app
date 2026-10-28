@@ -640,6 +640,63 @@ functions:
           method: get
           cors: true
 
+  # ---- Resellers ----
+  getResellerSales:
+    handler: lambda/handlers/reseller.getResellerSalesHandler
+    events:
+      - http:
+          path: api/resellers/sales
+          method: get
+          cors: true
+
+  createResellerSale:
+    handler: lambda/handlers/reseller.createResellerSaleHandler
+    events:
+      - http:
+          path: api/resellers/sales
+          method: post
+          cors: true
+
+  getResellerSummary:
+    handler: lambda/handlers/reseller.getResellerSummaryHandler
+    events:
+      - http:
+          path: api/resellers/summary
+          method: get
+          cors: true
+
+  updateResellerSale:
+    handler: lambda/handlers/reseller.updateResellerSaleHandler
+    events:
+      - http:
+          path: api/resellers/sales/{id}
+          method: put
+          cors: true
+
+  deleteResellerSale:
+    handler: lambda/handlers/reseller.deleteResellerSaleHandler
+    events:
+      - http:
+          path: api/resellers/sales/{id}
+          method: delete
+          cors: true
+
+  addResellerPayment:
+    handler: lambda/handlers/reseller.addResellerPaymentHandler
+    events:
+      - http:
+          path: api/resellers/sales/{id}/payments
+          method: post
+          cors: true
+
+  deleteResellerPayment:
+    handler: lambda/handlers/reseller.deleteResellerPaymentHandler
+    events:
+      - http:
+          path: api/resellers/sales/{id}/payments/{paymentId}
+          method: delete
+          cors: true
+
 # ---- DynamoDB Tables ----
 resources:
   Resources:

@@ -28,6 +28,7 @@ function validate(p: any, partial: boolean): string | null {
   if ((!partial || p.name !== undefined) && (!p.name || !String(p.name).trim())) return 'Nama produk wajib diisi';
   if ((!partial || p.price !== undefined) && !isAmount(p.price)) return 'Harga jual tidak valid';
   if (p.cost !== undefined && p.cost !== null && !isAmount(p.cost)) return 'Harga modal tidak valid';
+  if (p.resellerPrice !== undefined && p.resellerPrice !== null && !isAmount(p.resellerPrice)) return 'Harga reseller tidak valid';
   if (p.kind !== undefined && p.kind !== 'produksi' && p.kind !== 'beli_jadi') return 'Jenis produk tidak valid';
   if (p.category !== undefined && p.category !== null && typeof p.category !== 'string') return 'Kategori tidak valid';
   return null;
@@ -38,6 +39,7 @@ function pick(p: any): ProductInput {
     name: p.name,
     price: p.price,
     cost: p.cost ?? undefined,
+    resellerPrice: p.resellerPrice ?? undefined,
     kind: p.kind,
     category: typeof p.category === 'string' ? p.category : undefined,
     sortOrder: typeof p.sortOrder === 'number' ? p.sortOrder : undefined,

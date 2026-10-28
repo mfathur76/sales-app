@@ -8,13 +8,14 @@ import './Orders.css';
  * Add/edit form for one customer. Used on the Customer tab and inline in the order form.
  * On a duplicate phone number it offers the existing customer via onUseExisting.
  */
-export const CustomerForm = ({ customer, outlets, isAdmin, defaultOutlet, onSaved, onCancel, onUseExisting }) => {
+export const CustomerForm = ({ customer, outlets, isAdmin, defaultOutlet, defaultReseller = false, onSaved, onCancel, onUseExisting }) => {
   const [form, setForm] = useState({
     name: customer?.name || '',
     phone: displayPhone(customer?.phone),
     address: customer?.address || '',
     notes: customer?.notes || '',
-    outlet: customer?.outlet || defaultOutlet || ''
+    outlet: customer?.outlet || defaultOutlet || '',
+    isReseller: customer ? customer.isReseller === true : defaultReseller
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -80,6 +81,10 @@ export const CustomerForm = ({ customer, outlets, isAdmin, defaultOutlet, onSave
           onChange={(e) => set('notes', e.target.value)}
           placeholder="Misal: suka pedas, langganan arisan"
         />
+      </label>
+      <label className="ord-line stk-check">
+        <input type="checkbox" checked={form.isReseller} onChange={(e) => set('isReseller', e.target.checked)} />
+        Reseller (ambil barang dari dapur, bayar belakangan)
       </label>
       {isAdmin && !customer && (
         <label className="ord-field">
@@ -286,7 +291,10 @@ const CustomerManager = ({ user, isAdmin, outlets, onNewOrder, onOpenOrder, refr
             <button key={c.id} className="ord-card" onClick={() => setSelectedId(c.id)}>
               <div className="ord-row-between">
                 <strong>{c.name}</strong>
-                <span className="ord-chip outline">{c.outlet}</span>
+                <span>
+                  {c.isReseller && <span className="ord-chip" style={{ background: '#7c3aed' }}>Reseller</span>}{' '}
+                  <span className="ord-chip outline">{c.outlet}</span>
+                </span>
               </div>
               <div className="ord-line muted">{displayPhone(c.phone)}{c.address ? ` · ${c.address}` : ''}</div>
             </button>

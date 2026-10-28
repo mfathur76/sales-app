@@ -9,6 +9,7 @@ import {
   DuplicatePhoneError,
 } from '../services/customerService';
 import { listOrders, syncCustomerOnOrders } from '../services/orderService';
+import { syncCustomerOnResellerSales } from '../services/resellerService';
 import { verifyToken, extractBearerToken } from '../utils/jwt';
 import {
   ok, created, badRequest, unauthorized, forbidden, notFound, serverError, preflight,
@@ -78,7 +79,7 @@ export async function createCustomerHandler(event: APIGatewayProxyEvent): Promis
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { name, phone, address, notes } = body;
+    const { name, phone, address, notes, isReseller } = body;
 
     if (!name || !String(name).trim()) return badRequest('Nama customer wajib diisi');
     if (!validPhone(phone)) return badRequest('Nomor HP/WA tidak valid');
@@ -92,6 +93,7 @@ export async function createCustomerHandler(event: APIGatewayProxyEvent): Promis
       phone,
       address,
       notes,
+      isReseller: isReseller === true,
       outlet,
       createdBy: user.type === 'admin' ? user.username : user.outlet,
     });
@@ -114,15 +116,16 @@ export async function updateCustomerHandler(event: APIGatewayProxyEvent): Promis
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { name, phone, address, notes } = body;
+    const { name, phone, address, notes, isReseller } = body;
 
     if (name !== undefined && !String(name).trim()) return badRequest('Nama customer wajib diisi');
     if (phone !== undefined && !validPhone(phone)) return badRequest('Nomor HP/WA tidak valid');
 
-    const customer = await updateCustomer(id, { name, phone, address, notes });
+    const customer = await updateCustomer(id, { name, phone, address, notes, isReseller });
     if (!customer) return notFound('Customer tidak ditemukan');
 
     await syncCustomerOnOrders(customer);
+    await syncCustomerOnResellerSales(customer);
     return ok(customer, 'Customer berhasil diperbarui');
   } catch (err) {
     if (err instanceof DuplicatePhoneError) return duplicateResponse(err);

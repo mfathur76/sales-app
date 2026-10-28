@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import ShipmentManager from './ShipmentManager';
 import ExpenseManager from './ExpenseManager';
 import KitchenStock from './KitchenStock';
+import ResellerManager from './ResellerManager';
 import './Orders.css';
 
 const VIEWS = [
   { id: 'kiriman', label: '🚚 Kiriman' },
   { id: 'stok', label: '🧊 Stok Dapur' },
+  { id: 'reseller', label: '🤝 Reseller' },
   { id: 'pengeluaran', label: '💰 Pengeluaran' }
 ];
 
@@ -41,6 +43,7 @@ const KitchenApp = ({ user, onLogout }) => {
       <main>
         {view === 'kiriman' && <ShipmentManager kitchen={user.outlet} />}
         {view === 'stok' && <KitchenStock />}
+        {view === 'reseller' && <ResellerManager />}
         {view === 'pengeluaran' && <ExpenseManager user={user} />}
       </main>
     </div>

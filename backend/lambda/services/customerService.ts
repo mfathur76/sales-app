@@ -26,6 +26,7 @@ function toCustomer(item: Record<string, any>): Customer {
     address: item.address,
     notes: item.notes,
     outlet: item.outlet,
+    isReseller: item.isReseller === true,
     createdBy: item.createdBy,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -67,6 +68,7 @@ export async function createCustomer(data: {
   address?: string;
   notes?: string;
   outlet: string;
+  isReseller?: boolean;
   createdBy?: string;
 }): Promise<Customer> {
   const phone = normalizePhone(data.phone);
@@ -81,6 +83,7 @@ export async function createCustomer(data: {
     address: data.address?.trim() || undefined,
     notes: data.notes?.trim() || undefined,
     outlet: data.outlet,
+    isReseller: data.isReseller === true,
     createdBy: data.createdBy,
     createdAt: now,
     updatedAt: now,
@@ -92,7 +95,7 @@ export async function createCustomer(data: {
 
 export async function updateCustomer(
   id: string,
-  updates: { name?: string; phone?: string; address?: string; notes?: string },
+  updates: { name?: string; phone?: string; address?: string; notes?: string; isReseller?: boolean },
 ): Promise<Customer | null> {
   const existing = await getCustomerById(id);
   if (!existing) return null;
@@ -101,6 +104,7 @@ export async function updateCustomer(
   if (updates.name !== undefined) next.name = updates.name.trim();
   if (updates.address !== undefined) next.address = updates.address.trim() || undefined;
   if (updates.notes !== undefined) next.notes = updates.notes.trim() || undefined;
+  if (typeof updates.isReseller === 'boolean') next.isReseller = updates.isReseller;
   if (updates.phone !== undefined) {
     next.phone = normalizePhone(updates.phone);
     if (next.phone !== existing.phone) {

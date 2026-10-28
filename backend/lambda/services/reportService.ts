@@ -2,6 +2,7 @@ import { dbScan, TABLES } from './dynamodb';
 import { getAllOutlets } from './outletService';
 import { getAllOutletSales } from './salesService';
 import { getAllExpenses } from './expenseService';
+import { listResellerSales } from './resellerService';
 import { OutletSale } from '../types';
 
 /**
@@ -31,6 +32,7 @@ type RevenueRow = {
   shopee: number;
   grab: number;
   transfer: number; // customer transfers to BCA/Mandiri: the cashier's figure, or the bank's where higher
+  reseller: number; // stock resellers took from the kitchen, counted when taken (paid or not)
   total: number;
   days: number;
   fees: Fees;            // actual where the transfer is verified, estimated otherwise
@@ -127,7 +129,7 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     const month = s.date.slice(0, 7);
     const key = `${month}|${s.outlet}`;
     const row = revenue.get(key) ?? {
-      month, outlet: s.outlet, cash: 0, qris: 0, gojek: 0, shopee: 0, grab: 0, transfer: 0, total: 0, days: 0,
+      month, outlet: s.outlet, cash: 0, qris: 0, gojek: 0, shopee: 0, grab: 0, transfer: 0, reseller: 0, total: 0, days: 0,
       fees: { qris: 0, gojek: 0, shopee: 0, grab: 0 }, estimatedFees: 0, unverifiedSales: 0,
     };
     row.cash += s.cash;
@@ -158,6 +160,23 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     revenue.set(key, row);
     if (!lastSalesDate || s.date > lastSalesDate) lastSalesDate = s.date;
   }
+
+  // Reseller sales belong to the kitchen that handed the goods over; there are no platform fees
+  const resellerSales = await listResellerSales({ to: endDate });
+  for (const r of resellerSales) {
+    if (r.date < startDate) continue;
+    const month = r.date.slice(0, 7);
+    const key = `${month}|${r.kitchen}`;
+    const row = revenue.get(key) ?? {
+      month, outlet: r.kitchen, cash: 0, qris: 0, gojek: 0, shopee: 0, grab: 0, transfer: 0, reseller: 0, total: 0, days: 0,
+      fees: { qris: 0, gojek: 0, shopee: 0, grab: 0 }, estimatedFees: 0, unverifiedSales: 0,
+    };
+    row.reseller += r.total;
+    row.total += r.total;
+    revenue.set(key, row);
+  }
+  // Unpaid as of now, for every bill taken up to the end of the period
+  const resellerOutstanding = resellerSales.reduce((sum, r) => sum + r.remaining, 0);
 
   const categoryOfItem = new Map(items.map((i) => [i.id as string, i.categoryId as string]));
   const categoryName = new Map(categories.map((c) => [c.id as string, c.name as string]));
@@ -190,6 +209,7 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     lastSalesDate,
     lastExpenseDate,
     feeRates: rates,
+    resellerOutstanding,
     outlets: outlets.map((o) => ({ code: o.code, name: o.name })),
     revenue: Array.from(revenue.values()),
     expenses: Array.from(expenses.values()),

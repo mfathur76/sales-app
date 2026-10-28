@@ -62,3 +62,16 @@ export const kitchenApi = {
   saveCount: (date, lines) => request('/stock/kitchen/count', { method: 'PUT', body: JSON.stringify({ date, lines }) }),
   report: (from, to) => request(`/stock/kitchen/report${query({ from, to })}`)
 };
+
+// Resellers take stock from the kitchen and pay later. Kitchen and admins only.
+export const resellerApi = {
+  // filters: { customerId, from, to, unpaid }
+  listSales: (filters) => request(`/resellers/sales${query(filters)}`),
+  summary: (today) => request(`/resellers/summary${query({ today })}`),
+  // data: { customerId, date, dueDate?, lines: [{ productId, qty, price? }], payment?, notes? }
+  createSale: (data) => request('/resellers/sales', { method: 'POST', body: JSON.stringify(data) }),
+  updateSale: (id, data) => request(`/resellers/sales/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  removeSale: (id) => request(`/resellers/sales/${id}`, { method: 'DELETE' }),
+  addPayment: (id, payment) => request(`/resellers/sales/${id}/payments`, { method: 'POST', body: JSON.stringify(payment) }),
+  removePayment: (id, paymentId) => request(`/resellers/sales/${id}/payments/${paymentId}`, { method: 'DELETE' })
+};
