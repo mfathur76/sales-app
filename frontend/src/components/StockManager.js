@@ -201,12 +201,14 @@ const OutletReport = ({ report, outletName, nameOf }) => {
             <div><strong>{s.waste}</strong><span>pcs rusak</span></div>
             <div><strong>{formatRupiah(s.value)}</strong><span>nilai terjual</span></div>
             <div><strong>{formatRupiah(s.sales)}</strong><span>uang di Sales</span></div>
+            {s.orders > 0 && <div><strong>{formatRupiah(s.orders)}</strong><span>order diambil</span></div>}
             <div className={Math.abs(s.diff) > 0 ? (s.diff < 0 ? 'neg' : 'pos') : ''}>
               <strong>{formatRupiah(s.diff)}</strong><span>selisih</span>
             </div>
           </div>
           <p className="ord-line muted small">
-            Selisih = uang di Sales − nilai terjual (terjual × harga dasar). Harga ojol yang lebih mahal membuat selisih cenderung plus.
+            Selisih = uang di Sales + order yang diambil/diantar − nilai terjual (terjual × harga dasar).
+            Harga ojol yang lebih mahal membuat selisih cenderung plus, diskon order membuatnya cenderung minus.
           </p>
 
           <div className="stk-table-wrap">
@@ -218,6 +220,7 @@ const OutletReport = ({ report, outletName, nameOf }) => {
                   <th className="num">Rusak</th>
                   <th className="num">Nilai</th>
                   <th className="num">Sales</th>
+                  <th className="num">Order</th>
                   <th className="num">Selisih</th>
                 </tr>
               </thead>
@@ -236,6 +239,7 @@ const OutletReport = ({ report, outletName, nameOf }) => {
                     <td className="num">{d.isFirstCount ? '-' : d.waste}</td>
                     <td className="num">{d.isFirstCount ? '-' : formatRupiah(d.value)}</td>
                     <td className="num">{d.isFirstCount ? '-' : formatRupiah(d.sales)}</td>
+                    <td className="num">{d.isFirstCount || !d.orders ? '-' : formatRupiah(d.orders)}</td>
                     <td className={`num ${d.diff < 0 ? 'neg' : ''}`}>{d.isFirstCount ? '-' : formatRupiah(d.diff)}</td>
                   </tr>
                 ))}
