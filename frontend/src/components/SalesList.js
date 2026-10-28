@@ -30,7 +30,8 @@ const SalesList = ({ user }) => {
     const gojek = toNumber(sale.gojek);
     const shopee = toNumber(sale.shopee);
     const grab = toNumber(sale.grab);
-    const computedTotal = cash + qris + gojek + shopee + grab;
+    const transfer = toNumber(sale.transfer);
+    const computedTotal = cash + qris + gojek + shopee + grab + transfer;
     const providedTotal = toNumber(sale.total_sales);
 
     // Prefer stored total when valid, fallback to computed payment total.
@@ -57,6 +58,7 @@ const SalesList = ({ user }) => {
             gojek: toNumber(sale.gojek),
             shopee: toNumber(sale.shopee),
             grab: toNumber(sale.grab),
+            transfer: toNumber(sale.transfer),
             total_sales: getSaleTotal(sale),
           }))
         );
@@ -69,6 +71,7 @@ const SalesList = ({ user }) => {
             gojek: toNumber(sale.gojek),
             shopee: toNumber(sale.shopee),
             grab: toNumber(sale.grab),
+            transfer: toNumber(sale.transfer),
             total_sales: getSaleTotal(sale),
           }))
         );
@@ -151,6 +154,7 @@ const SalesList = ({ user }) => {
       gojek: toNumber(sale.gojek),
       shopee: toNumber(sale.shopee),
       grab: toNumber(sale.grab),
+      transfer: toNumber(sale.transfer),
       total_sales: getSaleTotal(sale),
     });
     setShowEditModal(true);
@@ -311,6 +315,13 @@ const SalesList = ({ user }) => {
                     <span className="payment-label">Grab</span>
                     <span className="payment-amount">{formatCurrency(sale.grab)}</span>
                   </div>
+                  {sale.transfer > 0 && (
+                    <div className="payment-row">
+                      <span className="payment-icon">🏦</span>
+                      <span className="payment-label">Transfer</span>
+                      <span className="payment-amount">{formatCurrency(sale.transfer)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="sale-total">
@@ -411,6 +422,16 @@ const SalesList = ({ user }) => {
                     type="number"
                     value={editingSale.grab}
                     onChange={(e) => handleEditChange('grab', e.target.value)}
+                    className="edit-payment-input"
+                  />
+                </div>
+                <div className="edit-payment-row">
+                  <span className="edit-payment-icon">🏦</span>
+                  <span className="edit-payment-label">Transfer</span>
+                  <input
+                    type="number"
+                    value={editingSale.transfer}
+                    onChange={(e) => handleEditChange('transfer', e.target.value)}
                     className="edit-payment-input"
                   />
                 </div>

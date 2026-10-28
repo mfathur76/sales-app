@@ -23,6 +23,7 @@ function toSale(item: Record<string, any>): OutletSale {
     gojek: item.gojek ?? 0,
     shopee: item.shopee ?? 0,
     grab: item.grab ?? 0,
+    transfer: item.transfer ?? 0,
     totalSales: item.totalSales ?? 0,
     qrisBank: item.qrisBank ?? 0,
     gojekBank: item.gojekBank ?? 0,
@@ -37,6 +38,7 @@ function toSale(item: Record<string, any>): OutletSale {
     grabPercent: item.grabPercent ?? 0,
     bcaPercent: item.bcaPercent ?? 0,
     mandiriPercent: item.mandiriPercent ?? 0,
+    transferPercent: item.transferPercent ?? 0,
     overallPercent: item.overallPercent ?? 0,
     status: item.status ?? 'pending',
     verifiedBy: item.verifiedBy,
@@ -54,7 +56,8 @@ function calcTotal(data: Partial<CreateOutletSaleRequest>, existing?: OutletSale
   const gojek  = data.gojek  ?? existing?.gojek  ?? 0;
   const shopee = data.shopee ?? existing?.shopee ?? 0;
   const grab   = data.grab   ?? existing?.grab   ?? 0;
-  return { cash, qris, gojek, shopee, grab, totalSales: cash + qris + gojek + shopee + grab };
+  const transfer = data.transfer ?? existing?.transfer ?? 0;
+  return { cash, qris, gojek, shopee, grab, transfer, totalSales: cash + qris + gojek + shopee + grab + transfer };
 }
 
 export async function createOutletSale(data: CreateOutletSaleRequest): Promise<OutletSale> {
@@ -74,7 +77,7 @@ export async function createOutletSale(data: CreateOutletSaleRequest): Promise<O
     date: data.date,
     ...totals,
     qrisBank: 0, gojekBank: 0, shopeeBank: 0, grabBank: 0, bcaBank: 0, mandiriBank: 0, totalBank: 0,
-    qrisPercent: 0, gojekPercent: 0, shopeePercent: 0, grabPercent: 0, bcaPercent: 0, mandiriPercent: 0, overallPercent: 0,
+    qrisPercent: 0, gojekPercent: 0, shopeePercent: 0, grabPercent: 0, bcaPercent: 0, mandiriPercent: 0, transferPercent: 0, overallPercent: 0,
     status: 'pending',
     createdAt: now,
     updatedAt: now,
@@ -194,12 +197,14 @@ export async function updateBankTransfer(
   const grabPercent    = pct(grabBank,    existing.grab);
   const bcaPercent     = pct(bcaBank,     existing.totalSales);
   const mandiriPercent = pct(mandiriBank, existing.totalSales);
-  const digitalSales   = existing.qris + existing.gojek + existing.shopee + existing.grab;
+  // BCA + Mandiri received, against the transfers the cashier recorded
+  const transferPercent = pct(bcaBank + mandiriBank, existing.transfer);
+  const digitalSales   = existing.qris + existing.gojek + existing.shopee + existing.grab + existing.transfer;
   const overallPercent = pct(totalBank, digitalSales);
 
   const payload: Record<string, unknown> = {
     qrisBank, gojekBank, shopeeBank, grabBank, bcaBank, mandiriBank, totalBank,
-    qrisPercent, gojekPercent, shopeePercent, grabPercent, bcaPercent, mandiriPercent, overallPercent,
+    qrisPercent, gojekPercent, shopeePercent, grabPercent, bcaPercent, mandiriPercent, transferPercent, overallPercent,
     updatedAt: new Date().toISOString(),
   };
   if (bankData.notes !== undefined)      payload.notes      = bankData.notes;
@@ -223,6 +228,7 @@ export async function getOutletSalesStats(filters?: OutletSaleFilters) {
   const total_gojek         = sales.reduce((s, r) => s + r.gojek, 0);
   const total_shopee        = sales.reduce((s, r) => s + r.shopee, 0);
   const total_grab          = sales.reduce((s, r) => s + r.grab, 0);
+  const total_transfer      = sales.reduce((s, r) => s + r.transfer, 0);
   const average_daily_sales = sales.length > 0 ? total_revenue / sales.length : 0;
 
   // Group by outlet
@@ -243,6 +249,7 @@ export async function getOutletSalesStats(filters?: OutletSaleFilters) {
     total_gojek,
     total_shopee,
     total_grab,
+    total_transfer,
     outlet_breakdown: Array.from(outletMap.entries()).map(([outlet, data]) => ({
       outlet,
       ...data,

@@ -50,6 +50,7 @@ const QuickInputForm = ({ user }) => {
     gojek: 0,
     shopee: 0,
     grab: 0,
+    transfer: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -98,6 +99,7 @@ const QuickInputForm = ({ user }) => {
         gojek: 0,
         shopee: 0,
         grab: 0,
+        transfer: 0,
       });
 
     } catch (error) {
@@ -118,7 +120,7 @@ const QuickInputForm = ({ user }) => {
   };
 
   const getTotalSales = () => {
-    return sale.cash + sale.qris + sale.gojek + sale.shopee + sale.grab;
+    return sale.cash + sale.qris + sale.gojek + sale.shopee + sale.grab + sale.transfer;
   };
 
   const handlePaymentChange = (method, value) => {
@@ -152,6 +154,7 @@ const QuickInputForm = ({ user }) => {
     { key: 'gojek', icon: '🟢', label: 'Gojek', color: '#10B981' },
     { key: 'shopee', icon: '🟠', label: 'Shopee', color: '#F59E0B' },
     { key: 'grab', icon: '🟢', label: 'Grab', color: '#10B981' },
+    { key: 'transfer', icon: '🏦', label: 'Transfer', color: '#6366F1' },
   ];
 
   return (

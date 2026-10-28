@@ -56,6 +56,7 @@ export interface CreateOutletSaleRequest {
   gojek: number;
   shopee: number;
   grab: number;
+  transfer?: number;  // customer bank transfers taken by the cashier
 }
 
 export interface OutletSale {
@@ -66,6 +67,7 @@ export interface OutletSale {
   gojek: number;
   shopee: number;
   grab: number;
+  transfer: number;   // cashier-recorded bank transfers; bcaBank + mandiriBank verify it
   totalSales: number;
   qrisBank: number;
   gojekBank: number;
@@ -80,6 +82,7 @@ export interface OutletSale {
   grabPercent: number;
   bcaPercent: number;
   mandiriPercent: number;
+  transferPercent: number;
   overallPercent: number;
   status: string;
   verifiedBy?: string;

@@ -233,6 +233,11 @@ const Dashboard = ({ user }) => {
                     <span className="summary-label">Grab</span>
                     <span className="summary-value">{formatCurrency(stats.total_grab)}</span>
                   </div>
+                  <div className="summary-item">
+                    <span className="summary-icon">🏦</span>
+                    <span className="summary-label">Transfer</span>
+                    <span className="summary-value">{formatCurrency(stats.total_transfer || 0)}</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -337,6 +342,26 @@ const Dashboard = ({ user }) => {
                     </div>
                     <div className="payment-percentage">
                       {getPaymentMethodPercentage(stats.total_grab, stats.total_revenue)}%
+                    </div>
+                  </div>
+
+                  <div className="payment-method-item">
+                    <div className="payment-header">
+                      <span className="payment-icon">🏦</span>
+                      <span className="payment-name">Transfer</span>
+                      <span className="payment-amount">{formatCurrency(stats.total_transfer || 0)}</span>
+                    </div>
+                    <div className="payment-bar">
+                      <div
+                        className="payment-progress"
+                        style={{
+                          width: `${getPaymentMethodPercentage(stats.total_transfer || 0, stats.total_revenue)}%`,
+                          backgroundColor: '#6366F1'
+                        }}
+                      ></div>
+                    </div>
+                    <div className="payment-percentage">
+                      {getPaymentMethodPercentage(stats.total_transfer || 0, stats.total_revenue)}%
                     </div>
                   </div>
                 </div>
