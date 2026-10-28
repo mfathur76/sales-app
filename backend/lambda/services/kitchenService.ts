@@ -3,7 +3,8 @@ import { dbGet, dbPut, dbDelete, dbQuery, TABLES } from './dynamodb';
 import { listShipments, listClosings, saveClosing } from './stockService';
 import { listProducts } from './productService';
 import { getAllOutlets } from './outletService';
-import { KitchenEntry, KitchenEntryLine, Product, Shipment, StockClosing } from '../types';
+import { listResellerSales } from './resellerService';
+import { KitchenEntry, KitchenEntryLine, Product, ResellerSale, Shipment, StockClosing } from '../types';
 
 const TABLE = TABLES.STOCK;
 
@@ -12,7 +13,8 @@ const TABLE = TABLES.STOCK;
  *   Entry: PK = KITCHEN_ENTRY#{kitchen}  SK = ID#{id}       (production or bought-in goods arriving)
  *   Count: PK = CLOSING#{kitchen}        SK = DATE#{date}   (weekly freezer count, same shape as an outlet count)
  *
- * Expected stock on a count day = previous count + entries + returns from outlets − shipments it sent.
+ * Expected stock on a count day = previous count + entries + returns from outlets − shipments it sent
+ * − goods taken by resellers.
  * The count then shows the gap: counted + waste − expected (negative = missing).
  */
 
@@ -117,6 +119,7 @@ interface KitchenFlow {
   bought: number;
   shipped: number;
   returned: number;  // sent back by outlets
+  resold: number;    // taken by resellers
   expected: number;
   remaining?: number;
   waste?: number;
@@ -124,7 +127,8 @@ interface KitchenFlow {
 
 /**
  * Movements in (prev.date, date]; with no previous count everything up to `date` counts from zero.
- * Shipments the kitchen sent go out, returns from outlets come in, outlet-to-outlet transfers are ignored.
+ * Shipments the kitchen sent and reseller pick-ups go out, returns from outlets come in,
+ * outlet-to-outlet transfers are ignored.
  */
 function kitchenFlows(
   kitchen: string,
@@ -132,6 +136,7 @@ function kitchenFlows(
   prev: StockClosing | undefined,
   entries: KitchenEntry[],
   shipments: Shipment[],
+  resellerSales: ResellerSale[],
   products: Product[],
 ): Map<string, KitchenFlow> {
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -142,7 +147,7 @@ function kitchenFlows(
       const p = productById.get(productId);
       f = {
         productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0,
-        opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, expected: 0,
+        opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, resold: 0, expected: 0,
       };
       map.set(productId, f);
     }
@@ -160,7 +165,10 @@ function kitchenFlows(
     if (s.outlet === kitchen) get(l.productId, l.name).returned += l.receivedQty ?? l.qty;
     else if (fromKitchen(s, kitchen)) get(l.productId, l.name).shipped += l.qty;
   }));
-  map.forEach((f) => { f.expected = f.opening + f.produced + f.bought + f.returned - f.shipped; });
+  resellerSales.filter((r) => inPeriod(r.date)).forEach((r) => r.lines.forEach((l) => {
+    get(l.productId, l.name).resold += l.qty;
+  }));
+  map.forEach((f) => { f.expected = f.opening + f.produced + f.bought + f.returned - f.shipped - f.resold; });
   return map;
 }
 
@@ -169,23 +177,24 @@ async function load(kitchen: string, upTo: string) {
     listClosings(kitchen, upTo),
     listEntries(kitchen, undefined, upTo),
     listShipments({ to: upTo }),
+    listResellerSales({ kitchen, to: upTo }),
     listProducts(true),
   ]);
 }
 
 /** The count form, and the live "stock now" view when `date` is today and nothing is saved yet. */
 export async function getKitchenCountDraft(kitchen: string, date: string) {
-  const [counts, entries, shipments, products] = await load(kitchen, date);
+  const [counts, entries, shipments, resellerSales, products] = await load(kitchen, date);
   const existing = counts.find((c) => c.date === date);
   const prev = counts.filter((c) => c.date < date).pop();
-  const map = kitchenFlows(kitchen, date, prev, entries, shipments, products);
+  const map = kitchenFlows(kitchen, date, prev, entries, shipments, resellerSales, products);
 
   existing?.lines.forEach((l) => {
     const f = map.get(l.productId);
     if (f) Object.assign(f, { remaining: l.remaining, waste: l.waste });
     else {
       map.set(l.productId, {
-        productId: l.productId, name: l.name, price: l.price, opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0,
+        productId: l.productId, name: l.name, price: l.price, opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, resold: 0,
         expected: 0, remaining: l.remaining, waste: l.waste,
       });
     }
@@ -195,7 +204,7 @@ export async function getKitchenCountDraft(kitchen: string, date: string) {
   products.filter((p) => p.isActive && !map.has(p.id)).forEach((p) => {
     map.set(p.id, {
       productId: p.id, name: p.name, category: p.category, price: p.price,
-      opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, expected: 0,
+      opening: 0, produced: 0, bought: 0, shipped: 0, returned: 0, resold: 0, expected: 0,
     });
   });
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
@@ -228,7 +237,7 @@ export async function saveKitchenCount(data: {
 
 /** Counts in range with their gaps, plus production / bought-in / shipped totals per product. */
 export async function getKitchenReport(kitchen: string, from: string, to: string) {
-  const [counts, entries, shipments, products] = await load(kitchen, to);
+  const [counts, entries, shipments, resellerSales, products] = await load(kitchen, to);
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
 
   const countRows = [];
@@ -240,7 +249,7 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
       countRows.push({ date: c.date, prevDate: null, isFirstCount: true, lines: [], diff: 0, diffValue: 0, waste: 0 });
       continue;
     }
-    const map = kitchenFlows(kitchen, c.date, prev, entries, shipments, products);
+    const map = kitchenFlows(kitchen, c.date, prev, entries, shipments, resellerSales, products);
     const counted = new Map(c.lines.map((l) => [l.productId, l]));
     const ids = new Set([...map.keys(), ...counted.keys()]);
     const lines = [...ids].map((id) => {
@@ -275,11 +284,11 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
 
   // Movements inside the range, whatever the count dates
   const inRange = (d: string) => d >= from && d <= to;
-  const movement = new Map<string, { productId: string; name: string; category?: string; produced: number; bought: number; shipped: number; returned: number }>();
+  const movement = new Map<string, { productId: string; name: string; category?: string; produced: number; bought: number; shipped: number; returned: number; resold: number }>();
   const move = (productId: string, name: string) => {
     let m = movement.get(productId);
     if (!m) {
-      m = { productId, name, category: categoryById.get(productId), produced: 0, bought: 0, shipped: 0, returned: 0 };
+      m = { productId, name, category: categoryById.get(productId), produced: 0, bought: 0, shipped: 0, returned: 0, resold: 0 };
       movement.set(productId, m);
     }
     return m;
@@ -292,6 +301,9 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
   shipments.filter((s) => inRange(s.date)).forEach((s) => s.lines.forEach((l) => {
     if (s.outlet === kitchen) move(l.productId, l.name).returned += l.receivedQty ?? l.qty;
     else if (fromKitchen(s, kitchen)) move(l.productId, l.name).shipped += l.qty;
+  }));
+  resellerSales.filter((r) => inRange(r.date)).forEach((r) => r.lines.forEach((l) => {
+    move(l.productId, l.name).resold += l.qty;
   }));
 
   const order = new Map(products.map((p, i) => [p.id, i]));

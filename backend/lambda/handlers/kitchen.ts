@@ -38,7 +38,7 @@ function isQty(v: unknown): boolean {
  * The kitchen this request is about: the kitchen account itself, or for admins the one asked for
  * (defaulting to the only kitchen account). Returns an error response when there is none.
  */
-async function resolveKitchen(user: JwtUser | null, requested?: string): Promise<string | APIGatewayProxyResult> {
+export async function resolveKitchen(user: JwtUser | null, requested?: string): Promise<string | APIGatewayProxyResult> {
   if (!user) return unauthorized('Access token required');
   if (isKitchen(user)) return user.outlet!;
   if (!isAdmin(user)) return forbidden('Hanya dapur atau admin yang boleh mengakses stok dapur');
@@ -68,7 +68,7 @@ async function parseLines(lines: unknown): Promise<string | KitchenEntryLine[]> 
 }
 
 /** Kitchen accounts may not change anything a count already covers; admins can. */
-async function lockedFor(user: JwtUser, kitchen: string, ...dates: string[]): Promise<boolean> {
+export async function lockedFor(user: JwtUser, kitchen: string, ...dates: string[]): Promise<boolean> {
   if (isAdmin(user)) return false;
   const last = await lastCountDate(kitchen);
   return Boolean(last && dates.some((d) => d <= last));

@@ -9,6 +9,7 @@ const CHANNELS = [
   { key: 'shopee', label: 'ShopeeFood' },
   { key: 'grab', label: 'GrabFood' },
   { key: 'transfer', label: 'Transfer BCA/Mandiri' },
+  { key: 'reseller', label: 'Penjualan Reseller' },
 ];
 const FEE_CHANNELS = CHANNELS.filter((c) => ['qris', 'gojek', 'shopee', 'grab'].includes(c.key));
 
@@ -244,6 +245,13 @@ const ProfitLossReport = () => {
               ShopeeFood {ratePct('shopee')}, GrabFood {ratePct('grab')}; QRIS 0,7% + Rp 2.000/hari. Angka asli
               otomatis dipakai begitu transfernya diinput. Transfer BCA/Mandiri dari pelanggan yang tidak dicatat
               kasir pada hari-hari itu juga belum masuk pendapatan.
+            </div>
+          )}
+
+          {data.resellerOutstanding > 0 && (
+            <div className="pl-message">
+              Penjualan reseller dihitung saat barang diambil. Dari situ, {formatCurrency(data.resellerOutstanding)} belum
+              dibayar reseller (lihat menu Reseller → Tagihan).
             </div>
           )}
 

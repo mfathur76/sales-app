@@ -140,6 +140,7 @@ export interface Customer {
   address?: string;
   notes?: string;
   outlet: string;     // outlet that first registered this customer
+  isReseller?: boolean; // takes stock from the kitchen on credit
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -195,6 +196,7 @@ export interface Product {
   name: string;
   price: number;      // selling price, the same at every outlet
   cost?: number;      // purchase/production cost per piece
+  resellerPrice?: number; // price for resellers taking stock from the kitchen
   kind: ProductKind;
   category?: string;  // e.g. "RISOLES GORENG"; groups the product in forms and reports
   sortOrder: number;
@@ -256,6 +258,34 @@ export interface KitchenEntry {
   date: string;
   kind: 'produksi' | 'masuk';
   lines: KitchenEntryLine[];
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---- Reseller sales (stock taken from the kitchen, paid later) ----
+export interface ResellerSaleLine {
+  productId: string;
+  name: string;
+  qty: number;
+  price: number;      // reseller price at the time of taking
+}
+
+export interface ResellerSale {
+  id: string;
+  kitchen: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  date: string;       // taken from the kitchen
+  dueDate: string;
+  lines: ResellerSaleLine[];
+  total: number;
+  payments: OrderPayment[];
+  paid: number;
+  remaining: number;
+  paymentStatus: PaymentStatus;
   notes?: string;
   createdBy?: string;
   createdAt: string;

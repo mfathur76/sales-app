@@ -4,7 +4,7 @@ import { formatRupiah } from '../api/orderApi';
 import './Orders.css';
 import './Stock.css';
 
-const EMPTY = { name: '', category: '', price: '', cost: '', kind: 'produksi', sortOrder: '' };
+const EMPTY = { name: '', category: '', price: '', resellerPrice: '', cost: '', kind: 'produksi', sortOrder: '' };
 
 const toNumber = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
 
@@ -88,6 +88,7 @@ const ProductManager = () => {
         name: p.name,
         category: p.category || '',
         price: String(p.price),
+        resellerPrice: p.resellerPrice !== undefined ? String(p.resellerPrice) : '',
         cost: p.cost !== undefined ? String(p.cost) : '',
         kind: p.kind,
         sortOrder: String(p.sortOrder)
@@ -101,6 +102,7 @@ const ProductManager = () => {
       name: form.name,
       category: form.category,
       price: toNumber(form.price) ?? 0,
+      resellerPrice: toNumber(form.resellerPrice),
       cost: toNumber(form.cost),
       kind: form.kind,
       sortOrder: toNumber(form.sortOrder)
@@ -161,6 +163,7 @@ const ProductManager = () => {
       <select value={form.kind} onChange={(e) => set('kind', e.target.value)}>
         {Object.entries(PRODUCT_KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
+      <input type="number" inputMode="numeric" min="0" placeholder="Harga reseller" value={form.resellerPrice} onChange={(e) => set('resellerPrice', e.target.value)} />
       <input type="number" inputMode="numeric" min="0" placeholder="Modal (opsional)" value={form.cost} onChange={(e) => set('cost', e.target.value)} />
       <input type="number" inputMode="numeric" placeholder="Urutan" value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
       <div className="ord-actions">
@@ -237,6 +240,7 @@ const ProductManager = () => {
                 <th>Produk</th>
                 <th>Jenis</th>
                 <th className="num">Harga</th>
+                <th className="num">Reseller</th>
                 <th className="num">Modal</th>
                 <th></th>
               </tr>
@@ -244,17 +248,18 @@ const ProductManager = () => {
             {groupByCategory(visible).map((g) => (
               <tbody key={g.category}>
                 <tr className="stk-group">
-                  <td colSpan="6">{g.category} <span className="muted">({g.items.length})</span></td>
+                  <td colSpan="7">{g.category} <span className="muted">({g.items.length})</span></td>
                 </tr>
                 {g.items.map((p) => (
                   editingId === p.id ? (
-                    <tr key={p.id}><td colSpan="6">{renderForm()}</td></tr>
+                    <tr key={p.id}><td colSpan="7">{renderForm()}</td></tr>
                   ) : (
                     <tr key={p.id} className={p.isActive ? '' : 'dim'}>
                       <td className="muted">{p.sortOrder}</td>
                       <td>{p.name}{!p.isActive && <span className="muted"> (nonaktif)</span>}</td>
                       <td>{PRODUCT_KIND[p.kind]}</td>
                       <td className="num">{formatRupiah(p.price)}</td>
+                      <td className="num muted">{p.resellerPrice !== undefined ? formatRupiah(p.resellerPrice) : '-'}</td>
                       <td className="num muted">{p.cost !== undefined ? formatRupiah(p.cost) : '-'}</td>
                       <td className="stk-row-actions">
                         <button className="ord-btn ghost small" onClick={() => startEdit(p)}>✏️</button>

@@ -8,6 +8,7 @@ export interface ProductInput {
   name: string;
   price: number;
   cost?: number;
+  resellerPrice?: number;
   kind?: ProductKind;
   category?: string;
   sortOrder?: number;
@@ -20,6 +21,7 @@ function toProduct(item: Record<string, any>): Product {
     name: item.name,
     price: item.price ?? 0,
     cost: item.cost,
+    resellerPrice: item.resellerPrice,
     kind: item.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi',
     category: item.category,
     sortOrder: item.sortOrder ?? 0,
@@ -55,6 +57,7 @@ function newProduct(data: ProductInput, sortOrder: number): Product {
     name: data.name.trim(),
     price: data.price,
     cost: data.cost,
+    resellerPrice: data.resellerPrice,
     kind: data.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi',
     category: data.category?.trim() || undefined,
     sortOrder: data.sortOrder ?? sortOrder,
@@ -91,6 +94,7 @@ export async function updateProduct(id: string, updates: Partial<ProductInput>):
   if (updates.name !== undefined) next.name = updates.name.trim();
   if (updates.price !== undefined) next.price = updates.price;
   if (updates.cost !== undefined) next.cost = updates.cost;
+  if (updates.resellerPrice !== undefined) next.resellerPrice = updates.resellerPrice;
   if (updates.kind !== undefined) next.kind = updates.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi';
   if (updates.category !== undefined) next.category = updates.category.trim() || undefined;
   if (updates.sortOrder !== undefined) next.sortOrder = updates.sortOrder;

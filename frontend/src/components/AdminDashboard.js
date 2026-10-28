@@ -15,6 +15,7 @@ import ProductManager from './ProductManager';
 import ShipmentManager from './ShipmentManager';
 import StockManager from './StockManager';
 import KitchenStock from './KitchenStock';
+import ResellerManager from './ResellerManager';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ admin, onLogout }) => {
@@ -49,6 +50,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
     { id: 'orders', label: 'Order & Customer', icon: '🧾' },
     { id: 'stock', label: 'Stok Outlet', icon: '📦' },
     { id: 'kitchen-stock', label: 'Stok Dapur', icon: '🧊' },
+    { id: 'reseller', label: 'Reseller', icon: '🤝' },
     { id: 'shipments', label: 'Kiriman', icon: '🚚' },
     { id: 'products', label: 'Master Produk', icon: '🏷️' },
     { id: 'expense-categories', label: 'Kategori Pengeluaran', icon: '🏷️' },
@@ -556,6 +558,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
         return <OrderManager isAdmin />;
       case 'stock':
         return <StockManager isAdmin />;
+      case 'reseller':
+        return <ResellerManager isAdmin />;
       case 'kitchen-stock':
         return <KitchenStock isAdmin />;
       case 'shipments':

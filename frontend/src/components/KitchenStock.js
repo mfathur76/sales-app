@@ -236,7 +236,7 @@ const KitchenCount = () => {
         </div>
       ) : (
         <p className="ord-line muted small">
-          Stok seharusnya = opname {formatDay(draft.prevDate)} + produksi + beli jadi datang + retur dari outlet − kiriman ke outlet sesudahnya.
+          Stok seharusnya = opname {formatDay(draft.prevDate)} + produksi + beli jadi datang + retur dari outlet − kiriman ke outlet − diambil reseller sesudahnya.
         </p>
       )}
 
@@ -267,10 +267,11 @@ const KitchenCount = () => {
                 <tr key={r.productId} className={!counting && r.expected === 0 ? 'dim' : ''}>
                   <td>
                     {r.name}
-                    {!draft.isFirstCount && (r.produced > 0 || r.bought > 0 || r.returned > 0 || r.shipped > 0) && (
+                    {!draft.isFirstCount && (r.produced > 0 || r.bought > 0 || r.returned > 0 || r.shipped > 0 || r.resold > 0) && (
                       <div className="muted small">
                         {r.opening} {r.produced > 0 && `+${r.produced} produksi `}{r.bought > 0 && `+${r.bought} masuk `}
-                        {r.returned > 0 && `+${r.returned} retur `}{r.shipped > 0 && `−${r.shipped} kirim`}
+                        {r.returned > 0 && `+${r.returned} retur `}{r.shipped > 0 && `−${r.shipped} kirim `}
+                        {r.resold > 0 && `−${r.resold} reseller`}
                       </div>
                     )}
                   </td>
@@ -405,7 +406,7 @@ const KitchenReport = () => {
                 <thead>
                   <tr>
                     <th>Produk</th><th className="num">Produksi</th><th className="num">Masuk</th>
-                    <th className="num">Retur</th><th className="num">Dikirim</th>
+                    <th className="num">Retur</th><th className="num">Dikirim</th><th className="num">Reseller</th>
                   </tr>
                 </thead>
                 {groupByCategory(report.movement).map((g) => (
@@ -416,6 +417,7 @@ const KitchenReport = () => {
                       <td className="num">{g.items.reduce((s, m) => s + m.bought, 0) || ''}</td>
                       <td className="num">{g.items.reduce((s, m) => s + (m.returned || 0), 0) || ''}</td>
                       <td className="num">{g.items.reduce((s, m) => s + m.shipped, 0)}</td>
+                      <td className="num">{g.items.reduce((s, m) => s + (m.resold || 0), 0) || ''}</td>
                     </tr>
                     {g.items.map((m) => (
                       <tr key={m.productId}>
@@ -424,6 +426,7 @@ const KitchenReport = () => {
                         <td className="num">{m.bought || ''}</td>
                         <td className="num">{m.returned || ''}</td>
                         <td className="num">{m.shipped}</td>
+                        <td className="num">{m.resold || ''}</td>
                       </tr>
                     ))}
                   </tbody>
