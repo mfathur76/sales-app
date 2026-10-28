@@ -158,6 +158,14 @@ export interface OrderPayment {
   createdAt: string;
 }
 
+/** A product picked from the product list, or a free-text item (no productId). */
+export interface OrderLine {
+  productId?: string;
+  name: string;
+  qty: number;
+  price: number;
+}
+
 export type OrderStatus = 'baru' | 'diproses' | 'siap' | 'selesai' | 'batal';
 export type PaymentStatus = 'belum_bayar' | 'dp' | 'lunas';
 export type Fulfillment = 'ambil' | 'antar';
@@ -174,7 +182,8 @@ export interface Order {
   fulfillment: Fulfillment;
   deliveryAddress?: string;
   deliveryFee: number;
-  items: string;
+  items: string;      // free text, or a summary generated from `lines`
+  lines?: OrderLine[]; // when present, `total` is their sum
   total: number;      // goods only, excluding deliveryFee
   grandTotal: number; // total + deliveryFee
   payments: OrderPayment[];

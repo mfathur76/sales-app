@@ -3,6 +3,7 @@ import {
   orderApi, ORDER_STATUS, PAYMENT_STATUS, PAYMENT_METHODS, methodLabel,
   formatRupiah, formatDay, localDate, displayPhone, whatsappLink
 } from '../api/orderApi';
+import OrderReceipt from './OrderReceipt';
 import './Orders.css';
 
 // The next step offered as a one-tap button for each status
@@ -13,6 +14,7 @@ const OrderDetail = ({ orderId, user, isAdmin, outlets, onClose, onEdit, onChang
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const [payment, setPayment] = useState({ amount: '', method: 'cash', date: localDate(), note: '' });
 
   const load = useCallback(async () => {
@@ -99,9 +101,12 @@ const OrderDetail = ({ orderId, user, isAdmin, outlets, onClose, onEdit, onChang
             <div className="ord-panel">
               <div className="ord-row-between">
                 <strong>{order.customerName}</strong>
-                <a className="ord-wa" href={whatsappLink(order.customerPhone, order)} target="_blank" rel="noreferrer">
-                  💬 WA
-                </a>
+                <span>
+                  <button className="ord-btn ghost small" onClick={() => setShowReceipt(true)}>🧾 Nota</button>{' '}
+                  <a className="ord-wa" href={whatsappLink(order.customerPhone, order)} target="_blank" rel="noreferrer">
+                    💬 WA
+                  </a>
+                </span>
               </div>
               <div className="ord-line muted">{displayPhone(order.customerPhone)}</div>
               <p className="ord-line">
@@ -109,7 +114,18 @@ const OrderDetail = ({ orderId, user, isAdmin, outlets, onClose, onEdit, onChang
                 {order.pickupTime && <> jam <strong>{order.pickupTime}</strong></>}
               </p>
               {order.fulfillment === 'antar' && <p className="ord-line">📍 {order.deliveryAddress}</p>}
-              <div className="ord-items full">{order.items}</div>
+              {order.lines?.length ? (
+                <div className="ord-items full">
+                  {order.lines.map((l, i) => (
+                    <div key={i} className="ord-row-between">
+                      <span>{l.name} × {l.qty}</span>
+                      <span className="muted">{formatRupiah(l.qty * l.price)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="ord-items full">{order.items}</div>
+              )}
               {order.notes && <p className="ord-line muted">📝 {order.notes}</p>}
               <p className="ord-line muted small">Order tanggal {formatDay(order.orderDate)}</p>
             </div>
@@ -205,6 +221,7 @@ const OrderDetail = ({ orderId, user, isAdmin, outlets, onClose, onEdit, onChang
           </>
         )}
       </div>
+      {showReceipt && order && <OrderReceipt order={order} outletName={outletName} onClose={() => setShowReceipt(false)} />}
     </div>
   );
 };

@@ -1,0 +1,87 @@
+/* Order receipt: on screen a full-page preview, on paper only the receipt. No blur effects (Android). */
+
+.rcpt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  overflow-y: auto;
+  padding: 16px;
+  background: #e5e7eb;
+}
+
+.rcpt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.rcpt {
+  width: 72mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 4mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.rcpt-center {
+  text-align: center;
+}
+
+.rcpt-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.rcpt-rule {
+  margin: 6px 0;
+  border-top: 1px dashed #000;
+}
+
+.rcpt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rcpt-item {
+  margin-bottom: 4px;
+}
+
+.rcpt-strong {
+  font-weight: 700;
+}
+
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  /* Only the receipt goes to paper */
+  body > *:not(.rcpt-overlay) {
+    display: none !important;
+  }
+
+  .rcpt-overlay {
+    position: static;
+    padding: 0;
+    background: #fff;
+  }
+
+  .rcpt-toolbar {
+    display: none;
+  }
+
+  .rcpt {
+    margin: 0;
+    box-shadow: none;
+  }
+}
