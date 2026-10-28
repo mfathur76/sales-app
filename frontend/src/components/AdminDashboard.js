@@ -16,6 +16,7 @@ import ShipmentManager from './ShipmentManager';
 import StockManager from './StockManager';
 import KitchenStock from './KitchenStock';
 import ResellerManager from './ResellerManager';
+import SalesVerificationGrid from './SalesVerificationGrid';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ admin, onLogout }) => {
@@ -42,6 +43,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
     status: ''
   });
   const [error, setError] = useState(null);
+  // Table entry is the default; the card view stays for looking at one day in detail
+  const [quickMode, setQuickMode] = useState(true);
   const [successMessage, setSuccessMessage] = useState(null);
 
   const tabs = [
@@ -171,6 +174,10 @@ const AdminDashboard = ({ admin, onLogout }) => {
     <div className="sales-verification-content">
       <div className="verification-header">
         <h1>Bank Transfer Verification</h1>
+        <div className="view-toggle">
+          <button className={quickMode ? 'active' : ''} onClick={() => setQuickMode(true)}>⚡ Mode cepat (tabel)</button>
+          <button className={!quickMode ? 'active' : ''} onClick={() => setQuickMode(false)}>🗂️ Kartu</button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -238,7 +245,11 @@ const AdminDashboard = ({ admin, onLogout }) => {
         <div className="loading">Loading sales data...</div>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && quickMode && (
+        <SalesVerificationGrid sales={sales} onSaved={fetchSales} />
+      )}
+
+      {!loading && !error && !quickMode && (
         <div className="sales-list">
           <h2>Sales Records ({sales.length})</h2>
           {sales.length === 0 ? (

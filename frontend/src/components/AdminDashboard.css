@@ -703,3 +703,27 @@
     width: 100%;
   }
 } 
+/* Quick (table) vs card view for bank verification */
+.view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #f5f7fb;
+}
+
+.view-toggle button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-toggle button.active {
+  background: #0f766e;
+  color: #fff;
+}

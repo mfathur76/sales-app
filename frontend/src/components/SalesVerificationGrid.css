@@ -1,0 +1,131 @@
+/* Quick bank verification grid (admin, desktop-first). */
+
+.svg-wrap {
+  margin-top: 12px;
+}
+
+.svg-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.svg-save {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.svg-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.svg-help {
+  margin: 8px 2px;
+  font-size: 12px;
+  color: #5a6479;
+}
+
+.svg-scroll {
+  overflow-x: auto;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.svg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.svg-table th,
+.svg-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #edf1f7;
+  text-align: left;
+  vertical-align: top;
+}
+
+.svg-table th {
+  position: sticky;
+  top: 0;
+  background: #f5f7fb;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.svg-table .num {
+  text-align: right;
+}
+
+.svg-table input {
+  width: 100px;
+  padding: 5px 6px;
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.svg-table input:focus {
+  outline: 2px solid #14b8a6;
+  border-color: #14b8a6;
+}
+
+.svg-table input.svg-notes {
+  width: 140px;
+  text-align: left;
+}
+
+.svg-hint {
+  min-height: 14px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: #5a6479;
+}
+
+.svg-dirty td {
+  background: #fffbeb;
+}
+
+.svg-nowrap {
+  white-space: nowrap;
+}
+
+.svg-muted {
+  color: #5a6479;
+}
+
+.svg-status {
+  text-align: center;
+}
+
+.svg-ok {
+  color: #15803d;
+}
+
+.svg-low {
+  color: #dc2626;
+}
+
+.svg-over {
+  color: #d97706;
+  font-weight: 700;
+}
