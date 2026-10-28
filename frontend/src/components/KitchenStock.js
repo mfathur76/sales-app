@@ -97,9 +97,8 @@ const EntryForm = ({ products, onSaved }) => {
         />
       </label>
 
-      {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
-
       <div className="stk-sticky-bar">
+        {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
         <span><strong>{total}</strong> pcs</span>
         <button type="submit" className="ord-btn primary" disabled={saving || list.length === 0}>
           {saving ? 'Menyimpan...' : '💾 Simpan'}
@@ -228,7 +227,7 @@ const KitchenCount = () => {
         {draft.saved && <span className="ord-chip" style={{ background: '#15803d' }}>Opname tersimpan</span>}
       </div>
 
-      {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
+      {!counting && message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
 
       {draft.isFirstCount ? (
         <div className="ord-alert warn">
@@ -316,6 +315,7 @@ const KitchenCount = () => {
 
       {counting && (
         <div className="stk-sticky-bar">
+          {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
           {draft.isFirstCount ? (
             <span>Stok awal dapur</span>
           ) : (

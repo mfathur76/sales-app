@@ -186,9 +186,8 @@ const PickupForm = ({ products, onSaved }) => {
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
       </label>
 
-      {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
-
       <div className="stk-sticky-bar">
+        {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
         <span><strong>{pcs}</strong> pcs · <strong>{formatRupiah(total)}</strong></span>
         <button type="submit" className="ord-btn primary" disabled={saving}>
           {saving ? 'Menyimpan...' : '💾 Simpan'}
