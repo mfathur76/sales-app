@@ -30,7 +30,7 @@ type RevenueRow = {
   gojek: number;
   shopee: number;
   grab: number;
-  transfer: number; // direct customer transfers to BCA/Mandiri, entered by admin at verification
+  transfer: number; // customer transfers to BCA/Mandiri: the cashier's figure, or the bank's where higher
   total: number;
   days: number;
   fees: Fees;            // actual where the transfer is verified, estimated otherwise
@@ -135,10 +135,13 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     row.gojek += s.gojek;
     row.shopee += s.shopee;
     row.grab += s.grab;
-    // Customer transfers are not part of the cashier's totalSales
-    const transfer = (s.bcaBank || 0) + (s.mandiriBank || 0);
+    // Cashiers record transfers inside totalSales; BCA/Mandiri entered at verification confirm them.
+    // Days before cashiers recorded transfers only have the bank figure, so take whichever is higher
+    // and never count the same money twice.
+    const cashierTransfer = s.transfer || 0;
+    const transfer = Math.max(cashierTransfer, (s.bcaBank || 0) + (s.mandiriBank || 0));
     row.transfer += transfer;
-    row.total += s.totalSales + transfer;
+    row.total += s.totalSales - cashierTransfer + transfer;
     row.days += 1;
     const fees = actualFees(s);
     for (const ch of FEE_CHANNELS) {

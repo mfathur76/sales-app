@@ -263,6 +263,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
                       <p>Gojek: {formatCurrency(sale.gojek)}</p>
                       <p>Shopee: {formatCurrency(sale.shopee)}</p>
                       <p>Grab: {formatCurrency(sale.grab)}</p>
+                      {sale.transfer > 0 && <p>Transfer: {formatCurrency(sale.transfer)}</p>}
                     </div>
 
                     {sale.totalBank > 0 && (
@@ -284,6 +285,11 @@ const AdminDashboard = ({ admin, onLogout }) => {
                           )}
                           {sale.grab > 0 && (
                             <p>Grab: {sale.grabPercent?.toFixed(2)}% ({formatCurrency(sale.grabBank)} / {formatCurrency(sale.grab)})</p>
+                          )}
+                          {sale.transfer > 0 && (
+                            <p>
+                              Transfer: {sale.transferPercent?.toFixed(2)}% ({formatCurrency((sale.bcaBank || 0) + (sale.mandiriBank || 0))} / {formatCurrency(sale.transfer)})
+                            </p>
                           )}
                           {sale.bcaBank > 0 && (
                             <p>BCA: {formatCurrency(sale.bcaBank)} transfer</p>
@@ -404,6 +410,9 @@ const AdminDashboard = ({ admin, onLogout }) => {
                   </div>
 
                   <div className="input-group">
+                    {selectedSale.transfer > 0 && (
+                      <small>Transfer dicatat kasir: {formatCurrency(selectedSale.transfer)} (isi BCA + Mandiri sesuai uang yang masuk)</small>
+                    )}
                     <label>BCA Bank Transfer:</label>
                     <input
                       type="number"
@@ -469,6 +478,14 @@ const AdminDashboard = ({ admin, onLogout }) => {
                           </span>
                         </div>
                       )}
+                      {selectedSale.transfer > 0 && (
+                        <div className="percentage-item">
+                          <span>Transfer (BCA + Mandiri):</span>
+                          <span className={bankTransferData.bcaBank + bankTransferData.mandiriBank > selectedSale.transfer ? 'percentage-warning' : 'percentage-normal'}>
+                            {(((bankTransferData.bcaBank + bankTransferData.mandiriBank) / selectedSale.transfer) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                      )}
                       {bankTransferData.bcaBank > 0 && (
                         <div className="percentage-item">
                           <span>BCA:</span>
@@ -491,7 +508,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
                       <strong>Overall Digital Sales:</strong>
                       <span className="percentage-normal">
                         {(() => {
-                          const totalDigital = selectedSale.qris + selectedSale.gojek + selectedSale.shopee + selectedSale.grab;
+                          const totalDigital = selectedSale.qris + selectedSale.gojek + selectedSale.shopee + selectedSale.grab + (selectedSale.transfer || 0);
                           const totalBank = bankTransferData.qrisBank + bankTransferData.gojekBank + bankTransferData.shopeeBank + bankTransferData.grabBank + bankTransferData.bcaBank + bankTransferData.mandiriBank;
                           return totalDigital > 0 ? ((totalBank / totalDigital) * 100).toFixed(2) : '0.00';
                         })()}%

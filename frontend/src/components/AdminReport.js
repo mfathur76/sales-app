@@ -67,6 +67,7 @@ const AdminReport = () => {
           gojek: sale.gojek,
           shopee: sale.shopee,
           grab: sale.grab,
+          transfer: sale.transfer || 0,
           totalBank: sale.totalBank || 0,
           qrisBank: sale.qrisBank || 0,
           gojekBank: sale.gojekBank || 0,
@@ -84,6 +85,7 @@ const AdminReport = () => {
           gojek: sale.gojekBank || 0,
           shopee: sale.shopeeBank || 0,
           grab: sale.grabBank || 0,
+          transfer: (sale.bcaBank || 0) + (sale.mandiriBank || 0),
           totalBank: sale.totalBank || 0,
           qrisBank: sale.qrisBank || 0,
           gojekBank: sale.gojekBank || 0,
@@ -161,6 +163,8 @@ const AdminReport = () => {
       'Admin Shopee',
       'Staff Grab',
       'Admin Grab',
+      'Staff Transfer',
+      'Admin Transfer (BCA+Mandiri)',
       'Staff BCA',
       'Admin BCA',
       'Staff Mandiri',
@@ -184,6 +188,8 @@ const AdminReport = () => {
       item.adminInput.shopee,
       item.staffInput.grab,
       item.adminInput.grab,
+      item.staffInput.transfer,
+      item.adminInput.transfer,
       item.staffInput.bcaBank,
       item.adminInput.bcaBank,
       item.staffInput.mandiriBank,
@@ -333,6 +339,7 @@ const AdminReport = () => {
                     <th colSpan="2">Gojek</th>
                     <th colSpan="2">Shopee</th>
                     <th colSpan="2">Grab</th>
+                    <th colSpan="2">Transfer</th>
                     <th colSpan="2">BCA</th>
                     <th colSpan="2">Mandiri</th>
                     <th rowSpan="2">Total Staff</th>
@@ -341,6 +348,8 @@ const AdminReport = () => {
                     <th rowSpan="2">Status</th>
                   </tr>
                   <tr>
+                    <th>Staff</th>
+                    <th>Admin</th>
                     <th>Staff</th>
                     <th>Admin</th>
                     <th>Staff</th>
@@ -372,6 +381,8 @@ const AdminReport = () => {
                       <td className="amount-cell">{formatCurrency(item.adminInput.shopee)}</td>
                       <td className="amount-cell">{formatCurrency(item.staffInput.grab)}</td>
                       <td className="amount-cell">{formatCurrency(item.adminInput.grab)}</td>
+                      <td className="amount-cell">{formatCurrency(item.staffInput.transfer)}</td>
+                      <td className="amount-cell">{formatCurrency(item.adminInput.transfer)}</td>
                       <td className="amount-cell">{formatCurrency(item.staffInput.bcaBank)}</td>
                       <td className="amount-cell">{formatCurrency(item.adminInput.bcaBank)}</td>
                       <td className="amount-cell">{formatCurrency(item.staffInput.mandiriBank)}</td>
@@ -404,6 +415,8 @@ const AdminReport = () => {
                     <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.adminInput.shopee, 0))}</td>
                     <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.staffInput.grab, 0))}</td>
                     <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.adminInput.grab, 0))}</td>
+                    <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.staffInput.transfer, 0))}</td>
+                    <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.adminInput.transfer, 0))}</td>
                     <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.staffInput.bcaBank, 0))}</td>
                     <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.adminInput.bcaBank, 0))}</td>
                     <td className="amount-cell footer-total">{formatCurrency(reportData.reduce((sum, item) => sum + item.staffInput.mandiriBank, 0))}</td>

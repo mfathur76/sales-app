@@ -113,11 +113,11 @@ export async function createSale(event: APIGatewayProxyEvent): Promise<APIGatewa
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { outlet, date, cash, qris, gojek, shopee, grab } = body;
+    const { outlet, date, cash, qris, gojek, shopee, grab, transfer } = body;
 
     if (!outlet || !date) return badRequest('Outlet and date are required');
     if (cash === undefined && qris === undefined && gojek === undefined &&
-        shopee === undefined && grab === undefined) {
+        shopee === undefined && grab === undefined && transfer === undefined) {
       return badRequest('At least one sales value is required');
     }
 
@@ -134,6 +134,7 @@ export async function createSale(event: APIGatewayProxyEvent): Promise<APIGatewa
       gojek: gojek ?? 0,
       shopee: shopee ?? 0,
       grab: grab ?? 0,
+      transfer: transfer ?? 0,
     });
 
     return created(sale, 'Outlet sale created successfully');
