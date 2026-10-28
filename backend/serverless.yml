@@ -13,6 +13,9 @@ provider:
   profile: risolmejik
   memorySize: 256
   timeout: 10
+  # Nothing uses Lambda versions or aliases; turning them off drops one CloudFormation
+  # resource per function and keeps the stack under the 500-resource limit.
+  versionFunctions: false
 
   environment:
     NODE_ENV: production
