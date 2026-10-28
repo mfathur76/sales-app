@@ -84,7 +84,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
         {draft?.saved && <span className="ord-chip" style={{ background: '#15803d' }}>Sudah disimpan</span>}
       </div>
 
-      {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
+      {(loading || !draft) && message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
 
       {loading || !draft ? (
         <div className="ord-empty">{loading ? 'Memuat...' : 'Pilih outlet.'}</div>
@@ -169,6 +169,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
           )}
 
           <div className="stk-sticky-bar">
+            {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
             {draft.isFirstCount ? (
               <span>Stok awal</span>
             ) : (
@@ -477,9 +478,8 @@ const TransferOut = ({ outlet, isAdmin, outlets, outletName, onChanged }) => {
           />
         </label>
 
-        {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
-
         <div className="stk-sticky-bar">
+          {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
           <span><strong>{total}</strong> pcs</span>
           <button type="submit" className="ord-btn primary" disabled={saving}>
             {saving ? 'Menyimpan...' : isReturn ? '↩️ Retur ke Dapur' : '🔁 Transfer'}

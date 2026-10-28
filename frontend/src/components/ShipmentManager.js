@@ -96,9 +96,8 @@ const ShipmentForm = ({ shipment, allOutlets, kitchenCode, isAdmin, products, on
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
       </label>
 
-      {error && <div className="ord-alert error">{error}</div>}
-
       <div className="stk-sticky-bar">
+        {error && <div className="ord-alert error">{error}</div>}
         <span><strong>{total}</strong> pcs</span>
         <div className="ord-actions" style={{ marginTop: 0 }}>
           {onCancel && <button type="button" className="ord-btn ghost" onClick={onCancel} disabled={saving}>Batal</button>}

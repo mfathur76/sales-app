@@ -241,6 +241,16 @@
   bottom: 96px;
 }
 
+/* Save errors show inside the bar, so they are seen even when the form is scrolled to the middle */
+.stk-sticky-bar {
+  flex-wrap: wrap;
+}
+
+.stk-sticky-bar > .ord-alert {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .stk-card {
   cursor: default;
 }
