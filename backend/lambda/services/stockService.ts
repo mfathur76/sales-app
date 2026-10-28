@@ -2,7 +2,6 @@ import { v4 as uuid } from 'uuid';
 import { dbGet, dbPut, dbDelete, dbQuery, dbScan, TABLES } from './dynamodb';
 import { getAllOutletSales } from './salesService';
 import { listProducts } from './productService';
-import { listOrders } from './orderService';
 import { ClosingLine, Product, Shipment, ShipmentLine, StockClosing } from '../types';
 
 const TABLE = TABLES.STOCK;
@@ -293,17 +292,13 @@ export async function getClosingDraft(outlet: string, date: string) {
   };
 }
 
-/**
- * Per counted day and per product: sold, waste, value, compared with the money for the period:
- * the Sales input plus orders picked up or delivered from this outlet (order money is not in Sales).
- */
+/** Per counted day and per product: sold, waste, value, compared with the Sales money for the period. */
 export async function getStockReport(outlet: string, from: string, to: string) {
   const [closings, shipments, products] = await Promise.all([
     listClosings(outlet, to),
     listShipmentsFor(outlet, to),
     listProducts(true),
   ]);
-  const orders = (await listOrders({ outlet, pickupTo: to })).filter((o) => o.status !== 'batal');
   // Sales are needed from the day after the count that precedes the first day in range
   const firstPrev = closings.filter((c) => c.date < from).pop();
   const sales = await getAllOutletSales({ outlet, start_date: firstPrev ? addDays(firstPrev.date, 1) : from, end_date: to });
@@ -317,7 +312,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     if (c.date < from) continue;
     const prev = closings[i - 1];
     if (!prev) {
-      days.push({ date: c.date, prevDate: null, isFirstCount: true, sold: 0, waste: 0, value: 0, sales: 0, orders: 0, diff: 0, negative: [] });
+      days.push({ date: c.date, prevDate: null, isFirstCount: true, sold: 0, waste: 0, value: 0, sales: 0, diff: 0, negative: [] });
       continue;
     }
 
@@ -351,15 +346,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
       .filter((s) => s.date > prev.date && s.date <= c.date)
       .reduce((sum, s) => sum + (s.totalSales || 0), 0);
 
-    // Goods for orders leave the shelf on the pickup/delivery date; ongkir is not goods
-    const orderTotal = orders
-      .filter((o) => o.pickupDate > prev.date && o.pickupDate <= c.date)
-      .reduce((sum, o) => sum + (o.total || 0), 0);
-
-    days.push({
-      date: c.date, prevDate: prev.date, isFirstCount: false, sold, waste, value,
-      sales: salesTotal, orders: orderTotal, diff: salesTotal + orderTotal - value, negative,
-    });
+    days.push({ date: c.date, prevDate: prev.date, isFirstCount: false, sold, waste, value, sales: salesTotal, diff: salesTotal - value, negative });
   }
 
   // Shipments in either direction where the receiver confirmed a different quantity than was sent
@@ -392,11 +379,8 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     shipmentDiffs,
     transfersOut,
     summary: days.reduce(
-      (acc, d) => ({
-        sold: acc.sold + d.sold, waste: acc.waste + d.waste, value: acc.value + d.value,
-        sales: acc.sales + d.sales, orders: acc.orders + d.orders, diff: acc.diff + d.diff,
-      }),
-      { sold: 0, waste: 0, value: 0, sales: 0, orders: 0, diff: 0 },
+      (acc, d) => ({ sold: acc.sold + d.sold, waste: acc.waste + d.waste, value: acc.value + d.value, sales: acc.sales + d.sales, diff: acc.diff + d.diff }),
+      { sold: 0, waste: 0, value: 0, sales: 0, diff: 0 },
     ),
   };
 }
