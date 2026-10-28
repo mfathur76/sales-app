@@ -11,8 +11,10 @@ const TABLE = TABLES.STOCK;
  *   Shipment: PK = SHIPMENT#{outlet}  SK = ID#{id}
  *   Closing:  PK = CLOSING#{outlet}   SK = DATE#{YYYY-MM-DD}   (one end-of-day count per outlet per day)
  *
- * Sold for a closing day D = previous count + shipments received after it, up to D − count on D − waste on D.
- * Unconfirmed shipments count with the quantity sent, so a forgotten "Terima" does not break the numbers.
+ * A shipment goes from `source` (the kitchen, or an outlet for transfers and returns) to `outlet`.
+ * Sold for a closing day D = previous count + shipments received after it, up to D − transfers sent out
+ * − count on D − waste on D. Unconfirmed shipments count with the quantity sent, so a forgotten
+ * "Terima" does not break the numbers; the sender always counts the quantity it sent.
  */
 
 function addDays(ymd: string, days: number): string {
@@ -27,6 +29,7 @@ function toShipment(item: Record<string, any>): Shipment {
   return {
     id: item.id,
     outlet: item.outlet,
+    source: item.source,
     date: item.date,
     lines: item.lines ?? [],
     status: item.status === 'diterima' ? 'diterima' : 'dikirim',
@@ -60,6 +63,12 @@ export async function listShipments(filters: { outlet?: string; from?: string; t
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
+/** Shipments an outlet received or sent, up to `to`. */
+export async function listShipmentsFor(outlet: string, to?: string): Promise<Shipment[]> {
+  const all = await listShipments({ to });
+  return all.filter((s) => s.outlet === outlet || s.source === outlet);
+}
+
 export async function getShipment(outlet: string, id: string): Promise<Shipment | null> {
   const item = await dbGet(TABLE, { PK: `SHIPMENT#${outlet}`, SK: `ID#${id}` });
   return item ? toShipment(item) : null;
@@ -67,6 +76,7 @@ export async function getShipment(outlet: string, id: string): Promise<Shipment 
 
 export async function createShipment(data: {
   outlet: string;
+  source: string;
   date: string;
   lines: ShipmentLine[];
   notes?: string;
@@ -76,6 +86,7 @@ export async function createShipment(data: {
   return saveShipment({
     id: uuid(),
     outlet: data.outlet,
+    source: data.source,
     date: data.date,
     lines: data.lines.map(({ productId, name, qty }) => ({ productId, name, qty })),
     status: 'dikirim',
@@ -200,12 +211,14 @@ interface ProductFlow {
   opening: number;
   received: number;
   pending: number;   // part of `received` the outlet has not confirmed yet
+  sent: number;      // transferred out to another outlet or back to the kitchen
   remaining?: number;
   waste?: number;
 }
 
-/** Opening stock and shipments for the period (prevDate, date]. */
+/** Opening stock and shipments in and out of `outlet` for the period (prevDate, date]. */
 function flows(
+  outlet: string,
   date: string,
   prev: StockClosing | undefined,
   shipments: Shipment[],
@@ -217,7 +230,7 @@ function flows(
     let f = map.get(productId);
     if (!f) {
       const p = productById.get(productId);
-      f = { productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0, opening: 0, received: 0, pending: 0 };
+      f = { productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0, opening: 0, received: 0, pending: 0, sent: 0 };
       map.set(productId, f);
     }
     return f;
@@ -228,8 +241,12 @@ function flows(
     .filter((s) => s.date <= date && (!prev || s.date > prev.date))
     .forEach((s) => s.lines.forEach((l) => {
       const f = get(l.productId, l.name);
-      f.received += l.receivedQty ?? l.qty;
-      if (s.status !== 'diterima') f.pending += l.qty;
+      if (s.source === outlet) {
+        f.sent += l.qty;
+      } else if (s.outlet === outlet) {
+        f.received += l.receivedQty ?? l.qty;
+        if (s.status !== 'diterima') f.pending += l.qty;
+      }
     }));
   return map;
 }
@@ -238,15 +255,15 @@ function flows(
 export async function getClosingDraft(outlet: string, date: string) {
   const [closings, shipments, products] = await Promise.all([
     listClosings(outlet, date),
-    listShipments({ outlet, to: date }),
+    listShipmentsFor(outlet, date),
     listProducts(true),
   ]);
   const existing = closings.find((c) => c.date === date);
   const prev = closings.filter((c) => c.date < date).pop();
-  const map = flows(date, prev, shipments, products);
+  const map = flows(outlet, date, prev, shipments, products);
 
   existing?.lines.forEach((l) => {
-    const f = map.get(l.productId) ?? { productId: l.productId, name: l.name, price: l.price, opening: 0, received: 0, pending: 0 };
+    const f = map.get(l.productId) ?? { productId: l.productId, name: l.name, price: l.price, opening: 0, received: 0, pending: 0, sent: 0 };
     Object.assign(f, { price: l.price, remaining: l.remaining, waste: l.waste });
     map.set(l.productId, f);
   });
@@ -255,12 +272,12 @@ export async function getClosingDraft(outlet: string, date: string) {
   const order = new Map(products.map((p, i) => [p.id, p.isActive ? i : products.length + i]));
   const activeIds = new Set(products.filter((p) => p.isActive).map((p) => p.id));
   products.filter((p) => p.isActive && !map.has(p.id)).forEach((p) => {
-    map.set(p.id, { productId: p.id, name: p.name, category: p.category, price: p.price, opening: 0, received: 0, pending: 0 });
+    map.set(p.id, { productId: p.id, name: p.name, category: p.category, price: p.price, opening: 0, received: 0, pending: 0, sent: 0 });
   });
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
   map.forEach((f) => { f.category = categoryById.get(f.productId); });
   const lines = [...map.values()]
-    .filter((f) => activeIds.has(f.productId) || f.opening || f.received || f.remaining)
+    .filter((f) => activeIds.has(f.productId) || f.opening || f.received || f.sent || f.remaining)
     .sort((a, b) => (order.get(a.productId) ?? 1e9) - (order.get(b.productId) ?? 1e9));
 
   return {
@@ -279,7 +296,7 @@ export async function getClosingDraft(outlet: string, date: string) {
 export async function getStockReport(outlet: string, from: string, to: string) {
   const [closings, shipments, products] = await Promise.all([
     listClosings(outlet, to),
-    listShipments({ outlet, to }),
+    listShipmentsFor(outlet, to),
     listProducts(true),
   ]);
   // Sales are needed from the day after the count that precedes the first day in range
@@ -299,7 +316,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
       continue;
     }
 
-    const map = flows(c.date, prev, shipments, products);
+    const map = flows(outlet, c.date, prev, shipments, products);
     let sold = 0;
     let waste = 0;
     let value = 0;
@@ -309,7 +326,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     ids.forEach((id) => {
       const f = map.get(id);
       const l = counted.get(id);
-      const lineSold = (f?.opening ?? 0) + (f?.received ?? 0) - (l?.remaining ?? 0) - (l?.waste ?? 0);
+      const lineSold = (f?.opening ?? 0) + (f?.received ?? 0) - (f?.sent ?? 0) - (l?.remaining ?? 0) - (l?.waste ?? 0);
       const price = l?.price ?? f?.price ?? 0;
       const name = l?.name ?? f?.name ?? '?';
       if (lineSold < 0) negative.push(name);
@@ -332,12 +349,25 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     days.push({ date: c.date, prevDate: prev.date, isFirstCount: false, sold, waste, value, sales: salesTotal, diff: salesTotal - value, negative });
   }
 
-  // Shipments where the outlet confirmed a different quantity than was sent
+  // Shipments in either direction where the receiver confirmed a different quantity than was sent
   const shipmentDiffs = shipments
     .filter((s) => s.date >= from && s.status === 'diterima')
     .flatMap((s) => s.lines
       .filter((l) => l.receivedQty !== undefined && l.receivedQty !== l.qty)
-      .map((l) => ({ date: s.date, shipmentId: s.id, name: l.name, sent: l.qty, received: l.receivedQty! })));
+      .map((l) => ({
+        date: s.date,
+        shipmentId: s.id,
+        direction: s.source === outlet ? 'keluar' : 'masuk',
+        counterpart: s.source === outlet ? s.outlet : s.source,
+        name: l.name,
+        sent: l.qty,
+        received: l.receivedQty!,
+      })));
+
+  // Transfers this outlet sent out in the range
+  const transfersOut = shipments
+    .filter((s) => s.source === outlet && s.date >= from)
+    .map((s) => ({ date: s.date, shipmentId: s.id, to: s.outlet, qty: s.lines.reduce((sum, l) => sum + l.qty, 0) }));
 
   const order = new Map(products.map((p, i) => [p.id, i]));
   return {
@@ -347,6 +377,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     days: days.sort((a, b) => b.date.localeCompare(a.date)),
     products: [...totals.values()].sort((a, b) => (order.get(a.productId) ?? 1e9) - (order.get(b.productId) ?? 1e9)),
     shipmentDiffs,
+    transfersOut,
     summary: days.reduce(
       (acc, d) => ({ sold: acc.sold + d.sold, waste: acc.waste + d.waste, value: acc.value + d.value, sales: acc.sales + d.sales, diff: acc.diff + d.diff }),
       { sold: 0, waste: 0, value: 0, sales: 0, diff: 0 },

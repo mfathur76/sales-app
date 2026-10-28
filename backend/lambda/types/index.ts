@@ -209,7 +209,8 @@ export interface ShipmentLine {
 
 export interface Shipment {
   id: string;
-  outlet: string;       // destination
+  outlet: string;       // destination (a shop outlet, or the kitchen for returns)
+  source?: string;      // sender; missing on shipments made before transfers existed = the kitchen
   date: string;         // YYYY-MM-DD
   lines: ShipmentLine[];
   status: 'dikirim' | 'diterima';

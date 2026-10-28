@@ -19,10 +19,9 @@ import { verifyToken, extractBearerToken } from '../utils/jwt';
 import {
   ok, created, badRequest, unauthorized, forbidden, notFound, serverError, preflight,
 } from '../utils/response';
-import { JwtUser, ShipmentLine } from '../types';
+import { JwtUser, OutletRole, Shipment, ShipmentLine } from '../types';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const CLOSED_MSG = 'Outlet sudah tutup toko di tanggal ini, jadi kiriman akan mengacaukan hitungan. Pakai tanggal besok.';
 
 function getUser(event: APIGatewayProxyEvent): JwtUser | null {
   const token = extractBearerToken(event.headers['Authorization'] || event.headers['authorization']);
@@ -35,6 +34,9 @@ const isOutletStaff = (u: JwtUser) => u.type === 'outlet' && u.role !== 'dapur';
 const actor = (u: JwtUser) => (u.type === 'admin' ? u.username : u.outlet);
 
 const KITCHEN_COUNTED_MSG = 'Dapur sudah opname di tanggal ini atau sesudahnya, jadi kiriman ini akan mengacaukan hitungan stok dapur. Pakai tanggal sesudah opname, atau minta admin.';
+const closedMsg = (code: string) => `${code} sudah tutup toko di tanggal ini, jadi kiriman akan mengacaukan hitungannya. Pakai tanggal besok.`;
+
+type Roles = Map<string, OutletRole>;
 
 /** True when a kitchen count already covers `date`, so a shipment on it would shift the count's gap. */
 async function kitchenCounted(user: JwtUser, ...dates: string[]): Promise<boolean> {
@@ -47,10 +49,31 @@ function isQty(v: unknown): boolean {
   return typeof v === 'number' && Number.isInteger(v) && v >= 0;
 }
 
-/** Shipments may only go to real outlets, not to the kitchen account itself. */
-async function isShopOutlet(code: string): Promise<boolean> {
-  const outlets = await getAllOutlets();
-  return outlets.some((o) => o.code === code && o.role !== 'dapur');
+/** Outlet code → role, to tell shops from the kitchen. */
+async function outletRoles(): Promise<Roles> {
+  return new Map((await getAllOutlets()).map((o) => [o.code, o.role]));
+}
+
+const firstKitchen = (roles: Roles) => [...roles].find(([, role]) => role === 'dapur')?.[0];
+
+/** Shipments made before transfers existed have no source; they came from the kitchen. */
+const sourceOf = (s: Shipment, roles: Roles) => s.source ?? firstKitchen(roles);
+
+/** The account that sent a shipment may change it until it is received. */
+const isSender = (user: JwtUser, s: Shipment, roles: Roles) => user.type === 'outlet' && sourceOf(s, roles) === user.outlet;
+
+/**
+ * A shipment dated on a day an outlet at either end has already counted (or the kitchen has already
+ * counted, when it is involved) would change those numbers afterwards. Returns the refusal message.
+ */
+async function dateConflict(user: JwtUser, ends: string[], roles: Roles, date: string, ...lockDates: string[]): Promise<string | null> {
+  for (const code of ends) {
+    if (roles.get(code) === 'outlet' && (await hasClosing(code, date))) return closedMsg(code);
+  }
+  if (ends.some((c) => roles.get(c) === 'dapur') && (await kitchenCounted(user, date, ...lockDates))) {
+    return KITCHEN_COUNTED_MSG;
+  }
+  return null;
 }
 
 /** Validate shipment lines against active products and attach product names. */
@@ -72,9 +95,9 @@ async function parseShipmentLines(lines: unknown): Promise<string | ShipmentLine
   return out;
 }
 
-// ---- Shipments ----
+// ---- Shipments (kitchen → outlet, outlet → outlet transfers, outlet → kitchen returns) ----
 
-/** GET /api/stock/shipments?outlet&from&to&status — outlet staff only see their own */
+/** GET /api/stock/shipments?outlet&from&to&status — outlet staff see what they received and sent */
 export async function getShipments(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
 
@@ -83,45 +106,58 @@ export async function getShipments(event: APIGatewayProxyEvent): Promise<APIGate
 
   try {
     const qs = event.queryStringParameters || {};
-    const outlet = isOutletStaff(user) ? user.outlet : qs.outlet;
-    return ok(await listShipments({ outlet, from: qs.from, to: qs.to, status: qs.status }));
+    if (isOutletStaff(user)) {
+      const all = await listShipments({ from: qs.from, to: qs.to, status: qs.status });
+      return ok(all.filter((s) => s.outlet === user.outlet || s.source === user.outlet));
+    }
+    return ok(await listShipments({ outlet: qs.outlet, from: qs.from, to: qs.to, status: qs.status }));
   } catch (err) {
     return serverError(err);
   }
 }
 
-/** POST /api/stock/shipments — kitchen or admin. Body: { outlet, date, lines: [{ productId, qty }], notes? } */
+/**
+ * POST /api/stock/shipments — Body: { outlet, source?, date, lines: [{ productId, qty }], notes? }
+ * The kitchen sends to outlets; outlet staff transfer to another outlet or return to the kitchen;
+ * admins may send from anywhere (source defaults to the kitchen).
+ */
 export async function createShipmentHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
 
   const user = getUser(event);
   if (!user) return unauthorized('Access token required');
-  if (!isKitchen(user) && !isAdmin(user)) return forbidden('Hanya dapur atau admin yang boleh mengirim barang');
 
   try {
     const body = JSON.parse(event.body || '{}');
-    if (!body.outlet || !(await isShopOutlet(body.outlet))) return badRequest('Outlet tujuan tidak valid');
+    const roles = await outletRoles();
+
+    const source: string | undefined = isAdmin(user) ? body.source || firstKitchen(roles) : user.outlet;
+    const dest: string | undefined = body.outlet;
+    if (!source || !roles.has(source)) return badRequest('Asal kiriman tidak valid');
+    if (!dest || !roles.has(dest) || dest === source) return badRequest('Tujuan kiriman tidak valid');
+    if (roles.get(source) === 'dapur' && roles.get(dest) !== 'outlet') return badRequest('Tujuan kiriman tidak valid');
     if (!DATE_RE.test(body.date || '')) return badRequest('Tanggal kirim tidak valid');
-    if (await hasClosing(body.outlet, body.date)) return badRequest(CLOSED_MSG);
-    if (await kitchenCounted(user, body.date)) return badRequest(KITCHEN_COUNTED_MSG);
+
+    const conflict = await dateConflict(user, [source, dest], roles, body.date);
+    if (conflict) return badRequest(conflict);
 
     const lines = await parseShipmentLines(body.lines);
     if (typeof lines === 'string') return badRequest(lines);
 
-    const shipment = await createShipment({ outlet: body.outlet, date: body.date, lines, notes: body.notes, createdBy: actor(user) });
-    return created(shipment, 'Kiriman berhasil dicatat');
+    const shipment = await createShipment({ outlet: dest, source, date: body.date, lines, notes: body.notes, createdBy: actor(user) });
+    const what = roles.get(dest) === 'dapur' ? 'Retur ke dapur' : roles.get(source) === 'outlet' ? 'Transfer' : 'Kiriman';
+    return created(shipment, `${what} berhasil dicatat`);
   } catch (err) {
     return serverError(err);
   }
 }
 
-/** PUT /api/stock/shipments/{outlet}/{id} — kitchen (until received) or admin */
+/** PUT /api/stock/shipments/{outlet}/{id} — the sender (until received) or admin */
 export async function updateShipmentHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
 
   const user = getUser(event);
   if (!user) return unauthorized('Access token required');
-  if (!isKitchen(user) && !isAdmin(user)) return forbidden('Hanya dapur atau admin yang boleh mengubah kiriman');
 
   const { outlet, id } = event.pathParameters || {};
   if (!outlet || !id) return badRequest('Outlet and id path parameters are required');
@@ -129,17 +165,20 @@ export async function updateShipmentHandler(event: APIGatewayProxyEvent): Promis
   try {
     const existing = await getShipment(outlet, id);
     if (!existing) return notFound('Kiriman tidak ditemukan');
-    if (isKitchen(user) && existing.status === 'diterima') {
-      return forbidden('Kiriman sudah diterima outlet. Minta admin untuk mengubahnya.');
-    }
-    if (await kitchenCounted(user, existing.date, JSON.parse(event.body || '{}').date ?? existing.date)) {
-      return badRequest(KITCHEN_COUNTED_MSG);
+    const roles = await outletRoles();
+    if (!isAdmin(user)) {
+      if (!isSender(user, existing, roles)) return forbidden('Hanya pengirim atau admin yang boleh mengubah kiriman ini');
+      if (existing.status === 'diterima') return forbidden('Kiriman sudah diterima. Minta admin untuk mengubahnya.');
     }
 
     const body = JSON.parse(event.body || '{}');
     if (body.date !== undefined && !DATE_RE.test(body.date)) return badRequest('Tanggal kirim tidak valid');
-    if (body.date !== undefined && body.date !== existing.date && (await hasClosing(outlet, body.date))) {
-      return badRequest(CLOSED_MSG);
+    const ends = [sourceOf(existing, roles), existing.outlet].filter(Boolean) as string[];
+    if (body.date !== undefined && body.date !== existing.date) {
+      const conflict = await dateConflict(user, ends, roles, body.date, existing.date);
+      if (conflict) return badRequest(conflict);
+    } else if (ends.some((c) => roles.get(c) === 'dapur') && (await kitchenCounted(user, existing.date))) {
+      return badRequest(KITCHEN_COUNTED_MSG);
     }
 
     let lines;
@@ -155,13 +194,12 @@ export async function updateShipmentHandler(event: APIGatewayProxyEvent): Promis
   }
 }
 
-/** DELETE /api/stock/shipments/{outlet}/{id} — kitchen (until received) or admin */
+/** DELETE /api/stock/shipments/{outlet}/{id} — the sender (until received) or admin */
 export async function deleteShipmentHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
 
   const user = getUser(event);
   if (!user) return unauthorized('Access token required');
-  if (!isKitchen(user) && !isAdmin(user)) return forbidden('Hanya dapur atau admin yang boleh menghapus kiriman');
 
   const { outlet, id } = event.pathParameters || {};
   if (!outlet || !id) return badRequest('Outlet and id path parameters are required');
@@ -169,10 +207,15 @@ export async function deleteShipmentHandler(event: APIGatewayProxyEvent): Promis
   try {
     const existing = await getShipment(outlet, id);
     if (!existing) return notFound('Kiriman tidak ditemukan');
-    if (isKitchen(user) && existing.status === 'diterima') {
-      return forbidden('Kiriman sudah diterima outlet. Minta admin untuk menghapusnya.');
+    const roles = await outletRoles();
+    if (!isAdmin(user)) {
+      if (!isSender(user, existing, roles)) return forbidden('Hanya pengirim atau admin yang boleh menghapus kiriman ini');
+      if (existing.status === 'diterima') return forbidden('Kiriman sudah diterima. Minta admin untuk menghapusnya.');
     }
-    if (await kitchenCounted(user, existing.date)) return badRequest(KITCHEN_COUNTED_MSG);
+    const ends = [sourceOf(existing, roles), existing.outlet];
+    if (ends.some((c) => c && roles.get(c) === 'dapur') && (await kitchenCounted(user, existing.date))) {
+      return badRequest(KITCHEN_COUNTED_MSG);
+    }
     await deleteShipment(outlet, id);
     return ok(null, 'Kiriman berhasil dihapus');
   } catch (err) {
@@ -181,8 +224,8 @@ export async function deleteShipmentHandler(event: APIGatewayProxyEvent): Promis
 }
 
 /**
- * POST /api/stock/shipments/{outlet}/{id}/receive — the destination outlet (or admin).
- * Body: { lines?: [{ productId, receivedQty }] } — omitted products are received in full.
+ * POST /api/stock/shipments/{outlet}/{id}/receive — the destination (an outlet, or the kitchen for
+ * returns) or admin. Body: { lines?: [{ productId, receivedQty }] } — omitted products are received in full.
  */
 export async function receiveShipmentHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -192,8 +235,8 @@ export async function receiveShipmentHandler(event: APIGatewayProxyEvent): Promi
 
   const { outlet, id } = event.pathParameters || {};
   if (!outlet || !id) return badRequest('Outlet and id path parameters are required');
-  if (!isAdmin(user) && !(isOutletStaff(user) && user.outlet === outlet)) {
-    return forbidden('Hanya outlet tujuan yang boleh menerima kiriman ini');
+  if (!isAdmin(user) && !(user.type === 'outlet' && user.outlet === outlet)) {
+    return forbidden('Hanya tujuan kiriman yang boleh menerimanya');
   }
 
   try {
