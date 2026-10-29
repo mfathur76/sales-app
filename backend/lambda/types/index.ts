@@ -208,6 +208,8 @@ export interface Product {
   resellerPrice?: number; // price for resellers taking stock from the kitchen
   kind: ProductKind;
   category?: string;  // e.g. "RISOLES GORENG"; groups the product in forms and reports
+  packOf?: string;    // for a pack product: the piece product it is made of
+  packSize?: number;  // pieces per pack now; each assembly keeps the size it used
   sortOrder: number;
   isActive: boolean;
   createdAt: string;
@@ -219,6 +221,26 @@ export interface ShipmentLine {
   name: string;
   qty: number;          // sent by the kitchen
   receivedQty?: number; // confirmed by the outlet
+}
+
+/**
+ * Pieces packed into packs ("rakit") or packs opened back into pieces ("bongkar") at an outlet.
+ * `packSize` is the size used at the time, so changing a product's pack size never rewrites history.
+ */
+export interface PackConversion {
+  id: string;
+  outlet: string;
+  date: string;
+  direction: 'rakit' | 'bongkar';
+  packProductId: string;
+  packName: string;
+  pieceProductId: string;
+  pieceName: string;
+  packs: number;
+  packSize: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
 }
 
 export interface Shipment {

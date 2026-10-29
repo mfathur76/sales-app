@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/salesApi';
-import { shipmentApi, stockApi, shopOutlets, groupByCategory } from '../api/stockApi';
+import { shipmentApi, stockApi, conversionApi, productApi, shopOutlets, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay, formatRupiah } from '../api/orderApi';
 import QtyInput from './QtyInput';
 import IncomingShipments from './IncomingShipments';
@@ -44,7 +44,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
 
   const rows = (draft?.lines || []).map((l) => {
     const c = counts[l.productId] || {};
-    const stock = l.opening + l.received - l.sent;
+    const stock = l.opening + l.received - l.sent + (l.converted || 0);
     const filled = c.remaining !== '' && c.remaining !== undefined;
     const sold = filled ? stock - Number(c.remaining) - Number(c.waste || 0) : null;
     return { ...l, stock, filled, sold, remaining: c.remaining, waste: c.waste || 0 };
@@ -96,7 +96,8 @@ const ClosingForm = ({ outlet, isAdmin }) => {
             </div>
           ) : (
             <p className="ord-line muted small">
-              Stok = sisa hitungan {formatDay(draft.prevDate)} + kiriman masuk − transfer keluar sesudahnya. Isi sisa barang yang ada sekarang.
+              Stok = sisa hitungan {formatDay(draft.prevDate)} + kiriman masuk − transfer keluar ± rakit/bongkar pack sesudahnya.
+              Isi sisa barang yang ada sekarang.
             </p>
           )}
           {pending > 0 && (
@@ -128,9 +129,10 @@ const ClosingForm = ({ outlet, isAdmin }) => {
                     <tr key={r.productId} className={r.stock === 0 && !r.filled ? 'dim' : ''}>
                       <td>
                         {r.name}
-                        {!draft.isFirstCount && (r.received > 0 || r.sent > 0) && (
+                        {!draft.isFirstCount && (r.received > 0 || r.sent > 0 || r.converted) && (
                           <div className="muted small">
-                            {r.received > 0 && `+${r.received} masuk `}{r.sent > 0 && `−${r.sent} keluar`}
+                            awal {r.opening}{r.received > 0 && ` · +${r.received} masuk`}{r.sent > 0 && ` · −${r.sent} keluar`}
+                            {r.converted > 0 && ` · +${r.converted} rakit/bongkar`}{r.converted < 0 && ` · −${-r.converted} rakit/bongkar`}
                           </div>
                         )}
                       </td>
@@ -188,7 +190,38 @@ const ClosingForm = ({ outlet, isAdmin }) => {
   );
 };
 
+const sum = (items, key) => items.reduce((total, p) => total + (p[key] || 0), 0);
+const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '');
+
+/** What happened to one product between counts, oldest first. */
+const StockCardDetail = ({ product, nameOf }) => (
+  <tr className="stk-card-detail">
+    <td colSpan={9}>
+      {product.periods.map((p) => (
+        <div key={p.date} className="stk-period">
+          <div className="muted small">Hitungan {formatDay(p.prevDate)}: sisa {p.opening}</div>
+          {p.moves.map((m, i) => (
+            <div key={i} className={m.direction === 'masuk' ? 'pos' : 'neg'}>
+              {formatDay(m.date)} · {m.direction === 'masuk' ? '+' : '−'}{m.qty}{' '}
+              {m.conversion
+                ? `${m.conversion.kind === 'rakit' ? 'rakit' : 'bongkar'} ${m.conversion.packs} pack isi ${m.conversion.packSize} (${m.conversion.other})`
+                : m.direction === 'masuk' ? `dari ${m.counterpart ? nameOf(m.counterpart) : 'Dapur Pusat'}` : `ke ${nameOf(m.counterpart)}`}
+              {m.pending && <span className="muted"> (belum diterima)</span>}
+            </div>
+          ))}
+          {p.waste > 0 && <div className="neg">{formatDay(p.date)} · −{p.waste} rusak</div>}
+          <div className={p.sold < 0 ? 'neg' : ''}>
+            {formatDay(p.date)} · terjual {p.sold}{p.sold < 0 && ' ⚠️ sisa lebih banyak dari stok'}
+          </div>
+          <div className="muted small">Hitungan {formatDay(p.date)}: sisa {p.remaining}</div>
+        </div>
+      ))}
+    </td>
+  </tr>
+);
+
 const OutletReport = ({ report, outletName, nameOf }) => {
+  const [openProduct, setOpenProduct] = useState(null);
   const s = report.summary;
   return (
     <div className="ord-panel">
@@ -246,27 +279,56 @@ const OutletReport = ({ report, outletName, nameOf }) => {
 
           {report.products.length > 0 && (
             <>
-              <h4 className="ord-section-title">Per produk</h4>
+              <h4 className="ord-section-title">Kartu stok per produk</h4>
+              <p className="ord-line muted small">
+                Awal + Masuk − Keluar ± Rakit/Bongkar − Rusak − Terjual = Sisa. Ketuk produk untuk melihat rinciannya.
+              </p>
               <div className="stk-table-wrap">
-                <table className="stk-table">
+                <table className="stk-table stk-stock-card">
                   <thead>
-                    <tr><th>Produk</th><th className="num">Terjual</th><th className="num">Rusak</th><th className="num">Nilai</th></tr>
+                    <tr>
+                      <th>Produk</th>
+                      <th className="num">Awal</th>
+                      <th className="num">Masuk</th>
+                      <th className="num">Keluar</th>
+                      <th className="num">Rakit/ Bongkar</th>
+                      <th className="num">Rusak</th>
+                      <th className="num">Terjual</th>
+                      <th className="num">Sisa</th>
+                      <th className="num">Nilai</th>
+                    </tr>
                   </thead>
                   {groupByCategory(report.products).map((g) => (
                     <tbody key={g.category}>
                       <tr className="stk-group">
                         <td>{g.category}</td>
-                        <td className="num">{g.items.reduce((s, p) => s + p.sold, 0)}</td>
-                        <td className="num">{g.items.reduce((s, p) => s + p.waste, 0)}</td>
-                        <td className="num">{formatRupiah(g.items.reduce((s, p) => s + p.value, 0))}</td>
+                        <td className="num">{sum(g.items, 'opening')}</td>
+                        <td className="num">{sum(g.items, 'received')}</td>
+                        <td className="num">{sum(g.items, 'sent')}</td>
+                        <td className="num">{signed(sum(g.items, 'converted'))}</td>
+                        <td className="num">{sum(g.items, 'waste')}</td>
+                        <td className="num">{sum(g.items, 'sold')}</td>
+                        <td className="num">{sum(g.items, 'remaining')}</td>
+                        <td className="num">{formatRupiah(sum(g.items, 'value'))}</td>
                       </tr>
                       {g.items.map((p) => (
-                        <tr key={p.productId}>
-                          <td>{p.name}</td>
-                          <td className={`num ${p.sold < 0 ? 'neg' : ''}`}>{p.sold}</td>
-                          <td className="num">{p.waste}</td>
-                          <td className="num">{formatRupiah(p.value)}</td>
-                        </tr>
+                        <React.Fragment key={p.productId}>
+                          <tr
+                            className={`stk-card-row ${openProduct === p.productId ? 'open' : ''}`}
+                            onClick={() => setOpenProduct(openProduct === p.productId ? null : p.productId)}
+                          >
+                            <td>{openProduct === p.productId ? '▾' : '▸'} {p.name}</td>
+                            <td className="num">{p.opening}</td>
+                            <td className="num">{p.received || ''}</td>
+                            <td className="num">{p.sent || ''}</td>
+                            <td className="num">{signed(p.converted)}</td>
+                            <td className="num">{p.waste || ''}</td>
+                            <td className={`num ${p.sold < 0 ? 'neg' : ''}`}>{p.sold}</td>
+                            <td className="num">{p.remaining}</td>
+                            <td className="num">{formatRupiah(p.value)}</td>
+                          </tr>
+                          {openProduct === p.productId && <StockCardDetail product={p} nameOf={nameOf} />}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   ))}
@@ -380,7 +442,7 @@ const TransferOut = ({ outlet, isAdmin, outlets, outletName, onChanged }) => {
 
   const destinations = outlets.filter((o) => o.code !== outlet);
   const isReturn = outlets.find((o) => o.code === dest)?.role === 'dapur';
-  const rows = (draft?.lines || []).map((l) => ({ ...l, stock: l.opening + l.received - l.sent }));
+  const rows = (draft?.lines || []).map((l) => ({ ...l, stock: l.opening + l.received - l.sent + (l.converted || 0) }));
   const over = rows.filter((r) => (qty[r.productId] || 0) > Math.max(r.stock, 0));
   const total = Object.values(qty).reduce((s, n) => s + (n || 0), 0);
 
@@ -515,10 +577,187 @@ const TransferOut = ({ outlet, isAdmin, outlets, outletName, onChanged }) => {
   );
 };
 
+/**
+ * Pack pieces into packs ("rakit") or open packs into pieces ("bongkar"). Both products are counted
+ * as they are; the conversion moves stock from one to the other so the stock card shows why.
+ */
+const PackConversions = ({ outlet, isAdmin, onChanged }) => {
+  const [packs, setPacks] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [list, setList] = useState([]);
+  const [draft, setDraft] = useState(null);
+  const [date, setDate] = useState(localDate());
+  const [direction, setDirection] = useState('rakit');
+  const [packProductId, setPackProductId] = useState('');
+  const [count, setCount] = useState(0);
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    productApi.list()
+      .then((all) => {
+        setProducts(all);
+        setPacks(all.filter((p) => p.packOf && p.packSize));
+      })
+      .catch((err) => setMessage({ type: 'error', text: err.message }));
+  }, []);
+
+  const loadList = useCallback(async () => {
+    try {
+      setList(await conversionApi.list({ outlet: isAdmin ? outlet : undefined, from: localDate(-14) }));
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  }, [outlet, isAdmin]);
+
+  const loadStock = useCallback(async () => {
+    try {
+      setDraft(await stockApi.getClosing(date, isAdmin ? outlet : undefined));
+    } catch {
+      setDraft(null);
+    }
+  }, [date, outlet, isAdmin]);
+
+  useEffect(() => { loadList(); }, [loadList]);
+  useEffect(() => { loadStock(); }, [loadStock]);
+
+  const pack = packs.find((p) => p.id === packProductId);
+  const piece = pack && products.find((p) => p.id === pack.packOf);
+  const stockOf = (id) => {
+    const l = draft?.lines.find((x) => x.productId === id);
+    return l ? l.opening + l.received - l.sent + (l.converted || 0) : 0;
+  };
+  const pieces = pack ? count * pack.packSize : 0;
+  // What would go below zero: the pieces when packing, the packs when opening
+  const short = pack && (direction === 'rakit' ? pieces > stockOf(pack.packOf) : count > stockOf(pack.id));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!pack) { setMessage({ type: 'error', text: 'Pilih produk pack' }); return; }
+    if (count <= 0) { setMessage({ type: 'error', text: 'Isi jumlah pack' }); return; }
+    if (short && !window.confirm('Stok tercatat tidak cukup. Mungkin ada kiriman yang belum dicatat. Tetap simpan?')) return;
+    setSaving(true);
+    try {
+      await conversionApi.create({ outlet: isAdmin ? outlet : undefined, date, direction, packProductId, packs: count, notes });
+      setMessage({ type: 'success', text: `${direction === 'rakit' ? 'Rakit' : 'Bongkar'} ${count} pack tercatat` });
+      setCount(0);
+      setNotes('');
+      loadList();
+      loadStock();
+      onChanged();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (c) => {
+    if (!window.confirm(`Hapus ${c.direction} ${c.packs} ${c.packName} tanggal ${formatDay(c.date)}?`)) return;
+    try {
+      await conversionApi.remove(c);
+      loadList();
+      loadStock();
+      onChanged();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  if (packs.length === 0 && !message.text) {
+    return (
+      <div className="ord-empty">
+        Belum ada produk pack. Admin mengatur "Pack dari" dan isinya di Master Produk.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <form className="ord-form" onSubmit={submit}>
+        <div className="ord-tabs">
+          <button type="button" className={direction === 'rakit' ? 'active' : ''} onClick={() => setDirection('rakit')}>
+            Rakit (pcs → pack)
+          </button>
+          <button type="button" className={direction === 'bongkar' ? 'active' : ''} onClick={() => setDirection('bongkar')}>
+            Bongkar (pack → pcs)
+          </button>
+        </div>
+        <div className="ord-grid">
+          <label className="ord-field">
+            <span>Produk pack *</span>
+            <select value={packProductId} onChange={(e) => setPackProductId(e.target.value)} required>
+              <option value="">Pilih pack</option>
+              {packs.map((p) => <option key={p.id} value={p.id}>{p.name} (isi {p.packSize})</option>)}
+            </select>
+          </label>
+          <label className="ord-field">
+            <span>Tanggal</span>
+            <input type="date" value={date} max={localDate()} onChange={(e) => setDate(e.target.value)} required />
+          </label>
+        </div>
+
+        {pack && (
+          <>
+            <label className="ord-field">
+              <span>Jumlah pack</span>
+              <QtyInput value={count} onChange={setCount} steps={[5]} />
+            </label>
+            <div className={`ord-alert ${short ? 'warn' : 'success'}`}>
+              {direction === 'rakit'
+                ? <>−{pieces} {piece?.name} → +{count} {pack.name}</>
+                : <>−{count} {pack.name} → +{pieces} {piece?.name}</>}
+              <div className="small">
+                Stok tercatat: {piece?.name} {stockOf(pack.packOf)} pcs · {pack.name} {stockOf(pack.id)} pack
+              </div>
+            </div>
+          </>
+        )}
+
+        <label className="ord-field">
+          <span>Catatan</span>
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
+        </label>
+
+        {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
+
+        <div className="ord-actions">
+          <button type="submit" className="ord-btn primary" disabled={saving || !pack || count <= 0}>
+            {saving ? 'Menyimpan...' : direction === 'rakit' ? '📦 Simpan Rakit' : '📤 Simpan Bongkar'}
+          </button>
+        </div>
+      </form>
+
+      <h4 className="ord-section-title">Rakit/bongkar 14 hari terakhir</h4>
+      {list.length === 0 ? (
+        <div className="ord-line muted">Belum ada catatan.</div>
+      ) : (
+        <div className="ord-list">
+          {list.map((c) => (
+            <div key={c.id} className="ord-card stk-card">
+              <div className="ord-row-between">
+                <strong>{c.direction === 'rakit' ? '📦 Rakit' : '📤 Bongkar'} {c.packs} {c.packName}</strong>
+                <button className="ord-btn danger small" onClick={() => remove(c)}>Hapus</button>
+              </div>
+              <div className="ord-line muted small">
+                {formatDay(c.date)} · {c.direction === 'rakit' ? '−' : '+'}{c.packs * c.packSize} {c.pieceName} (isi {c.packSize})
+                {c.createdBy ? ` · oleh ${c.createdBy}` : ''}
+              </div>
+              {c.notes && <div className="ord-line muted small">📝 {c.notes}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const VIEWS = [
   { id: 'tutup', label: '🌙 Tutup Toko' },
   { id: 'kiriman', label: '🚚 Kiriman Masuk' },
   { id: 'transfer', label: '🔁 Transfer Keluar' },
+  { id: 'pack', label: '📦 Rakit Pack' },
   { id: 'laporan', label: '📊 Laporan' }
 ];
 
@@ -581,6 +820,9 @@ const StockManager = ({ user, isAdmin = false }) => {
               outletName={outletName}
               onChanged={() => setRefreshKey((k) => k + 1)}
             />
+          )}
+          {view === 'pack' && (
+            <PackConversions key={outlet} outlet={outlet} isAdmin={isAdmin} onChanged={() => setRefreshKey((k) => k + 1)} />
           )}
           {view === 'laporan' && <StockReport outlet={outlet} isAdmin={isAdmin} outletName={outletName} />}
         </>

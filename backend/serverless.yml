@@ -554,6 +554,30 @@ functions:
           method: post
           cors: true
 
+  getConversions:
+    handler: lambda/handlers/stock.getConversionsHandler
+    events:
+      - http:
+          path: api/stock/conversions
+          method: get
+          cors: true
+
+  createConversion:
+    handler: lambda/handlers/stock.createConversionHandler
+    events:
+      - http:
+          path: api/stock/conversions
+          method: post
+          cors: true
+
+  deleteConversion:
+    handler: lambda/handlers/stock.deleteConversionHandler
+    events:
+      - http:
+          path: api/stock/conversions/{outlet}/{id}
+          method: delete
+          cors: true
+
   getStockClosing:
     handler: lambda/handlers/stock.getClosingHandler
     events:

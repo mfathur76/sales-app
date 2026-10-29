@@ -241,6 +241,32 @@
   bottom: 96px;
 }
 
+/* Stock card: one row per product, tap to see each count and shipment behind it */
+.stk-card-row {
+  cursor: pointer;
+}
+
+.stk-card-row:hover td,
+.stk-card-row.open td {
+  background: var(--surface-muted, #f5f7fb);
+}
+
+.stk-card-row td:first-child {
+  white-space: nowrap;
+}
+
+.stk-table tr.stk-card-detail td {
+  padding: 4px 10px 10px 26px;
+  background: var(--surface-muted, #f5f7fb);
+  font-size: 13px;
+}
+
+.stk-period + .stk-period {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line, #dbe3ef);
+}
+
 /* Save errors show inside the bar, so they are seen even when the form is scrolled to the middle */
 .stk-sticky-bar {
   flex-wrap: wrap;

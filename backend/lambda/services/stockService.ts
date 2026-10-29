@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { dbGet, dbPut, dbDelete, dbQuery, dbScan, TABLES } from './dynamodb';
 import { getAllOutletSales } from './salesService';
 import { listProducts } from './productService';
-import { ClosingLine, Product, Shipment, ShipmentLine, StockClosing } from '../types';
+import { ClosingLine, PackConversion, Product, Shipment, ShipmentLine, StockClosing } from '../types';
 
 const TABLE = TABLES.STOCK;
 
@@ -10,10 +10,11 @@ const TABLE = TABLES.STOCK;
  * DynamoDB key layout for stock (one table):
  *   Shipment: PK = SHIPMENT#{outlet}  SK = ID#{id}
  *   Closing:  PK = CLOSING#{outlet}   SK = DATE#{YYYY-MM-DD}   (one end-of-day count per outlet per day)
+ *   Pack conversion: PK = CONVERSION#{outlet}  SK = ID#{id}
  *
  * A shipment goes from `source` (the kitchen, or an outlet for transfers and returns) to `outlet`.
  * Sold for a closing day D = previous count + shipments received after it, up to D − transfers sent out
- * − count on D − waste on D. Unconfirmed shipments count with the quantity sent, so a forgotten
+ * ± pieces packed or unpacked − count on D − waste on D. Unconfirmed shipments count with the quantity sent, so a forgotten
  * "Terima" does not break the numbers; the sender always counts the quantity it sent.
  */
 
@@ -136,6 +137,49 @@ export async function deleteShipment(outlet: string, id: string): Promise<void> 
   await dbDelete(TABLE, { PK: `SHIPMENT#${outlet}`, SK: `ID#${id}` });
 }
 
+// ---- Pack conversions ----
+
+function toConversion(item: Record<string, any>): PackConversion {
+  const { PK, SK, ...rest } = item;
+  return rest as PackConversion;
+}
+
+export async function listConversions(outlet: string, filters: { from?: string; to?: string } = {}): Promise<PackConversion[]> {
+  const items = await dbQuery({
+    TableName: TABLE,
+    KeyConditionExpression: 'PK = :pk',
+    ExpressionAttributeValues: { ':pk': `CONVERSION#${outlet}` },
+  });
+  return items
+    .map(toConversion)
+    .filter((c) => (!filters.from || c.date >= filters.from) && (!filters.to || c.date <= filters.to))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getConversion(outlet: string, id: string): Promise<PackConversion | null> {
+  const item = await dbGet(TABLE, { PK: `CONVERSION#${outlet}`, SK: `ID#${id}` });
+  return item ? toConversion(item) : null;
+}
+
+export async function createConversion(data: Omit<PackConversion, 'id' | 'createdAt'>): Promise<PackConversion> {
+  const c: PackConversion = { ...data, id: uuid(), notes: data.notes?.trim() || undefined, createdAt: new Date().toISOString() };
+  await dbPut(TABLE, { PK: `CONVERSION#${c.outlet}`, SK: `ID#${c.id}`, ...c });
+  return c;
+}
+
+export async function deleteConversion(outlet: string, id: string): Promise<void> {
+  await dbDelete(TABLE, { PK: `CONVERSION#${outlet}`, SK: `ID#${id}` });
+}
+
+/** Pieces each product gains (+) or loses (−) through one conversion. */
+function conversionEffects(c: PackConversion): [productId: string, name: string, qty: number][] {
+  const sign = c.direction === 'rakit' ? 1 : -1;
+  return [
+    [c.packProductId, c.packName, sign * c.packs],
+    [c.pieceProductId, c.pieceName, -sign * c.packs * c.packSize],
+  ];
+}
+
 // ---- Closings (end-of-day counts) ----
 
 function toClosing(item: Record<string, any>): StockClosing {
@@ -212,16 +256,18 @@ interface ProductFlow {
   received: number;
   pending: number;   // part of `received` the outlet has not confirmed yet
   sent: number;      // transferred out to another outlet or back to the kitchen
+  converted: number; // gained (+) or lost (−) by packing pieces into packs or opening packs
   remaining?: number;
   waste?: number;
 }
 
-/** Opening stock and shipments in and out of `outlet` for the period (prevDate, date]. */
+/** Opening stock, shipments in and out and pack conversions of `outlet` for the period (prevDate, date]. */
 function flows(
   outlet: string,
   date: string,
   prev: StockClosing | undefined,
   shipments: Shipment[],
+  conversions: PackConversion[],
   products: Product[],
 ): Map<string, ProductFlow> {
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -230,7 +276,7 @@ function flows(
     let f = map.get(productId);
     if (!f) {
       const p = productById.get(productId);
-      f = { productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0, opening: 0, received: 0, pending: 0, sent: 0 };
+      f = { productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0, opening: 0, received: 0, pending: 0, sent: 0, converted: 0 };
       map.set(productId, f);
     }
     return f;
@@ -248,22 +294,26 @@ function flows(
         if (s.status !== 'diterima') f.pending += l.qty;
       }
     }));
+  conversions
+    .filter((c) => c.date <= date && (!prev || c.date > prev.date))
+    .forEach((c) => conversionEffects(c).forEach(([productId, name, qty]) => { get(productId, name).converted += qty; }));
   return map;
 }
 
 /** Everything the end-of-day form needs: one line per active product with stock so far. */
 export async function getClosingDraft(outlet: string, date: string) {
-  const [closings, shipments, products] = await Promise.all([
+  const [closings, shipments, conversions, products] = await Promise.all([
     listClosings(outlet, date),
     listShipmentsFor(outlet, date),
+    listConversions(outlet, { to: date }),
     listProducts(true),
   ]);
   const existing = closings.find((c) => c.date === date);
   const prev = closings.filter((c) => c.date < date).pop();
-  const map = flows(outlet, date, prev, shipments, products);
+  const map = flows(outlet, date, prev, shipments, conversions, products);
 
   existing?.lines.forEach((l) => {
-    const f = map.get(l.productId) ?? { productId: l.productId, name: l.name, price: l.price, opening: 0, received: 0, pending: 0, sent: 0 };
+    const f = map.get(l.productId) ?? { productId: l.productId, name: l.name, price: l.price, opening: 0, received: 0, pending: 0, sent: 0, converted: 0 };
     Object.assign(f, { price: l.price, remaining: l.remaining, waste: l.waste });
     map.set(l.productId, f);
   });
@@ -272,12 +322,12 @@ export async function getClosingDraft(outlet: string, date: string) {
   const order = new Map(products.map((p, i) => [p.id, p.isActive ? i : products.length + i]));
   const activeIds = new Set(products.filter((p) => p.isActive).map((p) => p.id));
   products.filter((p) => p.isActive && !map.has(p.id)).forEach((p) => {
-    map.set(p.id, { productId: p.id, name: p.name, category: p.category, price: p.price, opening: 0, received: 0, pending: 0, sent: 0 });
+    map.set(p.id, { productId: p.id, name: p.name, category: p.category, price: p.price, opening: 0, received: 0, pending: 0, sent: 0, converted: 0 });
   });
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
   map.forEach((f) => { f.category = categoryById.get(f.productId); });
   const lines = [...map.values()]
-    .filter((f) => activeIds.has(f.productId) || f.opening || f.received || f.sent || f.remaining)
+    .filter((f) => activeIds.has(f.productId) || f.opening || f.received || f.sent || f.converted || f.remaining)
     .sort((a, b) => (order.get(a.productId) ?? 1e9) - (order.get(b.productId) ?? 1e9));
 
   return {
@@ -292,11 +342,66 @@ export async function getClosingDraft(outlet: string, date: string) {
   };
 }
 
-/** Per counted day and per product: sold, waste, value, compared with the Sales money for the period. */
+interface StockMove {
+  date: string;
+  direction: 'masuk' | 'keluar';
+  counterpart?: string; // the other end; undefined on legacy shipments means the kitchen
+  qty: number;
+  pending: boolean;     // received side not confirmed yet
+  conversion?: { kind: 'rakit' | 'bongkar'; packs: number; packSize: number; other: string };
+}
+
+/** One product between two counts: opening + received − sent − waste − sold = remaining. */
+interface StockPeriod {
+  date: string;
+  prevDate: string;
+  opening: number;
+  received: number;
+  sent: number;
+  converted: number;
+  waste: number;
+  sold: number;
+  remaining: number;
+  moves: StockMove[];
+}
+
+/** Shipment lines and pack conversions moving one product in or out of `outlet` in (prevDate, date]. */
+function movesFor(
+  outlet: string, productId: string, prevDate: string, date: string, shipments: Shipment[], conversions: PackConversion[],
+): StockMove[] {
+  const inPeriod = (d: string) => d > prevDate && d <= date;
+  const shipped = shipments
+    .filter((s) => inPeriod(s.date))
+    .flatMap((s) => s.lines
+      .filter((l) => l.productId === productId)
+      .map((l): StockMove => (s.source === outlet
+        ? { date: s.date, direction: 'keluar', counterpart: s.outlet, qty: l.qty, pending: false }
+        : { date: s.date, direction: 'masuk', counterpart: s.source, qty: l.receivedQty ?? l.qty, pending: s.status !== 'diterima' })));
+  const converted = conversions
+    .filter((c) => inPeriod(c.date) && (c.packProductId === productId || c.pieceProductId === productId))
+    .map((c): StockMove => {
+      const qty = conversionEffects(c).find(([id]) => id === productId)![2];
+      return {
+        date: c.date, direction: qty > 0 ? 'masuk' : 'keluar', qty: Math.abs(qty), pending: false,
+        conversion: {
+          kind: c.direction, packs: c.packs, packSize: c.packSize,
+          other: c.packProductId === productId ? c.pieceName : c.packName,
+        },
+      };
+    });
+  return [...shipped, ...converted].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Per counted day and per product: sold, waste, value, compared with the Sales money for the period.
+ * Each product also carries its stock card: opening, received, sent, waste, sold and remaining for
+ * the range, with every counted period and the shipments behind it.
+ */
 export async function getStockReport(outlet: string, from: string, to: string) {
-  const [closings, shipments, products] = await Promise.all([
+  const [closings, shipments, conversions, products] = await Promise.all([
     listClosings(outlet, to),
     listShipmentsFor(outlet, to),
+    listConversions(outlet, { to }),
     listProducts(true),
   ]);
   // Sales are needed from the day after the count that precedes the first day in range
@@ -305,7 +410,11 @@ export async function getStockReport(outlet: string, from: string, to: string) {
 
   const days = [];
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
-  const totals = new Map<string, { productId: string; name: string; category?: string; sold: number; waste: number; value: number }>();
+  const totals = new Map<string, {
+    productId: string; name: string; category?: string;
+    opening: number; received: number; sent: number; converted: number; waste: number; sold: number; remaining: number; value: number;
+    periods: StockPeriod[];
+  }>();
 
   for (let i = 0; i < closings.length; i++) {
     const c = closings[i];
@@ -316,7 +425,7 @@ export async function getStockReport(outlet: string, from: string, to: string) {
       continue;
     }
 
-    const map = flows(outlet, c.date, prev, shipments, products);
+    const map = flows(outlet, c.date, prev, shipments, conversions, products);
     let sold = 0;
     let waste = 0;
     let value = 0;
@@ -326,18 +435,38 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     ids.forEach((id) => {
       const f = map.get(id);
       const l = counted.get(id);
-      const lineSold = (f?.opening ?? 0) + (f?.received ?? 0) - (f?.sent ?? 0) - (l?.remaining ?? 0) - (l?.waste ?? 0);
+      const opening = f?.opening ?? 0;
+      const received = f?.received ?? 0;
+      const sent = f?.sent ?? 0;
+      const converted = f?.converted ?? 0;
+      const remaining = l?.remaining ?? 0;
+      const lineWaste = l?.waste ?? 0;
+      const lineSold = opening + received - sent + converted - remaining - lineWaste;
       const price = l?.price ?? f?.price ?? 0;
       const name = l?.name ?? f?.name ?? '?';
       if (lineSold < 0) negative.push(name);
       sold += lineSold;
-      waste += l?.waste ?? 0;
+      waste += lineWaste;
       value += lineSold * price;
 
-      const t = totals.get(id) ?? { productId: id, name, category: categoryById.get(id), sold: 0, waste: 0, value: 0 };
+      // The first period in range sets the opening balance; the last count sets what is left
+      const t = totals.get(id) ?? {
+        productId: id, name, category: categoryById.get(id),
+        opening, received: 0, sent: 0, converted: 0, waste: 0, sold: 0, remaining: 0, value: 0, periods: [],
+      };
+      t.received += received;
+      t.sent += sent;
+      t.converted += converted;
+      t.waste += lineWaste;
       t.sold += lineSold;
-      t.waste += l?.waste ?? 0;
+      t.remaining = remaining;
       t.value += lineSold * price;
+      if (opening || received || sent || converted || lineWaste || lineSold || remaining) {
+        t.periods.push({
+          date: c.date, prevDate: prev.date, opening, received, sent, converted, waste: lineWaste, sold: lineSold, remaining,
+          moves: movesFor(outlet, id, prev.date, c.date, shipments, conversions),
+        });
+      }
       totals.set(id, t);
     });
 

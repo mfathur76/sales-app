@@ -31,7 +31,15 @@ function validate(p: any, partial: boolean): string | null {
   if (p.resellerPrice !== undefined && p.resellerPrice !== null && !isAmount(p.resellerPrice)) return 'Harga reseller tidak valid';
   if (p.kind !== undefined && p.kind !== 'produksi' && p.kind !== 'beli_jadi') return 'Jenis produk tidak valid';
   if (p.category !== undefined && p.category !== null && typeof p.category !== 'string') return 'Kategori tidak valid';
+  if (p.packOf !== undefined && p.packOf !== null && typeof p.packOf !== 'string') return 'Produk pcs untuk pack tidak valid';
+  if (p.packOf && !(Number.isInteger(p.packSize) && p.packSize >= 2)) return 'Isi pack harus bilangan bulat 2 atau lebih';
   return null;
+}
+
+/** A pack is made of an existing piece product that is not itself a pack (and not the pack). */
+async function isPieceProduct(pieceId: string, packId?: string): Promise<boolean> {
+  const piece = (await listProducts(true)).find((p) => p.id === pieceId);
+  return Boolean(piece && piece.id !== packId && !piece.packOf);
 }
 
 function pick(p: any): ProductInput {
@@ -42,6 +50,8 @@ function pick(p: any): ProductInput {
     resellerPrice: p.resellerPrice ?? undefined,
     kind: p.kind,
     category: typeof p.category === 'string' ? p.category : undefined,
+    packOf: p.packOf === null ? '' : typeof p.packOf === 'string' ? p.packOf : undefined,
+    packSize: Number.isInteger(p.packSize) ? p.packSize : undefined,
     sortOrder: typeof p.sortOrder === 'number' ? p.sortOrder : undefined,
     isActive: typeof p.isActive === 'boolean' ? p.isActive : undefined,
   };
@@ -74,6 +84,7 @@ export async function createProductHandler(event: APIGatewayProxyEvent): Promise
     const body = JSON.parse(event.body || '{}');
     const err = validate(body, false);
     if (err) return badRequest(err);
+    if (body.packOf && !(await isPieceProduct(body.packOf))) return badRequest('Produk pcs untuk pack tidak valid');
     return created(await createProduct(pick(body)), 'Produk berhasil ditambahkan');
   } catch (err) {
     return serverError(err);
@@ -118,6 +129,7 @@ export async function updateProductHandler(event: APIGatewayProxyEvent): Promise
     const body = JSON.parse(event.body || '{}');
     const err = validate(body, true);
     if (err) return badRequest(err);
+    if (body.packOf && !(await isPieceProduct(body.packOf, id))) return badRequest('Produk pcs untuk pack tidak valid');
 
     const product = await updateProduct(id, pick(body));
     if (!product) return notFound('Produk tidak ditemukan');

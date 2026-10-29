@@ -11,6 +11,8 @@ export interface ProductInput {
   resellerPrice?: number;
   kind?: ProductKind;
   category?: string;
+  packOf?: string;    // '' unlinks the pack
+  packSize?: number;
   sortOrder?: number;
   isActive?: boolean;
 }
@@ -24,6 +26,8 @@ function toProduct(item: Record<string, any>): Product {
     resellerPrice: item.resellerPrice,
     kind: item.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi',
     category: item.category,
+    packOf: item.packOf || undefined,
+    packSize: item.packOf ? item.packSize : undefined,
     sortOrder: item.sortOrder ?? 0,
     isActive: item.isActive !== false,
     createdAt: item.createdAt,
@@ -60,6 +64,8 @@ function newProduct(data: ProductInput, sortOrder: number): Product {
     resellerPrice: data.resellerPrice,
     kind: data.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi',
     category: data.category?.trim() || undefined,
+    packOf: data.packOf || undefined,
+    packSize: data.packOf ? data.packSize : undefined,
     sortOrder: data.sortOrder ?? sortOrder,
     isActive: true,
     createdAt: now,
@@ -97,6 +103,9 @@ export async function updateProduct(id: string, updates: Partial<ProductInput>):
   if (updates.resellerPrice !== undefined) next.resellerPrice = updates.resellerPrice;
   if (updates.kind !== undefined) next.kind = updates.kind === 'beli_jadi' ? 'beli_jadi' : 'produksi';
   if (updates.category !== undefined) next.category = updates.category.trim() || undefined;
+  if (updates.packOf !== undefined) next.packOf = updates.packOf || undefined;
+  if (updates.packSize !== undefined) next.packSize = updates.packSize;
+  if (!next.packOf) next.packSize = undefined;
   if (updates.sortOrder !== undefined) next.sortOrder = updates.sortOrder;
   if (updates.isActive !== undefined) next.isActive = updates.isActive;
 

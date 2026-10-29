@@ -18,6 +18,14 @@ export const shipmentApi = {
   receive: (s, lines) => request(`/stock/shipments/${s.outlet}/${s.id}/receive`, { method: 'POST', body: JSON.stringify({ lines }) })
 };
 
+// Pieces packed into packs ("rakit") or packs opened into pieces ("bongkar") at an outlet
+export const conversionApi = {
+  // filters: { outlet (admin), from, to }
+  list: (filters) => request(`/stock/conversions${query(filters)}`),
+  create: (data) => request('/stock/conversions', { method: 'POST', body: JSON.stringify(data) }),
+  remove: (c) => request(`/stock/conversions/${c.outlet}/${c.id}`, { method: 'DELETE' })
+};
+
 export const stockApi = {
   getClosing: (date, outlet) => request(`/stock/closing${query({ date, outlet })}`),
   saveClosing: (data) => request('/stock/closing', { method: 'PUT', body: JSON.stringify(data) }),

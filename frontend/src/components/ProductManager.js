@@ -4,7 +4,7 @@ import { formatRupiah } from '../api/orderApi';
 import './Orders.css';
 import './Stock.css';
 
-const EMPTY = { name: '', category: '', price: '', resellerPrice: '', cost: '', kind: 'produksi', sortOrder: '' };
+const EMPTY = { name: '', category: '', price: '', resellerPrice: '', cost: '', kind: 'produksi', packOf: '', packSize: '', sortOrder: '' };
 
 const toNumber = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
 
@@ -91,6 +91,8 @@ const ProductManager = () => {
         resellerPrice: p.resellerPrice !== undefined ? String(p.resellerPrice) : '',
         cost: p.cost !== undefined ? String(p.cost) : '',
         kind: p.kind,
+        packOf: p.packOf || '',
+        packSize: p.packSize ? String(p.packSize) : '',
         sortOrder: String(p.sortOrder)
       }
       : EMPTY);
@@ -105,6 +107,8 @@ const ProductManager = () => {
       resellerPrice: toNumber(form.resellerPrice),
       cost: toNumber(form.cost),
       kind: form.kind,
+      packOf: form.packOf || null,
+      packSize: form.packOf ? toNumber(form.packSize) : undefined,
       sortOrder: toNumber(form.sortOrder)
     };
     setSaving(true);
@@ -151,6 +155,9 @@ const ProductManager = () => {
 
   const visible = products.filter((p) => showInactive || p.isActive);
   const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+  const nameOf = (id) => products.find((p) => p.id === id)?.name || '?';
+  // A pack is made of a piece product, which cannot itself be a pack
+  const pieceOptions = products.filter((p) => !p.packOf && p.id !== editingId);
 
   const renderForm = () => (
     <form className="stk-product-form" onSubmit={save}>
@@ -166,6 +173,21 @@ const ProductManager = () => {
       <input type="number" inputMode="numeric" min="0" placeholder="Harga reseller" value={form.resellerPrice} onChange={(e) => set('resellerPrice', e.target.value)} />
       <input type="number" inputMode="numeric" min="0" placeholder="Modal (opsional)" value={form.cost} onChange={(e) => set('cost', e.target.value)} />
       <input type="number" inputMode="numeric" placeholder="Urutan" value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
+      <select value={form.packOf} onChange={(e) => set('packOf', e.target.value)} title="Isi pack, untuk rakit/bongkar di outlet">
+        <option value="">Bukan pack</option>
+        {pieceOptions.map((p) => <option key={p.id} value={p.id}>Pack dari: {p.name}</option>)}
+      </select>
+      {form.packOf && (
+        <input
+          type="number"
+          inputMode="numeric"
+          min="2"
+          placeholder="Isi per pack (pcs)"
+          value={form.packSize}
+          onChange={(e) => set('packSize', e.target.value)}
+          required
+        />
+      )}
       <div className="ord-actions">
         <button type="button" className="ord-btn ghost" onClick={() => setEditingId(null)} disabled={saving}>Batal</button>
         <button type="submit" className="ord-btn primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
@@ -256,7 +278,10 @@ const ProductManager = () => {
                   ) : (
                     <tr key={p.id} className={p.isActive ? '' : 'dim'}>
                       <td className="muted">{p.sortOrder}</td>
-                      <td>{p.name}{!p.isActive && <span className="muted"> (nonaktif)</span>}</td>
+                      <td>
+                        {p.name}{!p.isActive && <span className="muted"> (nonaktif)</span>}
+                        {p.packOf && <div className="muted small">📦 isi {p.packSize} × {nameOf(p.packOf)}</div>}
+                      </td>
                       <td>{PRODUCT_KIND[p.kind]}</td>
                       <td className="num">{formatRupiah(p.price)}</td>
                       <td className="num muted">{p.resellerPrice !== undefined ? formatRupiah(p.resellerPrice) : '-'}</td>
