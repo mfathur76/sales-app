@@ -130,7 +130,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
                         {r.name}
                         {!draft.isFirstCount && (r.received > 0 || r.sent > 0) && (
                           <div className="muted small">
-                            {r.received > 0 && `+${r.received} masuk `}{r.sent > 0 && `−${r.sent} keluar`}
+                            awal {r.opening}{r.received > 0 && ` · +${r.received} masuk`}{r.sent > 0 && ` · −${r.sent} keluar`}
                           </div>
                         )}
                       </td>
@@ -188,7 +188,35 @@ const ClosingForm = ({ outlet, isAdmin }) => {
   );
 };
 
+const sum = (items, key) => items.reduce((total, p) => total + p[key], 0);
+
+/** What happened to one product between counts, oldest first. */
+const StockCardDetail = ({ product, nameOf }) => (
+  <tr className="stk-card-detail">
+    <td colSpan={8}>
+      {product.periods.map((p) => (
+        <div key={p.date} className="stk-period">
+          <div className="muted small">Hitungan {formatDay(p.prevDate)}: sisa {p.opening}</div>
+          {p.moves.map((m, i) => (
+            <div key={i} className={m.direction === 'masuk' ? 'pos' : 'neg'}>
+              {formatDay(m.date)} · {m.direction === 'masuk' ? '+' : '−'}{m.qty}{' '}
+              {m.direction === 'masuk' ? `dari ${m.counterpart ? nameOf(m.counterpart) : 'Dapur Pusat'}` : `ke ${nameOf(m.counterpart)}`}
+              {m.pending && <span className="muted"> (belum diterima)</span>}
+            </div>
+          ))}
+          {p.waste > 0 && <div className="neg">{formatDay(p.date)} · −{p.waste} rusak</div>}
+          <div className={p.sold < 0 ? 'neg' : ''}>
+            {formatDay(p.date)} · terjual {p.sold}{p.sold < 0 && ' ⚠️ sisa lebih banyak dari stok'}
+          </div>
+          <div className="muted small">Hitungan {formatDay(p.date)}: sisa {p.remaining}</div>
+        </div>
+      ))}
+    </td>
+  </tr>
+);
+
 const OutletReport = ({ report, outletName, nameOf }) => {
+  const [openProduct, setOpenProduct] = useState(null);
   const s = report.summary;
   return (
     <div className="ord-panel">
@@ -246,27 +274,53 @@ const OutletReport = ({ report, outletName, nameOf }) => {
 
           {report.products.length > 0 && (
             <>
-              <h4 className="ord-section-title">Per produk</h4>
+              <h4 className="ord-section-title">Kartu stok per produk</h4>
+              <p className="ord-line muted small">
+                Awal + Masuk − Keluar − Rusak − Terjual = Sisa. Ketuk produk untuk melihat rinciannya.
+              </p>
               <div className="stk-table-wrap">
-                <table className="stk-table">
+                <table className="stk-table stk-stock-card">
                   <thead>
-                    <tr><th>Produk</th><th className="num">Terjual</th><th className="num">Rusak</th><th className="num">Nilai</th></tr>
+                    <tr>
+                      <th>Produk</th>
+                      <th className="num">Awal</th>
+                      <th className="num">Masuk</th>
+                      <th className="num">Keluar</th>
+                      <th className="num">Rusak</th>
+                      <th className="num">Terjual</th>
+                      <th className="num">Sisa</th>
+                      <th className="num">Nilai</th>
+                    </tr>
                   </thead>
                   {groupByCategory(report.products).map((g) => (
                     <tbody key={g.category}>
                       <tr className="stk-group">
                         <td>{g.category}</td>
-                        <td className="num">{g.items.reduce((s, p) => s + p.sold, 0)}</td>
-                        <td className="num">{g.items.reduce((s, p) => s + p.waste, 0)}</td>
-                        <td className="num">{formatRupiah(g.items.reduce((s, p) => s + p.value, 0))}</td>
+                        <td className="num">{sum(g.items, 'opening')}</td>
+                        <td className="num">{sum(g.items, 'received')}</td>
+                        <td className="num">{sum(g.items, 'sent')}</td>
+                        <td className="num">{sum(g.items, 'waste')}</td>
+                        <td className="num">{sum(g.items, 'sold')}</td>
+                        <td className="num">{sum(g.items, 'remaining')}</td>
+                        <td className="num">{formatRupiah(sum(g.items, 'value'))}</td>
                       </tr>
                       {g.items.map((p) => (
-                        <tr key={p.productId}>
-                          <td>{p.name}</td>
-                          <td className={`num ${p.sold < 0 ? 'neg' : ''}`}>{p.sold}</td>
-                          <td className="num">{p.waste}</td>
-                          <td className="num">{formatRupiah(p.value)}</td>
-                        </tr>
+                        <React.Fragment key={p.productId}>
+                          <tr
+                            className={`stk-card-row ${openProduct === p.productId ? 'open' : ''}`}
+                            onClick={() => setOpenProduct(openProduct === p.productId ? null : p.productId)}
+                          >
+                            <td>{openProduct === p.productId ? '▾' : '▸'} {p.name}</td>
+                            <td className="num">{p.opening}</td>
+                            <td className="num">{p.received || ''}</td>
+                            <td className="num">{p.sent || ''}</td>
+                            <td className="num">{p.waste || ''}</td>
+                            <td className={`num ${p.sold < 0 ? 'neg' : ''}`}>{p.sold}</td>
+                            <td className="num">{p.remaining}</td>
+                            <td className="num">{formatRupiah(p.value)}</td>
+                          </tr>
+                          {openProduct === p.productId && <StockCardDetail product={p} nameOf={nameOf} />}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   ))}

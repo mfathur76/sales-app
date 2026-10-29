@@ -292,7 +292,44 @@ export async function getClosingDraft(outlet: string, date: string) {
   };
 }
 
-/** Per counted day and per product: sold, waste, value, compared with the Sales money for the period. */
+interface StockMove {
+  date: string;
+  direction: 'masuk' | 'keluar';
+  counterpart?: string; // the other end; undefined on legacy shipments means the kitchen
+  qty: number;
+  pending: boolean;     // received side not confirmed yet
+}
+
+/** One product between two counts: opening + received − sent − waste − sold = remaining. */
+interface StockPeriod {
+  date: string;
+  prevDate: string;
+  opening: number;
+  received: number;
+  sent: number;
+  waste: number;
+  sold: number;
+  remaining: number;
+  moves: StockMove[];
+}
+
+/** Shipment lines of one product moving in or out of `outlet` in (prevDate, date]. */
+function movesFor(outlet: string, productId: string, prevDate: string, date: string, shipments: Shipment[]): StockMove[] {
+  return shipments
+    .filter((s) => s.date > prevDate && s.date <= date)
+    .flatMap((s) => s.lines
+      .filter((l) => l.productId === productId)
+      .map((l): StockMove => (s.source === outlet
+        ? { date: s.date, direction: 'keluar', counterpart: s.outlet, qty: l.qty, pending: false }
+        : { date: s.date, direction: 'masuk', counterpart: s.source, qty: l.receivedQty ?? l.qty, pending: s.status !== 'diterima' })))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Per counted day and per product: sold, waste, value, compared with the Sales money for the period.
+ * Each product also carries its stock card: opening, received, sent, waste, sold and remaining for
+ * the range, with every counted period and the shipments behind it.
+ */
 export async function getStockReport(outlet: string, from: string, to: string) {
   const [closings, shipments, products] = await Promise.all([
     listClosings(outlet, to),
@@ -305,7 +342,11 @@ export async function getStockReport(outlet: string, from: string, to: string) {
 
   const days = [];
   const categoryById = new Map(products.map((p) => [p.id, p.category]));
-  const totals = new Map<string, { productId: string; name: string; category?: string; sold: number; waste: number; value: number }>();
+  const totals = new Map<string, {
+    productId: string; name: string; category?: string;
+    opening: number; received: number; sent: number; waste: number; sold: number; remaining: number; value: number;
+    periods: StockPeriod[];
+  }>();
 
   for (let i = 0; i < closings.length; i++) {
     const c = closings[i];
@@ -326,18 +367,36 @@ export async function getStockReport(outlet: string, from: string, to: string) {
     ids.forEach((id) => {
       const f = map.get(id);
       const l = counted.get(id);
-      const lineSold = (f?.opening ?? 0) + (f?.received ?? 0) - (f?.sent ?? 0) - (l?.remaining ?? 0) - (l?.waste ?? 0);
+      const opening = f?.opening ?? 0;
+      const received = f?.received ?? 0;
+      const sent = f?.sent ?? 0;
+      const remaining = l?.remaining ?? 0;
+      const lineWaste = l?.waste ?? 0;
+      const lineSold = opening + received - sent - remaining - lineWaste;
       const price = l?.price ?? f?.price ?? 0;
       const name = l?.name ?? f?.name ?? '?';
       if (lineSold < 0) negative.push(name);
       sold += lineSold;
-      waste += l?.waste ?? 0;
+      waste += lineWaste;
       value += lineSold * price;
 
-      const t = totals.get(id) ?? { productId: id, name, category: categoryById.get(id), sold: 0, waste: 0, value: 0 };
+      // The first period in range sets the opening balance; the last count sets what is left
+      const t = totals.get(id) ?? {
+        productId: id, name, category: categoryById.get(id),
+        opening, received: 0, sent: 0, waste: 0, sold: 0, remaining: 0, value: 0, periods: [],
+      };
+      t.received += received;
+      t.sent += sent;
+      t.waste += lineWaste;
       t.sold += lineSold;
-      t.waste += l?.waste ?? 0;
+      t.remaining = remaining;
       t.value += lineSold * price;
+      if (opening || received || sent || lineWaste || lineSold || remaining) {
+        t.periods.push({
+          date: c.date, prevDate: prev.date, opening, received, sent, waste: lineWaste, sold: lineSold, remaining,
+          moves: movesFor(outlet, id, prev.date, c.date, shipments),
+        });
+      }
       totals.set(id, t);
     });
 
