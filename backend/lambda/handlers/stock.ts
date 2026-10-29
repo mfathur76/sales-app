@@ -11,6 +11,10 @@ import {
   hasClosing,
   deleteClosing,
   getStockReport,
+  listConversions,
+  getConversion,
+  createConversion,
+  deleteConversion,
 } from '../services/stockService';
 import { listProducts } from '../services/productService';
 import { kitchenCodes, lastCountDate } from '../services/kitchenService';
@@ -356,6 +360,91 @@ export async function getStockReportHandler(event: APIGatewayProxyEvent): Promis
 
     const reports = await Promise.all(outlets.map((o) => getStockReport(o, qs.from!, qs.to!)));
     return ok(reports);
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+// ---- Pack conversions (pieces packed into packs, packs opened into pieces) ----
+
+const convertClosedMsg = (code: string) => `${code} sudah tutup toko di tanggal ini, jadi rakit/bongkar akan mengacaukan hitungannya. Pakai tanggal besok.`;
+
+/** GET /api/stock/conversions?outlet&from&to — outlet staff see their own outlet */
+export async function getConversionsHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  try {
+    const qs = event.queryStringParameters || {};
+    const outlet = closingOutlet(user, qs.outlet);
+    if (!outlet) return badRequest('Outlet wajib diisi');
+    return ok(await listConversions(outlet, { from: qs.from, to: qs.to }));
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** POST /api/stock/conversions — Body: { outlet? (admin), date, direction: 'rakit'|'bongkar', packProductId, packs, notes? } */
+export async function createConversionHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  try {
+    const body = JSON.parse(event.body || '{}');
+    const outlet = closingOutlet(user, body.outlet);
+    if (!outlet) return forbidden('Hanya outlet atau admin yang boleh mencatat rakit/bongkar');
+    if ((await outletRoles()).get(outlet) !== 'outlet') return badRequest('Outlet tidak valid');
+    if (!DATE_RE.test(body.date || '')) return badRequest('Tanggal tidak valid');
+    if (body.direction !== 'rakit' && body.direction !== 'bongkar') return badRequest('Pilih rakit atau bongkar');
+    if (!(isQty(body.packs) && body.packs > 0)) return badRequest('Jumlah pack harus bilangan bulat 1 atau lebih');
+
+    const products = new Map((await listProducts()).map((p) => [p.id, p]));
+    const pack = products.get(body.packProductId);
+    const piece = pack?.packOf ? products.get(pack.packOf) : undefined;
+    if (!pack || !pack.packSize || !piece) return badRequest('Produk pack belum diatur isinya di Master Produk');
+
+    if (await hasClosing(outlet, body.date)) return badRequest(convertClosedMsg(outlet));
+
+    const conversion = await createConversion({
+      outlet,
+      date: body.date,
+      direction: body.direction,
+      packProductId: pack.id,
+      packName: pack.name,
+      pieceProductId: piece.id,
+      pieceName: piece.name,
+      packs: body.packs,
+      packSize: pack.packSize,
+      notes: typeof body.notes === 'string' ? body.notes : undefined,
+      createdBy: actor(user),
+    });
+    return created(conversion, body.direction === 'rakit' ? 'Rakit pack tercatat' : 'Bongkar pack tercatat');
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** DELETE /api/stock/conversions/{outlet}/{id} — until the outlet has counted that day */
+export async function deleteConversionHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+
+  const { outlet, id } = event.pathParameters || {};
+  if (!outlet || !id) return badRequest('Outlet and id path parameters are required');
+  if (closingOutlet(user, outlet) !== outlet) return forbidden('Tidak boleh menghapus catatan outlet lain');
+
+  try {
+    const existing = await getConversion(outlet, id);
+    if (!existing) return notFound('Catatan rakit/bongkar tidak ditemukan');
+    if (await hasClosing(outlet, existing.date)) return badRequest(convertClosedMsg(outlet));
+    await deleteConversion(outlet, id);
+    return ok(null, 'Catatan rakit/bongkar dihapus');
   } catch (err) {
     return serverError(err);
   }
