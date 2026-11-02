@@ -252,6 +252,8 @@ export interface FixedCost {
   period: 'bulan' | 'tahun';
   startMonth: string;  // YYYY-MM, first month it applies to
   endMonth?: string;   // YYYY-MM, last month; open-ended when missing
+  assetCost?: number;  // depreciation: purchase price, spread as amount per year over lifeYears
+  lifeYears?: number;
 }
 
 /** An employee paid a commission on the money taken in by the outlets they handle. */

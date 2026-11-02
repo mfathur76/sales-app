@@ -51,6 +51,10 @@ function parseFixedCosts(items: unknown): string | FixedCost[] {
     if (c.period !== 'bulan' && c.period !== 'tahun') return `${row}: pilih per bulan atau per tahun`;
     if (!MONTH_RE.test(c.startMonth || '')) return `${row}: bulan mulai tidak valid`;
     if (c.endMonth && (!MONTH_RE.test(c.endMonth) || c.endMonth < c.startMonth)) return `${row}: bulan selesai tidak valid`;
+    const isAsset = c.assetCost !== undefined && c.assetCost !== null;
+    if (isAsset && (typeof c.assetCost !== 'number' || c.assetCost <= 0 || !Number.isInteger(c.lifeYears) || c.lifeYears < 1 || c.lifeYears > 50)) {
+      return `${row}: harga beli dan umur aset (1-50 tahun) wajib diisi`;
+    }
     out.push({
       id: typeof c.id === 'string' && c.id ? c.id : `fc-${Date.now()}-${i}`,
       category,
@@ -59,6 +63,8 @@ function parseFixedCosts(items: unknown): string | FixedCost[] {
       period: c.period,
       startMonth: c.startMonth,
       endMonth: c.endMonth || undefined,
+      assetCost: isAsset ? Math.round(c.assetCost) : undefined,
+      lifeYears: isAsset ? c.lifeYears : undefined,
     });
   }
   return out;

@@ -14,6 +14,12 @@ const COGS_CATEGORIES = new Set([
   'belanja dapur', 'belanja pasar johar', 'belanja ruko', 'kemasan', 'konsinyasi',
 ]);
 
+/**
+ * Expense categories for buying assets (freezers, renovation, ...). The money is recorded as spent,
+ * but the profit & loss carries the depreciation from Biaya Tetap instead of the purchase.
+ */
+const ASSET_CATEGORIES = new Set(['aset']);
+
 /** GoPay QRIS: MDR plus a fixed device fee per outlet per day with QRIS sales. */
 const QRIS_MDR = 0.007;
 const QRIS_DAILY_FEE = 2000;
@@ -195,12 +201,17 @@ export async function getProfitLoss(startDate: string, endDate: string) {
   const categoryOfItem = new Map(items.map((i) => [i.id as string, i.categoryId as string]));
   const categoryName = new Map(categories.map((c) => [c.id as string, c.name as string]));
   const expenses = new Map<string, ExpenseRow>();
+  const assetPurchases = new Map<string, number>();
   let lastExpenseDate: string | null = null;
   for (const e of expensesPerOutlet.flat()) {
     if (e.status === 'rejected') continue;
     const month = e.date.slice(0, 7);
     const categoryId = categoryOfItem.get(e.itemId) ?? 'uncategorized';
     const name = categoryName.get(categoryId) ?? 'Tanpa Kategori';
+    if (ASSET_CATEGORIES.has(name.toLowerCase())) {
+      assetPurchases.set(month, (assetPurchases.get(month) ?? 0) + Number(e.totalPrice || 0));
+      continue;
+    }
     const key = `${month}|${e.outlet}|${categoryId}`;
     const row = expenses.get(key) ?? {
       month,
@@ -242,6 +253,7 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     feeRates: rates,
     resellerOutstanding,
     fixedCosts,
+    assetPurchases: Array.from(assetPurchases, ([month, total]) => ({ month, total })),
     outlets: outlets.map((o) => ({ code: o.code, name: o.name })),
     revenue: Array.from(revenue.values()),
     expenses: Array.from(expenses.values()),
