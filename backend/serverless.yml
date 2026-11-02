@@ -32,6 +32,7 @@ provider:
     PRODUCTS_TABLE: ${self:service}-products-${self:provider.stage}
     STOCK_TABLE: ${self:service}-stock-${self:provider.stage}
     COMMISSION_TABLE: ${self:service}-commission-${self:provider.stage}
+    FIXED_COSTS_TABLE: ${self:service}-fixed-costs-${self:provider.stage}
 
   iam:
     role:
@@ -381,6 +382,14 @@ functions:
       - http:
           path: api/reports/profit-loss
           method: get
+          cors: true
+
+  saveFixedCosts:
+    handler: lambda/handlers/reports.saveFixedCostsHandler
+    events:
+      - http:
+          path: api/reports/fixed-costs
+          method: put
           cors: true
 
   # ---- Customers ----
@@ -818,6 +827,22 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:service}-expenses-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    FixedCostsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-fixed-costs-${self:provider.stage}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: PK

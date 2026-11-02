@@ -243,6 +243,17 @@ export interface PackConversion {
   createdAt: string;
 }
 
+/** A cost paid outside the app or once a year (rent, THR), spread over the months it covers. */
+export interface FixedCost {
+  id: string;
+  category: string;    // statement line, e.g. "Sewa", "THR"
+  name?: string;       // which one, e.g. "RM001"
+  amount: number;
+  period: 'bulan' | 'tahun';
+  startMonth: string;  // YYYY-MM, first month it applies to
+  endMonth?: string;   // YYYY-MM, last month; open-ended when missing
+}
+
 /** An employee paid a commission on the money taken in by the outlets they handle. */
 export interface CommissionEmployee {
   id: string;

@@ -203,6 +203,11 @@ class ExpenseApi {
     return this.request(`/reports/profit-loss?${query}`, { method: 'GET' });
   }
 
+  // Rent, THR, ... spread over the months they cover; replaces the whole list
+  async saveFixedCosts(items) {
+    return this.request('/reports/fixed-costs', { method: 'PUT', body: JSON.stringify({ items }) });
+  }
+
   // Update expense
   async updateExpense(id, updateData) {
     try {

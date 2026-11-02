@@ -3,6 +3,7 @@ import { getAllOutlets } from './outletService';
 import { getAllOutletSales } from './salesService';
 import { getAllExpenses } from './expenseService';
 import { listResellerSales } from './resellerService';
+import { listFixedCosts, fixedCostFor } from './fixedCostService';
 import { OutletSale } from '../types';
 
 /**
@@ -87,6 +88,19 @@ const shiftDate = (date: string, days: number) => {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().split('T')[0];
 };
+
+/** Every YYYY-MM from the month of `start` to the month of `end`. */
+function monthsIn(start: string, end: string): string[] {
+  const out: string[] = [];
+  let [y, m] = start.slice(0, 7).split('-').map(Number);
+  const last = end.slice(0, 7);
+  for (;;) {
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    if (key > last) return out;
+    out.push(key);
+    if (++m > 12) { m = 1; y += 1; }
+  }
+}
 
 type ExpenseRow = {
   month: string;
@@ -203,6 +217,23 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     if (!lastExpenseDate || e.date > lastExpenseDate) lastExpenseDate = e.date;
   }
 
+  // Fixed costs (rent, THR, ...) for every month in the range, as operating expenses for all outlets
+  const fixedCosts = await listFixedCosts();
+  for (const month of monthsIn(startDate, endDate)) {
+    for (const cost of fixedCosts) {
+      const amount = fixedCostFor(cost, month);
+      if (!amount) continue;
+      const categoryId = `fixed:${cost.category.toLowerCase()}`;
+      const key = `${month}|ALL|${categoryId}`;
+      const row = expenses.get(key) ?? {
+        month, outlet: 'ALL', categoryId, categoryName: `${cost.category} (biaya tetap)`, group: 'opex', total: 0, count: 0,
+      };
+      row.total += amount;
+      row.count += 1;
+      expenses.set(key, row);
+    }
+  }
+
   return {
     startDate,
     endDate,
@@ -210,6 +241,7 @@ export async function getProfitLoss(startDate: string, endDate: string) {
     lastExpenseDate,
     feeRates: rates,
     resellerOutstanding,
+    fixedCosts,
     outlets: outlets.map((o) => ({ code: o.code, name: o.name })),
     revenue: Array.from(revenue.values()),
     expenses: Array.from(expenses.values()),

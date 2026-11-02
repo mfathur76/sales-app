@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { expenseApi } from '../api/expenseApi';
+import FixedCostsEditor from './FixedCostsEditor';
 import './ProfitLossReport.css';
 
 const CHANNELS = [
@@ -118,6 +119,7 @@ const ProfitLossReport = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [editingFixed, setEditingFixed] = useState(false);
 
   const load = useCallback(async () => {
     if (!startDate || !endDate || startDate > endDate) return;
@@ -188,10 +190,23 @@ const ProfitLossReport = () => {
           <h2>Laporan Laba Rugi Sementara</h2>
           {data && <p>{formatDate(data.startDate)} – {formatDate(data.endDate)} · semua outlet</p>}
         </div>
-        <button type="button" className="pl-print" onClick={() => window.print()} disabled={!st}>
-          🖨️ Cetak
-        </button>
+        <div className="pl-header-actions">
+          <button type="button" className="pl-print" onClick={() => setEditingFixed(!editingFixed)} disabled={!data}>
+            ⚙️ Biaya Tetap
+          </button>
+          <button type="button" className="pl-print" onClick={() => window.print()} disabled={!st}>
+            🖨️ Cetak
+          </button>
+        </div>
       </div>
+
+      {editingFixed && data && (
+        <FixedCostsEditor
+          costs={data.fixedCosts || []}
+          onClose={() => setEditingFixed(false)}
+          onSaved={() => { setEditingFixed(false); load(); }}
+        />
+      )}
 
       <div className="pl-controls">
         <div className="pl-presets">
@@ -352,7 +367,8 @@ const ProfitLossReport = () => {
             Sejak transfer QRIS digabung dengan GoFood, potongan QRIS dihitung 0,7% + Rp 2.000 per outlet per
             hari dan sisanya adalah potongan GoFood. Transfer BCA/Mandiri dari pelanggan dicatat kasir dan dicocokkan
             dengan isian admin saat verifikasi; yang dipakai sebagai pendapatan adalah angka yang lebih besar, dan tidak kena potongan.
-            Biaya Dapur tidak dibagi ke outlet, jadi laba dihitung gabungan semua outlet.
+            Biaya Dapur tidak dibagi ke outlet, jadi laba dihitung gabungan semua outlet. Baris "(biaya tetap)" berasal dari
+            menu ⚙️ Biaya Tetap: biaya tahunan dibagi 12 setiap bulan.
           </p>
         </>
       )}
