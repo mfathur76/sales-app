@@ -55,6 +55,10 @@
 }
 
 /* Print / Save as PDF: only the report itself */
+@page commission {
+  margin: 12mm;
+}
+
 @media print {
   .admin-header,
   .admin-tabs {
@@ -74,9 +78,9 @@
     display: none !important;
   }
 
-  /* The receipt's print rule sets the page margin to 0, so the report keeps its own */
+  /* Its own page box, since the receipt sets the default page margin to 0 */
   .cms-print {
-    padding: 12mm;
+    page: commission;
   }
 
   .cms-print .stk-table-wrap {
@@ -86,6 +90,15 @@
 
   .cms-table {
     font-size: 11px;
+  }
+
+  /* Column headers repeat on every page; the totals only follow the last row */
+  .cms-table tfoot {
+    display: table-row-group;
+  }
+
+  .cms-table tr {
+    break-inside: avoid;
   }
 
   .cms-table th,
