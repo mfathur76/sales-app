@@ -1,0 +1,109 @@
+/* Employee commission report (admin) */
+
+.cms-outlets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.cms-employee {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line, #dbe3ef);
+}
+
+.cms-employee.dim {
+  opacity: 0.6;
+}
+
+.cms-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.cms-rate input {
+  width: 80px;
+}
+
+.cms-title h3 {
+  margin: 4px 0;
+}
+
+.cms-chip {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: #e3f0ec;
+  font-size: 13px;
+}
+
+.cms-table tr.cms-unverified td {
+  background: #fffbeb;
+}
+
+.cms-table tfoot td {
+  font-weight: 700;
+}
+
+.cms-table tr.cms-total td {
+  background: #cfdcd6;
+}
+
+.cms-table tr.cms-commission td {
+  font-size: 16px;
+}
+
+/* Print / Save as PDF: only the report itself */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .cms-print,
+  .cms-print * {
+    visibility: visible;
+  }
+
+  .cms-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .cms-print .stk-table-wrap {
+    overflow: visible;
+    border: none;
+  }
+
+  .cms-table {
+    font-size: 11px;
+  }
+
+  .cms-table th,
+  .cms-table td {
+    padding: 3px 6px;
+  }
+
+  .cms-table thead th {
+    background: #2f5d50 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .cms-table tr.cms-total td,
+  .cms-chip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .cms-table tr.cms-unverified td {
+    background: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

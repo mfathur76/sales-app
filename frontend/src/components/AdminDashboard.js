@@ -7,6 +7,7 @@ import ExpensePivotReport from './ExpensePivotReport';
 import ExpenseManagement from './ExpenseVerification';
 import ExpenseReports from './ExpenseReports';
 import ProfitLossReport from './ProfitLossReport';
+import CommissionReport from './CommissionReport';
 import OutletManager from './OutletManager';
 import UserManager from './UserManager';
 import ChangePassword from './ChangePassword';
@@ -62,6 +63,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
     { id: 'expense-pivot', label: 'Pivot Pengeluaran', icon: '🧮' },
     { id: 'expense-reports', label: 'Laporan Pengeluaran', icon: '📈' },
     { id: 'profit-loss', label: 'Laba Rugi', icon: '💰' },
+    { id: 'commission', label: 'Komisi', icon: '💸' },
     { id: 'outlet-management', label: 'Manajemen Outlet', icon: '🏪' },
     { id: 'user-management', label: 'Manajemen User', icon: '👥' },
     { id: 'change-password', label: 'Ganti Password', icon: '🔐' }
@@ -587,6 +589,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
         return <ExpensePivotReport />;
       case 'expense-reports':
         return <ExpenseReports />;
+      case 'commission':
+        return <CommissionReport />;
       case 'profit-loss':
         return <ProfitLossReport />;
       case 'outlet-management':
