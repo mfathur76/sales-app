@@ -301,11 +301,80 @@
   }
 }
 
+/* Fixed costs editor (rent, THR, ...) */
+.pl-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pl-fixed {
+  margin: 12px 0 20px;
+  padding: 16px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pl-fixed h3 {
+  margin: 0 0 6px;
+}
+
+.pl-fixed-help {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #5a6479;
+}
+
+.pl-fixed-table input,
+.pl-fixed-table select {
+  width: 100%;
+  min-width: 90px;
+  padding: 6px 8px;
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.pl-fixed-remove {
+  border: none;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.pl-fixed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.pl-fixed-actions button {
+  padding: 8px 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pl-fixed-actions button.primary {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+.pl-fixed-spacer {
+  flex: 1;
+}
+
 @media print {
   .admin-header,
   .admin-tabs,
   .pl-controls,
-  .pl-print {
+  .pl-print,
+  .pl-fixed {
     display: none !important;
   }
 

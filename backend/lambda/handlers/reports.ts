@@ -1,11 +1,14 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getProfitLoss } from '../services/reportService';
+import { saveFixedCosts } from '../services/fixedCostService';
 import { verifyToken, extractBearerToken } from '../utils/jwt';
 import { ok, badRequest, unauthorized, forbidden, serverError, preflight } from '../utils/response';
-import { JwtUser } from '../types';
+import { FixedCost, JwtUser } from '../types';
 
 const MAX_RANGE_DAYS = 366;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const MAX_FIXED_COSTS = 100;
 
 function getUser(event: APIGatewayProxyEvent): JwtUser | null {
   const token = extractBearerToken(event.headers['Authorization'] || event.headers['authorization']);
@@ -30,6 +33,49 @@ export async function getProfitLossHandler(event: APIGatewayProxyEvent): Promise
     if (days >= MAX_RANGE_DAYS) return badRequest(`Range is limited to ${MAX_RANGE_DAYS} days`);
 
     return ok(await getProfitLoss(startDate, endDate));
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** Returns an error message, or the cleaned-up list. */
+function parseFixedCosts(items: unknown): string | FixedCost[] {
+  if (!Array.isArray(items)) return 'Daftar biaya tetap tidak valid';
+  if (items.length > MAX_FIXED_COSTS) return `Maksimal ${MAX_FIXED_COSTS} biaya tetap`;
+  const out: FixedCost[] = [];
+  for (const [i, c] of (items as any[]).entries()) {
+    const row = `Baris ${i + 1}`;
+    const category = typeof c?.category === 'string' ? c.category.trim() : '';
+    if (!category) return `${row}: jenis biaya wajib diisi`;
+    if (typeof c.amount !== 'number' || !Number.isFinite(c.amount) || c.amount <= 0) return `${row}: jumlah harus lebih dari 0`;
+    if (c.period !== 'bulan' && c.period !== 'tahun') return `${row}: pilih per bulan atau per tahun`;
+    if (!MONTH_RE.test(c.startMonth || '')) return `${row}: bulan mulai tidak valid`;
+    if (c.endMonth && (!MONTH_RE.test(c.endMonth) || c.endMonth < c.startMonth)) return `${row}: bulan selesai tidak valid`;
+    out.push({
+      id: typeof c.id === 'string' && c.id ? c.id : `fc-${Date.now()}-${i}`,
+      category,
+      name: typeof c.name === 'string' && c.name.trim() ? c.name.trim() : undefined,
+      amount: Math.round(c.amount),
+      period: c.period,
+      startMonth: c.startMonth,
+      endMonth: c.endMonth || undefined,
+    });
+  }
+  return out;
+}
+
+/** PUT /api/reports/fixed-costs — Body: { items: FixedCost[] } replaces the whole list (admin only) */
+export async function saveFixedCostsHandler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+
+  const user = getUser(event);
+  if (!user) return unauthorized('Access token required');
+  if (user.type !== 'admin') return forbidden('Admin access required');
+
+  try {
+    const parsed = parseFixedCosts(JSON.parse(event.body || '{}').items);
+    if (typeof parsed === 'string') return badRequest(parsed);
+    return ok(await saveFixedCosts(parsed, user.username), 'Biaya tetap tersimpan');
   } catch (err) {
     return serverError(err);
   }
