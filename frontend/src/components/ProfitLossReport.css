@@ -335,6 +335,25 @@
   font-size: 14px;
 }
 
+.pl-fixed-life {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pl-fixed-table .pl-fixed-life input {
+  width: 56px;
+  min-width: 0;
+}
+
+.pl-fixed-auto {
+  color: #5a6479;
+  white-space: nowrap;
+}
+
 .pl-fixed-remove {
   border: none;
   background: none;

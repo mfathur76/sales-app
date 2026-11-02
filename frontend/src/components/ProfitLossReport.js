@@ -263,6 +263,13 @@ const ProfitLossReport = () => {
             </div>
           )}
 
+          {(data.assetPurchases || []).length > 0 && (
+            <div className="pl-message">
+              Pembelian aset {formatCurrency(sumBy(data.assetPurchases, (a) => a.total))} di periode ini (kategori Aset) tidak
+              dihitung sebagai biaya; yang masuk Laba Rugi adalah penyusutannya dari ⚙️ Biaya Tetap.
+            </div>
+          )}
+
           {data.resellerOutstanding > 0 && (
             <div className="pl-message">
               Penjualan reseller dihitung saat barang diambil. Dari situ, {formatCurrency(data.resellerOutstanding)} belum
