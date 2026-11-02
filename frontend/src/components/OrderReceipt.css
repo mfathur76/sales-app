@@ -65,8 +65,8 @@
     margin: 0;
   }
 
-  /* Only the receipt goes to paper */
-  body > *:not(.rcpt-overlay) {
+  /* Only the receipt goes to paper (the class is set while a receipt is open) */
+  body.rcpt-printing > *:not(.rcpt-overlay) {
     display: none !important;
   }
 

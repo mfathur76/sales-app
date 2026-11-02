@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PAYMENT_STATUS, methodLabel, formatRupiah, formatDay, displayPhone } from '../api/orderApi';
 import './OrderReceipt.css';
@@ -43,6 +43,12 @@ export function receiptText(order, outletName) {
 const OrderReceipt = ({ order, outletName, onClose }) => {
   const lines = receiptLines(order);
   const wa = `https://wa.me/${order.customerPhone}?text=${encodeURIComponent(receiptText(order, outletName))}`;
+
+  // The print rule that hides the app applies only while a receipt is open, so other reports still print
+  useEffect(() => {
+    document.body.classList.add('rcpt-printing');
+    return () => document.body.classList.remove('rcpt-printing');
+  }, []);
 
   return createPortal(
     <div className="rcpt-overlay">
