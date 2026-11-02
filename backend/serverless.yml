@@ -31,6 +31,7 @@ provider:
     ORDERS_TABLE: ${self:service}-orders-${self:provider.stage}
     PRODUCTS_TABLE: ${self:service}-products-${self:provider.stage}
     STOCK_TABLE: ${self:service}-stock-${self:provider.stage}
+    COMMISSION_TABLE: ${self:service}-commission-${self:provider.stage}
 
   iam:
     role:
@@ -513,6 +514,31 @@ functions:
           method: put
           cors: true
 
+  # ---- Commission ----
+  getCommissionEmployees:
+    handler: lambda/handlers/commission.getEmployeesHandler
+    events:
+      - http:
+          path: api/commission/employees
+          method: get
+          cors: true
+
+  createCommissionEmployee:
+    handler: lambda/handlers/commission.createEmployeeHandler
+    events:
+      - http:
+          path: api/commission/employees
+          method: post
+          cors: true
+
+  updateCommissionEmployee:
+    handler: lambda/handlers/commission.updateEmployeeHandler
+    events:
+      - http:
+          path: api/commission/employees/{id}
+          method: put
+          cors: true
+
   # ---- Stock ----
   getShipments:
     handler: lambda/handlers/stock.getShipments
@@ -792,6 +818,22 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:service}-expenses-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    CommissionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-commission-${self:provider.stage}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: PK

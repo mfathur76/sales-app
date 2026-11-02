@@ -32,6 +32,7 @@ export const TABLES = {
   ORDERS: process.env.ORDERS_TABLE || 'sales-app-orders',
   PRODUCTS: process.env.PRODUCTS_TABLE || 'sales-app-products',
   STOCK: process.env.STOCK_TABLE || 'sales-app-stock',
+  COMMISSION: process.env.COMMISSION_TABLE || 'sales-app-commission',
 };
 
 // ---- Generic helpers ----

@@ -243,6 +243,16 @@ export interface PackConversion {
   createdAt: string;
 }
 
+/** An employee paid a commission on the money taken in by the outlets they handle. */
+export interface CommissionEmployee {
+  id: string;
+  name: string;
+  outlets: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Shipment {
   id: string;
   outlet: string;       // destination (a shop outlet, or the kitchen for returns)
