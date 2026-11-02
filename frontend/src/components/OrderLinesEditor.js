@@ -13,8 +13,9 @@ export const linesTotal = (lines) => lines.reduce((s, l) => s + (l.qty || 0) * (
 /**
  * Pick order lines from the product list (price defaults to the selling price and can be changed),
  * or add a free-text item with its own price. `lines` is [{ key, productId?, name, qty, price }].
+ * `booked` (productId → pieces) is what other orders already booked for the same pickup day.
  */
-const OrderLinesEditor = ({ products, lines, onChange }) => {
+const OrderLinesEditor = ({ products, lines, onChange, booked = new Map() }) => {
   const [search, setSearch] = useState('');
   const [browsing, setBrowsing] = useState(lines.length === 0);
 
@@ -67,6 +68,11 @@ const OrderLinesEditor = ({ products, lines, onChange }) => {
                   />
                 </span>
                 <span className="muted small">= {formatRupiah(l.qty * (Number(l.price) || 0))}</span>
+                {booked.get(l.productId) > 0 && (
+                  <span className="ord-booked small">
+                    📋 sudah dibooking {booked.get(l.productId)} pcs di hari itu · total jadi {booked.get(l.productId) + l.qty}
+                  </span>
+                )}
               </div>
               <div className="ord-line-qty">
                 <QtyInput value={l.qty} steps={[5, 10]} onChange={(n) => (n === 0 ? remove(l.key) : update(l.key, { qty: n }))} />
@@ -100,7 +106,9 @@ const OrderLinesEditor = ({ products, lines, onChange }) => {
                 {g.items.map((p) => (
                   <button type="button" key={p.id} className={`stk-line ord-product-pick ${picked.has(p.id) ? 'filled' : ''}`} onClick={() => add(p)}>
                     <span className="stk-line-name">{p.name}</span>
-                    <span className="muted small">{formatRupiah(p.price)}</span>
+                    <span className="muted small">
+                      {formatRupiah(p.price)}{booked.get(p.id) > 0 && <span className="ord-booked"> · 📋 {booked.get(p.id)} dibooking</span>}
+                    </span>
                     <span className="ord-pick-qty">{picked.has(p.id) ? `×${picked.get(p.id)}` : '+'}</span>
                   </button>
                 ))}

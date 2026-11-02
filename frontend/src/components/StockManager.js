@@ -4,8 +4,36 @@ import { shipmentApi, stockApi, conversionApi, productApi, shopOutlets, groupByC
 import { localDate, formatDay, formatRupiah } from '../api/orderApi';
 import QtyInput from './QtyInput';
 import IncomingShipments from './IncomingShipments';
+import { useBookingsOn } from './BookingSummary';
 import './Orders.css';
 import './Stock.css';
+
+const nextDay = (ymd) => {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Goods for tomorrow's orders at this outlet, to be set aside tonight. */
+const TomorrowOrders = ({ outlet, date }) => {
+  const tomorrow = nextDay(date);
+  const orders = useBookingsOn(tomorrow).filter((o) => o.outlet === outlet && o.status !== 'selesai');
+  if (orders.length === 0) return null;
+  const pieces = new Map();
+  orders.forEach((o) => (o.lines || []).forEach((l) => {
+    const key = l.productId || l.name;
+    const prev = pieces.get(key) || { name: l.name, qty: 0 };
+    pieces.set(key, { ...prev, qty: prev.qty + l.qty });
+  }));
+  const textOnly = orders.filter((o) => !(o.lines || []).length);
+  return (
+    <div className="ord-alert warn">
+      📋 <strong>{orders.length} order diambil {formatDay(tomorrow)}.</strong> Sisihkan barangnya dari rak (tetap dihitung di Sisa):{' '}
+      {[...pieces.values()].map((p) => `${p.name} ${p.qty}`).join(', ')}
+      {textOnly.map((o) => <div key={o.id} className="small">{o.customerName}: {o.items}</div>)}
+    </div>
+  );
+};
 
 const ClosingForm = ({ outlet, isAdmin }) => {
   const [date, setDate] = useState(localDate());
@@ -100,6 +128,7 @@ const ClosingForm = ({ outlet, isAdmin }) => {
               Isi sisa barang yang ada sekarang.
             </p>
           )}
+          <TomorrowOrders outlet={outlet} date={date} />
           {pending > 0 && (
             <div className="ord-alert warn">
               Ada {pending} pcs kiriman yang belum ditekan Terima. Sudah dihitung masuk; cek tab Kiriman Masuk kalau jumlahnya beda.

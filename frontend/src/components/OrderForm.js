@@ -5,6 +5,7 @@ import {
 import { productApi } from '../api/stockApi';
 import { CustomerForm } from './CustomerManager';
 import OrderLinesEditor, { linesTotal, toEditorLines } from './OrderLinesEditor';
+import { useBookingsOn, bookedByProduct } from './BookingSummary';
 import './Orders.css';
 
 const CustomerPicker = ({ value, onChange, outlets, isAdmin, defaultOutlet }) => {
@@ -119,6 +120,8 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
   const [lines, setLines] = useState(() => toEditorLines(order?.lines));
   // Orders saved before the product list existed are plain text with a typed total
   const [textMode, setTextMode] = useState(Boolean(order && !order.lines?.length));
+  // What other orders already booked for the same pickup day, so staff see it before promising more
+  const booked = bookedByProduct(useBookingsOn(form.pickupDate, order?.id));
 
   useEffect(() => {
     productApi.list().then(setProducts).catch(() => setProducts([]));
@@ -273,7 +276,7 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
               </button>
             </>
           ) : (
-            <OrderLinesEditor products={products} lines={lines} onChange={setLines} />
+            <OrderLinesEditor products={products} lines={lines} onChange={setLines} booked={booked} />
           )}
 
           {!isEdit && (

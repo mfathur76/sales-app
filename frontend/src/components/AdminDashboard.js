@@ -8,6 +8,7 @@ import ExpenseManagement from './ExpenseVerification';
 import ExpenseReports from './ExpenseReports';
 import ProfitLossReport from './ProfitLossReport';
 import CommissionReport from './CommissionReport';
+import BookingSummary from './BookingSummary';
 import OutletManager from './OutletManager';
 import UserManager from './UserManager';
 import ChangePassword from './ChangePassword';
@@ -52,6 +53,7 @@ const AdminDashboard = ({ admin, onLogout }) => {
     { id: 'sales-verification', label: 'Verifikasi Sales', icon: '🔍' },
     { id: 'sales-reports', label: 'Laporan Sales', icon: '📈' },
     { id: 'orders', label: 'Order & Customer', icon: '🧾' },
+    { id: 'bookings', label: 'Rekap Booking', icon: '📋' },
     { id: 'stock', label: 'Stok Outlet', icon: '📦' },
     { id: 'kitchen-stock', label: 'Stok Dapur', icon: '🧊' },
     { id: 'reseller', label: 'Reseller', icon: '🤝' },
@@ -569,6 +571,8 @@ const AdminDashboard = ({ admin, onLogout }) => {
         return <AdminSalesReport />;
       case 'orders':
         return <OrderManager isAdmin />;
+      case 'bookings':
+        return <BookingSummary />;
       case 'stock':
         return <StockManager isAdmin />;
       case 'reseller':

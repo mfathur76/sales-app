@@ -581,3 +581,13 @@
   font-weight: 700;
   text-align: center;
 }
+
+/* Pieces other orders already booked for the same pickup day */
+.ord-booked {
+  display: block;
+  color: #b45309;
+}
+
+.ord-product-pick .ord-booked {
+  display: inline;
+}
