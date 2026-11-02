@@ -56,20 +56,27 @@
 
 /* Print / Save as PDF: only the report itself */
 @media print {
-  body * {
-    visibility: hidden;
+  .admin-header,
+  .admin-tabs {
+    display: none !important;
   }
 
-  .cms-print,
-  .cms-print * {
-    visibility: visible;
+  /* Plain paper instead of the app's gradient background */
+  body,
+  .admin-dashboard,
+  .admin-content,
+  .ord-container {
+    background: #fff !important;
   }
 
+  body::before,
+  body::after {
+    display: none !important;
+  }
+
+  /* The receipt's print rule sets the page margin to 0, so the report keeps its own */
   .cms-print {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+    padding: 12mm;
   }
 
   .cms-print .stk-table-wrap {
