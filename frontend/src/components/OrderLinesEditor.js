@@ -10,12 +10,16 @@ const withKey = (line) => ({ ...line, key: nextKey++ });
 
 export const linesTotal = (lines) => lines.reduce((s, l) => s + (l.qty || 0) * (Number(l.price) || 0), 0);
 
+/** Resellers pay the reseller price when the product has one. */
+export const priceFor = (p, reseller) => (reseller && p.resellerPrice != null ? p.resellerPrice : p.price);
+
 /**
  * Pick order lines from the product list (price defaults to the selling price and can be changed),
  * or add a free-text item with its own price. `lines` is [{ key, productId?, name, qty, price }].
  * `booked` (productId → pieces) is what other orders already booked for the same pickup day.
+ * `reseller` picks the reseller price for new lines.
  */
-const OrderLinesEditor = ({ products, lines, onChange, booked = new Map() }) => {
+const OrderLinesEditor = ({ products, lines, onChange, booked = new Map(), reseller = false }) => {
   const [search, setSearch] = useState('');
   const [browsing, setBrowsing] = useState(lines.length === 0);
 
@@ -25,7 +29,7 @@ const OrderLinesEditor = ({ products, lines, onChange, booked = new Map() }) => 
   const add = (p) => {
     const existing = lines.find((l) => l.productId === p.id);
     if (existing) update(existing.key, { qty: existing.qty + 1 });
-    else onChange([...lines, withKey({ productId: p.id, name: p.name, qty: 1, price: p.price })]);
+    else onChange([...lines, withKey({ productId: p.id, name: p.name, qty: 1, price: priceFor(p, reseller) })]);
   };
 
   const addCustom = () => onChange([...lines, withKey({ name: '', qty: 1, price: '' })]);
@@ -39,6 +43,7 @@ const OrderLinesEditor = ({ products, lines, onChange, booked = new Map() }) => 
   return (
     <div className="ord-field">
       <span>Yang diorder *</span>
+      {reseller && <span className="muted small">Customer reseller: harga memakai harga reseller.</span>}
 
       {lines.length > 0 && (
         <div className="stk-lines">
@@ -107,7 +112,7 @@ const OrderLinesEditor = ({ products, lines, onChange, booked = new Map() }) => 
                   <button type="button" key={p.id} className={`stk-line ord-product-pick ${picked.has(p.id) ? 'filled' : ''}`} onClick={() => add(p)}>
                     <span className="stk-line-name">{p.name}</span>
                     <span className="muted small">
-                      {formatRupiah(p.price)}{booked.get(p.id) > 0 && <span className="ord-booked"> · 📋 {booked.get(p.id)} dibooking</span>}
+                      {formatRupiah(priceFor(p, reseller))}{booked.get(p.id) > 0 && <span className="ord-booked"> · 📋 {booked.get(p.id)} dibooking</span>}
                     </span>
                     <span className="ord-pick-qty">{picked.has(p.id) ? `×${picked.get(p.id)}` : '+'}</span>
                   </button>
