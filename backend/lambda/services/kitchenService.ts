@@ -3,7 +3,7 @@ import { dbGet, dbPut, dbDelete, dbQuery, TABLES } from './dynamodb';
 import { listShipments, listClosings, saveClosing } from './stockService';
 import { listProducts } from './productService';
 import { getAllOutlets } from './outletService';
-import { listResellerSales } from './resellerService';
+import { addDays, listResellerSales } from './resellerService';
 import { KitchenEntry, KitchenEntryLine, Product, ResellerSale, Shipment, StockClosing } from '../types';
 
 const TABLE = TABLES.STOCK;
@@ -311,7 +311,140 @@ export async function getKitchenReport(kitchen: string, from: string, to: string
     kitchen,
     from,
     to,
+    stockCard: kitchenStockCard(kitchen, from, to, counts, entries, shipments, resellerSales, products),
     counts: countRows.sort((a, b) => b.date.localeCompare(a.date)),
     movement: [...movement.values()].sort((a, b) => (order.get(a.productId) ?? 1e9) - (order.get(b.productId) ?? 1e9)),
+  };
+}
+
+// ---- Stock card ----
+
+interface KitchenCardMove {
+  date: string;
+  kind: 'produksi' | 'masuk' | 'retur' | 'kirim' | 'reseller' | 'opname';
+  qty: number;           // signed change; for an opname the gap: counted + waste − expected
+  waste?: number;        // opname only
+  counterpart?: string;  // outlet code, or the reseller's name
+  balance: number;       // stock after this line
+}
+
+interface KitchenCardRow {
+  productId: string;
+  name: string;
+  category?: string;
+  price: number;
+  opening: number;
+  produced: number;
+  bought: number;
+  returned: number;
+  shipped: number;
+  resold: number;
+  waste: number;
+  diff: number;          // opname gaps in the range
+  remaining: number;
+  value: number;
+  moves: KitchenCardMove[];
+}
+
+/**
+ * Per product: Awal + produksi + masuk + retur − kirim − reseller − rusak ± selisih opname = Sisa.
+ * Awal is the stock at the end of the day before `from`, or the first count when that is later:
+ * before the first count the kitchen stock is unknown. Sisa is the last count plus what moved after it.
+ */
+function kitchenStockCard(
+  kitchen: string,
+  from: string,
+  to: string,
+  counts: StockClosing[],
+  entries: KitchenEntry[],
+  shipments: Shipment[],
+  resellerSales: ResellerSale[],
+  products: Product[],
+) {
+  const first = counts[0];
+  if (!first || first.date > to) return null;
+  const openingDate = first.date >= from ? first.date : addDays(from, -1);
+  const countOn = (d: string) => counts.filter((c) => c.date <= d).pop();
+  const lastCount = countOn(to)!;
+
+  const productById = new Map(products.map((p) => [p.id, p]));
+  const rows = new Map<string, KitchenCardRow>();
+  const row = (productId: string, name: string) => {
+    let r = rows.get(productId);
+    if (!r) {
+      const p = productById.get(productId);
+      r = {
+        productId, name: p?.name ?? name, category: p?.category, price: p?.price ?? 0,
+        opening: 0, produced: 0, bought: 0, returned: 0, shipped: 0, resold: 0, waste: 0, diff: 0, remaining: 0, value: 0,
+        moves: [],
+      };
+      rows.set(productId, r);
+    }
+    return r;
+  };
+
+  kitchenFlows(kitchen, openingDate, countOn(openingDate), entries, shipments, resellerSales, products)
+    .forEach((f) => { if (f.expected) row(f.productId, f.name).opening = f.expected; });
+
+  // Same rules as kitchenFlows; on one day the movements come before that day's count
+  type Event = Omit<KitchenCardMove, 'balance'> & { productId: string; name: string };
+  const events: Event[] = [];
+  const inRange = (d: string) => d > openingDate && d <= to;
+  entries.filter((e) => inRange(e.date)).forEach((e) => e.lines.forEach((l) => {
+    events.push({ date: e.date, productId: l.productId, name: l.name, kind: e.kind === 'masuk' ? 'masuk' : 'produksi', qty: l.qty });
+  }));
+  shipments.filter((s) => inRange(s.date)).forEach((s) => s.lines.forEach((l) => {
+    if (s.outlet === kitchen) {
+      events.push({ date: s.date, productId: l.productId, name: l.name, kind: 'retur', qty: l.receivedQty ?? l.qty, counterpart: s.source });
+    } else if (fromKitchen(s, kitchen)) {
+      events.push({ date: s.date, productId: l.productId, name: l.name, kind: 'kirim', qty: -l.qty, counterpart: s.outlet });
+    }
+  }));
+  resellerSales.filter((r) => inRange(r.date)).forEach((r) => r.lines.forEach((l) => {
+    events.push({ date: r.date, productId: l.productId, name: l.name, kind: 'reseller', qty: -l.qty, counterpart: r.customerName });
+  }));
+  counts.forEach((c, i) => {
+    if (!inRange(c.date)) return;
+    const expected = kitchenFlows(kitchen, c.date, counts[i - 1], entries, shipments, resellerSales, products);
+    const counted = new Map(c.lines.map((l) => [l.productId, l]));
+    new Set([...expected.keys(), ...counted.keys()]).forEach((id) => {
+      const l = counted.get(id);
+      const remaining = l?.remaining ?? 0;
+      const waste = l?.waste ?? 0;
+      const exp = expected.get(id)?.expected ?? 0;
+      if (!remaining && !waste && !exp) return;
+      events.push({ date: c.date, productId: id, name: l?.name ?? expected.get(id)!.name, kind: 'opname', qty: remaining + waste - exp, waste });
+    });
+  });
+  events.sort((a, b) => a.date.localeCompare(b.date) || Number(a.kind === 'opname') - Number(b.kind === 'opname'));
+
+  const totals: Record<string, keyof KitchenCardRow> = {
+    produksi: 'produced', masuk: 'bought', retur: 'returned', kirim: 'shipped', reseller: 'resold',
+  };
+  rows.forEach((r) => { r.remaining = r.opening; });
+  events.forEach(({ productId, name, ...e }) => {
+    const r = row(productId, name);
+    if (e.kind === 'opname') {
+      r.waste += e.waste ?? 0;
+      r.diff += e.qty;
+      r.remaining += e.qty - (e.waste ?? 0);
+    } else {
+      (r as any)[totals[e.kind]] += Math.abs(e.qty);
+      r.remaining += e.qty;
+    }
+    r.moves.push({ ...e, balance: r.remaining });
+  });
+
+  const order = new Map(products.map((p, i) => [p.id, i]));
+  const cardRows = [...rows.values()]
+    .map((r) => ({ ...r, value: r.remaining * r.price }))
+    .filter((r) => r.opening || r.remaining || r.moves.length)
+    .sort((a, b) => (order.get(a.productId) ?? 1e9) - (order.get(b.productId) ?? 1e9));
+
+  return {
+    openingDate,
+    openingIsCount: openingDate === first.date,
+    lastCountDate: lastCount.date,
+    products: cardRows,
   };
 }
