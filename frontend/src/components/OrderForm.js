@@ -4,7 +4,7 @@ import {
 } from '../api/orderApi';
 import { productApi } from '../api/stockApi';
 import { CustomerForm } from './CustomerManager';
-import OrderLinesEditor, { linesTotal, toEditorLines } from './OrderLinesEditor';
+import OrderLinesEditor, { linesTotal, toEditorLines, priceFor } from './OrderLinesEditor';
 import { useBookingsOn, bookedByProduct } from './BookingSummary';
 import './Orders.css';
 
@@ -40,7 +40,7 @@ const CustomerPicker = ({ value, onChange, outlets, isAdmin, defaultOutlet }) =>
     return (
       <div className="ord-picked">
         <div>
-          <strong>{value.name}</strong>
+          <strong>{value.name}</strong>{value.isReseller && <span className="muted small"> · 🏷️ Reseller</span>}
           <div className="ord-line muted">{displayPhone(value.phone)}</div>
         </div>
         <button type="button" className="ord-btn ghost small" onClick={() => onChange(null)}>Ganti</button>
@@ -127,6 +127,28 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
     productApi.list().then(setProducts).catch(() => setProducts([]));
   }, []);
 
+  // An order being edited only carries the customer's name; look up whether they are a reseller
+  useEffect(() => {
+    if (!order?.customerId) return;
+    customerApi.get(order.customerId)
+      .then((c) => setCustomer((prev) => (prev?.id === c.id ? { ...prev, isReseller: c.isReseller } : prev)))
+      .catch(() => {});
+  }, [order?.customerId]);
+
+  // Switching between a reseller and a regular customer reprices lines still at the other list price
+  const reseller = Boolean(customer?.isReseller);
+  const changeCustomer = (c) => {
+    const toReseller = Boolean(c?.isReseller);
+    if (toReseller !== reseller) {
+      const byId = new Map(products.map((p) => [p.id, p]));
+      setLines((prev) => prev.map((l) => {
+        const p = byId.get(l.productId);
+        return p && Number(l.price) === priceFor(p, reseller) ? { ...l, price: priceFor(p, toReseller) } : l;
+      }));
+    }
+    setCustomer(c);
+  };
+
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
   // Prefill the delivery address from the customer's saved address
@@ -204,7 +226,7 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
           <span>Customer *</span>
           <CustomerPicker
             value={customer}
-            onChange={setCustomer}
+            onChange={changeCustomer}
             outlets={outlets}
             isAdmin={isAdmin}
             defaultOutlet={form.outlet}
@@ -276,7 +298,7 @@ const OrderForm = ({ order, initialCustomer, user, isAdmin, outlets, onClose, on
               </button>
             </>
           ) : (
-            <OrderLinesEditor products={products} lines={lines} onChange={setLines} booked={booked} />
+            <OrderLinesEditor products={products} lines={lines} onChange={setLines} booked={booked} reseller={reseller} />
           )}
 
           {!isEdit && (
