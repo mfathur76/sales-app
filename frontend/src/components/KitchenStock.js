@@ -335,6 +335,116 @@ const KitchenCount = () => {
   );
 };
 
+const sum = (items, key) => items.reduce((total, p) => total + (p[key] || 0), 0);
+const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '');
+
+const MOVE_LABEL = {
+  produksi: () => 'produksi',
+  masuk: () => 'beli jadi datang',
+  retur: (m) => `retur dari ${m.counterpart || 'outlet'}`,
+  kirim: (m) => `kirim ke ${m.counterpart}`,
+  reseller: (m) => `reseller ${m.counterpart || ''}`
+};
+
+/** Every movement and count of one product in the range, with the stock after each line. */
+const KitchenCardDetail = ({ product }) => (
+  <tr className="stk-card-detail">
+    <td colSpan={11}>
+      <div className="muted small">Awal: {product.opening}</div>
+      {product.moves.map((m, i) => (m.kind === 'opname' ? (
+        <div key={i} className={m.qty < 0 ? 'neg' : ''}>
+          {formatDay(m.date)} · opname: ada {m.balance}{m.waste ? `, rusak ${m.waste}` : ''}
+          {m.qty !== 0 ? `, selisih ${signed(m.qty)}` : ', cocok ✅'}
+        </div>
+      ) : (
+        <div key={i} className={m.qty > 0 ? 'pos' : 'neg'}>
+          {formatDay(m.date)} · {signed(m.qty)} {MOVE_LABEL[m.kind](m)} <span className="muted">→ stok {m.balance}</span>
+        </div>
+      )))}
+      <div className="muted small">Sisa: {product.remaining}</div>
+    </td>
+  </tr>
+);
+
+/** Awal + produksi + beli jadi + retur − kirim − reseller − rusak ± selisih = sisa, per product. */
+const KitchenStockCard = ({ card, to }) => {
+  const [openProduct, setOpenProduct] = useState(null);
+  if (!card) return <div className="ord-line muted">Belum ada opname dapur, jadi stok belum bisa dihitung.</div>;
+  const totalValue = sum(card.products, 'value');
+  return (
+    <>
+      <h4 className="ord-section-title">Kartu stok dapur</h4>
+      <div className="ord-stats stk-stats">
+        <div><strong>{sum(card.products, 'remaining')}</strong><span>pcs sisa per {formatDay(to)}</span></div>
+        <div><strong>{formatRupiah(totalValue)}</strong><span>nilai sisa</span></div>
+      </div>
+      <p className="ord-line muted small">
+        Awal = {card.openingIsCount ? `opname ${formatDay(card.openingDate)}` : `stok akhir ${formatDay(card.openingDate)}`}.
+        {' '}Sisa = opname terakhir ({formatDay(card.lastCountDate)})
+        {card.lastCountDate !== to ? ' ditambah barang masuk dan dikurangi barang keluar sesudahnya' : ''}.
+        {' '}Awal + Produksi + Beli jadi + Retur − Kirim − Reseller − Rusak ± Selisih = Sisa. Ketuk produk untuk melihat rinciannya.
+      </p>
+      <div className="stk-table-wrap">
+        <table className="stk-table stk-stock-card">
+          <thead>
+            <tr>
+              <th>Produk</th>
+              <th className="num">Awal</th>
+              <th className="num">Produksi</th>
+              <th className="num">Beli jadi</th>
+              <th className="num">Retur</th>
+              <th className="num">Kirim</th>
+              <th className="num">Reseller</th>
+              <th className="num">Rusak</th>
+              <th className="num">Selisih</th>
+              <th className="num">Sisa</th>
+              <th className="num">Nilai</th>
+            </tr>
+          </thead>
+          {groupByCategory(card.products).map((g) => (
+            <tbody key={g.category}>
+              <tr className="stk-group">
+                <td>{g.category}</td>
+                <td className="num">{sum(g.items, 'opening')}</td>
+                <td className="num">{sum(g.items, 'produced') || ''}</td>
+                <td className="num">{sum(g.items, 'bought') || ''}</td>
+                <td className="num">{sum(g.items, 'returned') || ''}</td>
+                <td className="num">{sum(g.items, 'shipped') || ''}</td>
+                <td className="num">{sum(g.items, 'resold') || ''}</td>
+                <td className="num">{sum(g.items, 'waste') || ''}</td>
+                <td className="num">{signed(sum(g.items, 'diff'))}</td>
+                <td className="num">{sum(g.items, 'remaining')}</td>
+                <td className="num">{formatRupiah(sum(g.items, 'value'))}</td>
+              </tr>
+              {g.items.map((p) => (
+                <React.Fragment key={p.productId}>
+                  <tr
+                    className={`stk-card-row ${openProduct === p.productId ? 'open' : ''}`}
+                    onClick={() => setOpenProduct(openProduct === p.productId ? null : p.productId)}
+                  >
+                    <td>{openProduct === p.productId ? '▾' : '▸'} {p.name}</td>
+                    <td className="num">{p.opening}</td>
+                    <td className="num">{p.produced || ''}</td>
+                    <td className="num">{p.bought || ''}</td>
+                    <td className="num">{p.returned || ''}</td>
+                    <td className="num">{p.shipped || ''}</td>
+                    <td className="num">{p.resold || ''}</td>
+                    <td className="num">{p.waste || ''}</td>
+                    <td className={`num ${p.diff < 0 ? 'neg' : p.diff > 0 ? 'pos' : ''}`}>{signed(p.diff)}</td>
+                    <td className={`num ${p.remaining < 0 ? 'neg' : ''}`}><strong>{p.remaining}</strong></td>
+                    <td className="num">{formatRupiah(p.value)}</td>
+                  </tr>
+                  {openProduct === p.productId && <KitchenCardDetail product={p} />}
+                </React.Fragment>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+    </>
+  );
+};
+
 const KitchenReport = () => {
   const [from, setFrom] = useState(localDate(-29));
   const [to, setTo] = useState(localDate());
@@ -363,6 +473,8 @@ const KitchenReport = () => {
         <div className="ord-empty">Memuat...</div>
       ) : (
         <>
+          <KitchenStockCard card={report.stockCard} to={to} />
+
           <h4 className="ord-section-title">Hasil opname</h4>
           {report.counts.length === 0 ? (
             <div className="ord-line muted">Belum ada opname di periode ini.</div>
@@ -395,44 +507,6 @@ const KitchenReport = () => {
                 )}
               </div>
             ))
-          )}
-
-          <h4 className="ord-section-title">Pergerakan barang</h4>
-          {report.movement.length === 0 ? (
-            <div className="ord-line muted">Belum ada produksi, barang masuk, atau kiriman.</div>
-          ) : (
-            <div className="stk-table-wrap">
-              <table className="stk-table">
-                <thead>
-                  <tr>
-                    <th>Produk</th><th className="num">Produksi</th><th className="num">Masuk</th>
-                    <th className="num">Retur</th><th className="num">Dikirim</th><th className="num">Reseller</th>
-                  </tr>
-                </thead>
-                {groupByCategory(report.movement).map((g) => (
-                  <tbody key={g.category}>
-                    <tr className="stk-group">
-                      <td>{g.category}</td>
-                      <td className="num">{g.items.reduce((s, m) => s + m.produced, 0) || ''}</td>
-                      <td className="num">{g.items.reduce((s, m) => s + m.bought, 0) || ''}</td>
-                      <td className="num">{g.items.reduce((s, m) => s + (m.returned || 0), 0) || ''}</td>
-                      <td className="num">{g.items.reduce((s, m) => s + m.shipped, 0)}</td>
-                      <td className="num">{g.items.reduce((s, m) => s + (m.resold || 0), 0) || ''}</td>
-                    </tr>
-                    {g.items.map((m) => (
-                      <tr key={m.productId}>
-                        <td>{m.name}</td>
-                        <td className="num">{m.produced || ''}</td>
-                        <td className="num">{m.bought || ''}</td>
-                        <td className="num">{m.returned || ''}</td>
-                        <td className="num">{m.shipped}</td>
-                        <td className="num">{m.resold || ''}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                ))}
-              </table>
-            </div>
           )}
         </>
       )}
