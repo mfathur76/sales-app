@@ -65,6 +65,7 @@ export const kitchenApi = {
   listEntries: (from, to) => request(`/stock/kitchen/entries${query({ from, to })}`),
   // kind: 'produksi' | 'masuk'; lines: [{ productId, qty }]
   createEntry: (data) => request('/stock/kitchen/entries', { method: 'POST', body: JSON.stringify(data) }),
+  updateEntry: (id, data) => request(`/stock/kitchen/entries/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   removeEntry: (id) => request(`/stock/kitchen/entries/${id}`, { method: 'DELETE' }),
   getCount: (date) => request(`/stock/kitchen/count${query({ date })}`),
   saveCount: (date, lines) => request('/stock/kitchen/count', { method: 'PUT', body: JSON.stringify({ date, lines }) }),

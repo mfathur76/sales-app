@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { productApi, kitchenApi, groupByCategory } from '../api/stockApi';
 import { localDate, formatDay, formatRupiah } from '../api/orderApi';
 import QtyInput from './QtyInput';
@@ -10,16 +10,29 @@ const ENTRY_KIND = {
   masuk: { label: 'Beli Jadi Datang', icon: '📥', productKind: 'beli_jadi' }
 };
 
-/** Record the kitchen's own production, or bought-in goods arriving from a supplier. */
-const EntryForm = ({ products, onSaved }) => {
-  const [kind, setKind] = useState('produksi');
-  const [date, setDate] = useState(localDate());
-  const [notes, setNotes] = useState('');
-  const [qty, setQty] = useState({});
+/**
+ * Record the kitchen's own production, or bought-in goods arriving from a supplier.
+ * With `entry` it edits that record instead; remount it (via `key`) to switch records.
+ */
+const EntryForm = ({ products, entry, onSaved, onCancel }) => {
+  const [kind, setKind] = useState(entry?.kind ?? 'produksi');
+  const [date, setDate] = useState(entry?.date ?? localDate());
+  const [notes, setNotes] = useState(entry?.notes ?? '');
+  const [qty, setQty] = useState(() => Object.fromEntries((entry?.lines ?? []).map((l) => [l.productId, l.qty])));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const formRef = useRef(null);
 
-  const list = products.filter((p) => p.kind === ENTRY_KIND[kind].productKind);
+  useEffect(() => {
+    if (entry) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [entry]);
+
+  const known = products.filter((p) => p.kind === ENTRY_KIND[kind].productKind);
+  // Lines whose product was deactivated or changed kind must stay visible, or saving would drop them
+  const others = (entry?.lines ?? [])
+    .filter((l) => !known.some((p) => p.id === l.productId))
+    .map((l) => ({ id: l.productId, name: l.name, category: 'Lainnya di catatan ini' }));
+  const list = [...known, ...others];
   const total = list.reduce((s, p) => s + (qty[p.id] || 0), 0);
 
   const switchKind = (k) => {
@@ -37,6 +50,11 @@ const EntryForm = ({ products, onSaved }) => {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
+      if (entry) {
+        await kitchenApi.updateEntry(entry.id, { date, lines, notes });
+        onSaved(`${ENTRY_KIND[kind].label} ${formatDay(date)} diperbarui: ${total} pcs`);
+        return;
+      }
       await kitchenApi.createEntry({ kind, date, lines, notes });
       setQty({});
       setNotes('');
@@ -50,14 +68,18 @@ const EntryForm = ({ products, onSaved }) => {
   };
 
   return (
-    <form className="ord-form" onSubmit={submit}>
-      <div className="ord-toggle">
-        {Object.entries(ENTRY_KIND).map(([k, v]) => (
-          <button type="button" key={k} className={kind === k ? 'active' : ''} onClick={() => switchKind(k)}>
-            {v.icon} {v.label}
-          </button>
-        ))}
-      </div>
+    <form className="ord-form" onSubmit={submit} ref={formRef}>
+      {entry ? (
+        <h4 className="ord-section-title">✏️ Edit {ENTRY_KIND[kind].label}</h4>
+      ) : (
+        <div className="ord-toggle">
+          {Object.entries(ENTRY_KIND).map(([k, v]) => (
+            <button type="button" key={k} className={kind === k ? 'active' : ''} onClick={() => switchKind(k)}>
+              {v.icon} {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <label className="ord-field">
         <span>Tanggal</span>
@@ -100,25 +122,31 @@ const EntryForm = ({ products, onSaved }) => {
       <div className="stk-sticky-bar">
         {message.text && <div className={`ord-alert ${message.type === 'error' ? 'error' : 'success'}`}>{message.text}</div>}
         <span><strong>{total}</strong> pcs</span>
+        {entry && (
+          <button type="button" className="ord-btn ghost" onClick={onCancel} disabled={saving}>Batal</button>
+        )}
         <button type="submit" className="ord-btn primary" disabled={saving || list.length === 0}>
-          {saving ? 'Menyimpan...' : '💾 Simpan'}
+          {saving ? 'Menyimpan...' : entry ? '💾 Simpan Perubahan' : '💾 Simpan'}
         </button>
       </div>
     </form>
   );
 };
 
-const RecentEntries = ({ refreshKey, isAdmin }) => {
+const RecentEntries = ({ refreshKey, isAdmin, editingId, onEdit }) => {
+  const [from, setFrom] = useState(localDate(-14));
+  const [to, setTo] = useState(localDate());
   const [entries, setEntries] = useState([]);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
-      setEntries(await kitchenApi.listEntries(localDate(-14)));
+      setError('');
+      setEntries(await kitchenApi.listEntries(from, to));
     } catch (err) {
       setError(err.message);
     }
-  }, []);
+  }, [from, to]);
 
   useEffect(() => { load(); }, [load, refreshKey]);
 
@@ -135,10 +163,14 @@ const RecentEntries = ({ refreshKey, isAdmin }) => {
 
   return (
     <div>
-      <h4 className="ord-section-title">Catatan 14 hari terakhir</h4>
+      <h4 className="ord-section-title">Riwayat catatan</h4>
+      <div className="ord-toolbar">
+        <input type="date" value={from} aria-label="Dari tanggal" onChange={(e) => setFrom(e.target.value)} />
+        <input type="date" value={to} aria-label="Sampai tanggal" onChange={(e) => setTo(e.target.value)} />
+      </div>
       {error && <div className="ord-alert error">{error}</div>}
       {entries.length === 0 ? (
-        <div className="ord-line muted">Belum ada catatan.</div>
+        <div className="ord-line muted">Tidak ada catatan di rentang tanggal ini.</div>
       ) : (
         <div className="ord-list">
           {entries.map((e) => (
@@ -151,15 +183,21 @@ const RecentEntries = ({ refreshKey, isAdmin }) => {
               {e.notes && <div className="ord-line muted small">📝 {e.notes}</div>}
               <div className="ord-row-between">
                 <span className="muted small">{e.lines.reduce((s, l) => s + l.qty, 0)} pcs{e.createdBy ? ` · ${e.createdBy}` : ''}</span>
-                <button className="ord-btn ghost small" onClick={() => remove(e)} title={isAdmin ? '' : 'Catatan yang sudah tercakup opname hanya bisa dihapus admin'}>
-                  🗑️ Hapus
-                </button>
+                <span>
+                  <button className="ord-btn ghost small" onClick={() => onEdit(e)} disabled={e.id === editingId} title={isAdmin ? '' : 'Catatan yang sudah tercakup opname hanya bisa diubah admin'}>
+                    ✏️ Edit
+                  </button>
+                  {' '}
+                  <button className="ord-btn ghost small" onClick={() => remove(e)} disabled={e.id === editingId} title={isAdmin ? '' : 'Catatan yang sudah tercakup opname hanya bisa dihapus admin'}>
+                    🗑️ Hapus
+                  </button>
+                </span>
               </div>
             </div>
           ))}
         </div>
       )}
-      <p className="ord-line muted small">Salah input? Hapus lalu catat ulang.</p>
+      <p className="ord-line muted small">Salah input? Ketuk Edit. Catatan lama bisa dicari lewat rentang tanggal di atas.</p>
     </div>
   );
 };
@@ -525,6 +563,8 @@ const KitchenStock = ({ isAdmin = false }) => {
   const [view, setView] = useState('catat');
   const [products, setProducts] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editing, setEditing] = useState(null);
+  const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -547,8 +587,27 @@ const KitchenStock = ({ isAdmin = false }) => {
 
       {view === 'catat' && (
         <>
-          <EntryForm products={products} onSaved={() => setRefreshKey((k) => k + 1)} />
-          <RecentEntries refreshKey={refreshKey} isAdmin={isAdmin} />
+          {notice && <div className="ord-alert success">{notice}</div>}
+          <EntryForm
+            key={editing?.id ?? 'new'}
+            products={products}
+            entry={editing}
+            onSaved={(text = '') => {
+              setNotice(text);
+              setEditing(null);
+              setRefreshKey((k) => k + 1);
+            }}
+            onCancel={() => setEditing(null)}
+          />
+          <RecentEntries
+            refreshKey={refreshKey}
+            isAdmin={isAdmin}
+            editingId={editing?.id}
+            onEdit={(e) => {
+              setNotice('');
+              setEditing(e);
+            }}
+          />
         </>
       )}
       {view === 'stok' && <KitchenCount />}

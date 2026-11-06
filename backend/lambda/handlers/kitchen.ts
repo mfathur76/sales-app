@@ -49,19 +49,21 @@ export async function resolveKitchen(user: JwtUser | null, requested?: string): 
   return codes[0];
 }
 
-async function parseLines(lines: unknown): Promise<string | KitchenEntryLine[]> {
+/** `existing`: lines already on the entry being edited, which may keep a product deactivated since. */
+async function parseLines(lines: unknown, existing: KitchenEntryLine[] = []): Promise<string | KitchenEntryLine[]> {
   if (!Array.isArray(lines)) return 'Daftar barang wajib diisi';
   const products = new Map((await listProducts()).map((p) => [p.id, p]));
+  const existingById = new Map(existing.map((l) => [l.productId, l]));
   const out: KitchenEntryLine[] = [];
   const seen = new Set<string>();
   for (const l of lines as any[]) {
     if (!isQty(l?.qty)) return 'Jumlah harus bilangan bulat 0 atau lebih';
     if (l.qty === 0) continue;
-    const p = products.get(l.productId);
+    const p = products.get(l.productId) ?? existingById.get(l.productId);
     if (!p) return 'Produk tidak ditemukan atau sudah tidak aktif';
-    if (seen.has(p.id)) return `Produk ${p.name} tercantum dua kali`;
-    seen.add(p.id);
-    out.push({ productId: p.id, name: p.name, qty: l.qty });
+    if (seen.has(l.productId)) return `Produk ${p.name} tercantum dua kali`;
+    seen.add(l.productId);
+    out.push({ productId: l.productId, name: p.name, qty: l.qty });
   }
   if (out.length === 0) return 'Isi minimal satu barang';
   return out;
@@ -135,7 +137,7 @@ export async function updateEntryHandler(event: APIGatewayProxyEvent): Promise<A
 
     let lines;
     if (body.lines !== undefined) {
-      lines = await parseLines(body.lines);
+      lines = await parseLines(body.lines, existing.lines);
       if (typeof lines === 'string') return badRequest(lines);
     }
 
